@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import api from "@/lib/api";
 import { Client, CloserStat, CommissionRule, CommissionType } from "@/types";
 import { cn, getInitials } from "@/lib/utils";
+import { useToast } from "@/context/ToastContext";
 import { useCrmCurrency } from "@/context/CrmCurrencyContext";
 import {
   BarChart,
@@ -31,6 +32,7 @@ const RANK_COLORS = ["#f59e0b", "#94a3b8", "#92400e", "#6366f1", "#10b981"];
 export default function Closers() {
   const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
+  const { toast } = useToast();
   const [view, setView] = useState<"performance" | "team">("performance");
   const [closers, setClosers] = useState<CloserStat[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -62,6 +64,9 @@ export default function Closers() {
             (a.shippedFromConfirmedOrders ?? 0),
         ),
       );
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to load closers';
+      toast(msg, 'error');
     } finally {
       setLoading(false);
     }
