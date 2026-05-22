@@ -126,7 +126,7 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 -- client_kpi_configs
 CREATE TABLE IF NOT EXISTS "client_kpi_configs" (
     "id" TEXT NOT NULL,
-    "clientId" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL, 
     "metaToken" TEXT,
     "metaAdAccountId" TEXT, 
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
