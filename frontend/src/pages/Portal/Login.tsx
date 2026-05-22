@@ -1,12 +1,18 @@
 import { useState, FormEvent } from 'react';
 import { usePortalAuth } from '@/context/PortalAuthContext';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Globe } from 'lucide-react';
 import AuthLeftPanel from '@/components/AuthLeftPanel';
 import logo from '@/assets/png.png';
 import { useTranslation } from 'react-i18next';
 
+const LANGUAGES = [
+  { code: 'en', label: 'EN', full: 'English' },
+  { code: 'fr', label: 'FR', full: 'Français' },
+  { code: 'ar', label: 'AR', full: 'العربية' },
+];
+
 export default function PortalLogin() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { login } = usePortalAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,7 +47,26 @@ export default function PortalLogin() {
       />
 
       {/* Right login panel */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#060b18]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#060b18] relative">
+        {/* Language switcher */}
+        <div className="absolute top-5 right-6 flex items-center gap-1">
+          <Globe className="w-4 h-4 text-slate-500 mr-1" />
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => i18n.changeLanguage(lang.code)}
+              title={lang.full}
+              className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
+                i18n.language === lang.code
+                  ? 'bg-amber-500 text-white'
+                  : 'text-slate-500 hover:text-amber-400'
+              }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
+
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center mb-8">
             <img src={logo} alt={t('auth.stallionAlt')} className="h-32 w-auto object-contain" />

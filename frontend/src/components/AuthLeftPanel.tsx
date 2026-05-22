@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import logo from '@/assets/png.png';
 import { useTranslation } from 'react-i18next';
-
-const DASHBOARD_PREVIEW = '/images/dashboard-preview.png';
+import { TrendingUp, Users, DollarSign, Zap } from 'lucide-react';
 
 type AuthLeftPanelProps = {
   eyebrow?: string;
@@ -70,14 +69,99 @@ export default function AuthLeftPanel({
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/90" />
                   <span className="ml-2 flex-1 h-5 rounded-md bg-slate-700/60 border border-slate-600/50" />
                 </div>
-                <div className="relative aspect-[16/10] bg-slate-950 overflow-hidden">
-                  <img
-                    src={DASHBOARD_PREVIEW}
-                    alt={t('auth.dashboardPreviewAlt')}
-                    className="w-full h-full object-cover object-top"
-                    loading="eager"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none" />
+                {/* Mini dashboard preview */}
+                <div className="bg-white p-3 text-[10px] select-none">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div>
+                      <p className="font-bold text-slate-800 text-[11px]">CEO Dashboard</p>
+                      <p className="text-slate-400 text-[9px]">Live Performance Overview</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500 text-white font-bold text-[8px]">MAD</span>
+                      <span className="px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 text-[8px]">USD</span>
+                      <div className="ml-1 text-right">
+                        <p className="text-[8px] text-slate-400">Annual Run Rate</p>
+                        <p className="font-bold text-amber-500 text-[10px]">1.2M MAD</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metric cards row 1 */}
+                  <div className="grid grid-cols-4 gap-1.5 mb-1.5">
+                    {[
+                      { icon: DollarSign, label: 'Monthly Revenue', value: '98,400 MAD', sub: '↑ 24.3%', green: true },
+                      { icon: Users,      label: 'Active Clients',  value: '18',         sub: '3 new this month', green: false },
+                      { icon: TrendingUp, label: 'Profit Margin',   value: '38%',        sub: '↑ 6pts',  green: true },
+                      { icon: Zap,        label: 'Lead Conv.',      value: '62%',        sub: '↑ 12pts', green: true },
+                    ].map(({ icon: Icon, label, value, sub, green }) => (
+                      <div key={label} className="bg-slate-50 rounded-lg p-1.5 border border-slate-100">
+                        <div className="flex items-center gap-0.5 mb-0.5">
+                          <Icon className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                          <p className="text-slate-400 leading-none" style={{ fontSize: '7px' }}>{label}</p>
+                        </div>
+                        <p className="font-bold text-slate-800 leading-tight text-[9px]">{value}</p>
+                        <p className={`leading-none mt-0.5 font-medium ${green ? 'text-emerald-500' : 'text-slate-400'}`} style={{ fontSize: '7px' }}>{sub}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Row 2 summary strip */}
+                  <div className="grid grid-cols-3 gap-1.5 mb-2">
+                    {[
+                      { label: 'Yearly Revenue', value: '842,000 MAD', color: 'text-emerald-600' },
+                      { label: 'Monthly Profit',  value: '+31,200 MAD',  color: 'text-emerald-600' },
+                      { label: 'Client Retention', value: '94%',         color: 'text-emerald-600' },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5">
+                        <p className="text-slate-400 leading-none mb-0.5" style={{ fontSize: '7px' }}>{label}</p>
+                        <p className={`font-bold ${color} text-[9px]`}>{value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Chart bars + performance indicators side by side */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Mini bar chart */}
+                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                      <p className="text-slate-500 font-semibold mb-1.5 text-[8px]">Revenue vs Expenses</p>
+                      <div className="flex items-end gap-1 h-10">
+                        {[40, 55, 48, 65, 72, 68, 85, 90, 88, 95, 92, 98].map((h, i) => (
+                          <div key={i} className="flex-1 flex flex-col gap-0.5 items-center">
+                            <div className="w-full rounded-t-sm bg-emerald-400/80" style={{ height: `${h * 0.4}px` }} />
+                            <div className="w-full rounded-t-sm bg-red-300/60" style={{ height: `${(100 - h) * 0.18}px` }} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <span className="flex items-center gap-0.5" style={{ fontSize: '6px' }}><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> Revenue</span>
+                        <span className="flex items-center gap-0.5" style={{ fontSize: '6px' }}><span className="w-1.5 h-1.5 rounded-full bg-red-300 inline-block" /> Expenses</span>
+                      </div>
+                    </div>
+
+                    {/* Performance indicators */}
+                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                      <p className="text-slate-500 font-semibold mb-1.5 text-[8px]">Performance</p>
+                      <div className="space-y-1.5">
+                        {[
+                          { label: 'Profit Margin',    pct: 38, color: 'bg-emerald-500' },
+                          { label: 'Client Retention', pct: 94, color: 'bg-emerald-500' },
+                          { label: 'Lead Conversion',  pct: 62, color: 'bg-emerald-400' },
+                          { label: 'Team Productivity',pct: 81, color: 'bg-emerald-400' },
+                        ].map(({ label, pct, color }) => (
+                          <div key={label}>
+                            <div className="flex justify-between mb-0.5">
+                              <span className="text-slate-500" style={{ fontSize: '7px' }}>{label}</span>
+                              <span className="text-emerald-600 font-bold" style={{ fontSize: '7px' }}>{pct}%</span>
+                            </div>
+                            <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
