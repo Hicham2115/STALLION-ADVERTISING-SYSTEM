@@ -19,7 +19,9 @@
     "settings": "Paramètres",
     "portalClients": "Clients Portail",
     "profile": "Mon Profil",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "services": "Services",
+    "administration": "Administration"
   },
   "header": {
     "welcomeBack": "Bienvenue,",

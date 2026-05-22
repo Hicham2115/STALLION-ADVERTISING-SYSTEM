@@ -124,10 +124,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">
-              Administration
+              {t('nav.administration')}
             </div>
             <NavItem to="/team" icon={UserCog} label={t('nav.team')} onClick={onClose} />
-            <NavItem to="/settings/services" icon={Layers} label="Services" onClick={onClose} />
+            <NavItem to="/settings/services" icon={Layers} label={t('nav.services')} onClick={onClose} />
             <NavItem to="/portal-admin" icon={Globe} label={t('nav.portalClients')} onClick={onClose} />
           </>
         )}

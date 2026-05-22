@@ -19,7 +19,9 @@
     "settings": "الإعدادات",
     "portalClients": "عملاء البوابة",
     "profile": "ملفي الشخصي",
-    "signOut": "تسجيل الخروج"
+    "signOut": "تسجيل الخروج",
+    "services": "الخدمات",
+    "administration": "الإدارة"
   },
   "header": {
     "welcomeBack": "مرحباً،",

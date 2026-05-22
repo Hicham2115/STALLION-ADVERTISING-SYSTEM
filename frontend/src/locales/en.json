@@ -19,7 +19,9 @@
     "settings": "Settings",
     "portalClients": "Portal Clients",
     "profile": "My Profile",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "services": "Services",
+    "administration": "Administration"
   },
   "header": {
     "welcomeBack": "Welcome back,",
