@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS "client_kpi_configs" (
     "id" TEXT NOT NULL,
     "clientId" TEXT NOT NULL,
     "metaToken" TEXT,
-    "metaAdAccountId" TEXT,
+    "metaAdAccountId" TEXT, 
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "client_kpi_configs_pkey" PRIMARY KEY ("id")
 );
