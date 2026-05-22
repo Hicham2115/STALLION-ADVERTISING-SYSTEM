@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Search, UserPlus, MoreVertical, Edit, KeyRound, ShieldOff,
   ShieldCheck, Trash2, ChevronLeft, ChevronRight, RefreshCw,
-  Users, UserCheck, UserX, Shield,
+  Users, UserCheck, UserX, Shield, Star,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { User, Role, UsersResponse } from '@/types';
@@ -137,6 +137,16 @@ export default function TeamManagement() {
     await api.post(`/users/${user.id}/activate`);
     toast(t('team.userActivated', { name: user.name }));
     fetchUsers();
+  }
+
+  async function handleToggleCloser(user: User) {
+    try {
+      await api.put(`/users/${user.id}/toggle-closer`);
+      toast(user.isCloser ? `${user.name} removed as closer` : `${user.name} marked as closer`);
+      fetchUsers();
+    } catch {
+      toast('Failed to update closer status', 'error');
+    }
   }
 
   async function handleDelete(user: User) {
@@ -369,6 +379,18 @@ export default function TeamManagement() {
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                 >
                                   <KeyRound className="w-4 h-4 text-slate-400" /> {t('team.resetPassword')}
+                                </button>
+                                <button
+                                  onClick={() => { handleToggleCloser(u); setOpenMenu(null); }}
+                                  className={cn(
+                                    'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                                    u.isCloser
+                                      ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700',
+                                  )}
+                                >
+                                  <Star className={cn('w-4 h-4', u.isCloser ? 'fill-amber-500 text-amber-500' : 'text-slate-400')} />
+                                  {u.isCloser ? 'Remove as Closer' : 'Mark as Closer'}
                                 </button>
                                 <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
                                 {u.suspended ? (

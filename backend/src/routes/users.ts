@@ -19,6 +19,7 @@ const USER_SELECT = {
   phone: true,
   active: true,
   suspended: true,
+  isCloser: true,
   lastLogin: true,
   createdAt: true,
 } as const;
