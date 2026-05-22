@@ -50,10 +50,12 @@ export default function PortalDashboardPage() {
   const { fmt } = usePortalCurrency();
   const [data, setData] = useState<PortalDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
 
   useEffect(() => {
     setLoading(true);
+    setError('');
     const params = new URLSearchParams();
     if (selectedMonth) {
       const month = monthOptions().find(m => m.key === selectedMonth);
@@ -61,6 +63,8 @@ export default function PortalDashboardPage() {
     }
     portalApi.get<PortalDashboard>(`/dashboard?${params.toString()}`).then(({ data: d }) => {
       setData(d);
+    }).catch(() => {
+      setError('Failed to load dashboard. Please try refreshing.');
     }).finally(() => setLoading(false));
   }, [selectedMonth]);
 
@@ -68,6 +72,15 @@ export default function PortalDashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button onClick={() => setSelectedMonth(s => s)} className="text-amber-400 text-sm underline">Retry</button>
       </div>
     );
   }

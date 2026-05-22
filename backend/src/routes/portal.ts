@@ -7,6 +7,13 @@ import { getRatesCache } from "../lib/currency";
 
 const router = Router();
 
+// Wrap async route handlers so unhandled promise rejections return 500 instead of hanging
+const wrap = (fn: Function) => (req: any, res: any, next: any) =>
+  Promise.resolve(fn(req, res, next)).catch((err) => {
+    console.error(`[portal] unhandled error on ${req.method} ${req.path}:`, err?.message ?? err);
+    if (!res.headersSent) res.status(500).json({ message: "Internal server error" });
+  });
+
 function getPresetRange(datePreset: string) {
   const days =
     datePreset === "today"
@@ -205,64 +212,69 @@ router.get(
   "/dashboard",
   portalAuthenticate,
   async (req: PortalRequest, res: Response): Promise<void> => {
-    const { clientId, clientPortalUserId } = req.portalUser!;
-    const { from, to } = req.query as { from?: string; to?: string };
+    try {
+      const { clientId, clientPortalUserId } = req.portalUser!;
+      const { from, to } = req.query as { from?: string; to?: string };
 
-    const dateFilter: Record<string, Date> = {};
-    if (from) { const d = new Date(from); d.setHours(0,0,0,0); dateFilter.gte = d; }
-    if (to)   { const d = new Date(to);   d.setHours(23,59,59,999); dateFilter.lte = d; }
-    const hasDateFilter = Object.keys(dateFilter).length > 0;
+      const dateFilter: Record<string, Date> = {};
+      if (from) { const d = new Date(from); d.setHours(0,0,0,0); dateFilter.gte = d; }
+      if (to)   { const d = new Date(to);   d.setHours(23,59,59,999); dateFilter.lte = d; }
+      const hasDateFilter = Object.keys(dateFilter).length > 0;
 
-    const [client, recentPayments, filteredPayments, recentUpdates, pendingApprovals, unreadCount] =
-      await Promise.all([
-        prisma.client.findUnique({ where: { id: clientId } }),
-        prisma.payment.findMany({
-          where: { clientId },
-          orderBy: { date: "desc" },
-          take: 3,
-        }),
-        prisma.payment.findMany({
-          where: {
-            clientId,
-            ...(hasDateFilter ? { date: dateFilter } : {}),
-          },
-          orderBy: { date: "desc" },
-        }),
-        prisma.projectUpdate.findMany({
-          where: { clientId },
-          include: {
-            postedBy: { select: { name: true, avatar: true } },
-            _count: { select: { comments: true } },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 4,
-        }),
-        prisma.contentDelivery.count({
-          where: { clientId, status: "WAITING_APPROVAL" },
-        }),
-        prisma.clientNotification.count({
-          where: { clientPortalUserId, read: false },
-        }),
-      ]);
+      const [client, recentPayments, filteredPayments, recentUpdates, pendingApprovals, unreadCount] =
+        await Promise.all([
+          prisma.client.findUnique({ where: { id: clientId } }),
+          prisma.payment.findMany({
+            where: { clientId },
+            orderBy: { date: "desc" },
+            take: 3,
+          }),
+          prisma.payment.findMany({
+            where: {
+              clientId,
+              ...(hasDateFilter ? { date: dateFilter } : {}),
+            },
+            orderBy: { date: "desc" },
+          }),
+          prisma.projectUpdate.findMany({
+            where: { clientId },
+            include: {
+              postedBy: { select: { name: true, avatar: true } },
+              _count: { select: { comments: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 4,
+          }),
+          prisma.contentDelivery.count({
+            where: { clientId, status: "WAITING_APPROVAL" },
+          }),
+          prisma.clientNotification.count({
+            where: { clientPortalUserId, read: false },
+          }),
+        ]);
 
-    const paidTotal = filteredPayments
-      .filter((p) => p.status === "PAID")
-      .reduce((s, p) => s + p.amount, 0);
-    const pendingPayments = filteredPayments.filter((p) =>
-      ["PENDING", "OVERDUE"].includes(p.status),
-    );
-    const pendingAmount = pendingPayments.reduce((s, p) => s + p.amount, 0);
+      const paidTotal = filteredPayments
+        .filter((p) => p.status === "PAID")
+        .reduce((s, p) => s + p.amount, 0);
+      const pendingPayments = filteredPayments.filter((p) =>
+        ["PENDING", "OVERDUE"].includes(p.status),
+      );
+      const pendingAmount = pendingPayments.reduce((s, p) => s + p.amount, 0);
 
-    res.json({
-      client,
-      recentPayments,
-      paidTotal,
-      pendingInvoices: pendingPayments.length,
-      pendingAmount,
-      recentUpdates,
-      unreadNotifications: unreadCount,
-      pendingApprovals,
-    });
+      res.json({
+        client,
+        recentPayments,
+        paidTotal,
+        pendingInvoices: pendingPayments.length,
+        pendingAmount,
+        recentUpdates,
+        unreadNotifications: unreadCount,
+        pendingApprovals,
+      });
+    } catch (err) {
+      console.error("Portal /dashboard error:", err);
+      res.status(500).json({ message: "Failed to load dashboard" });
+    }
   },
 );
 
