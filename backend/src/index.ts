@@ -80,12 +80,15 @@ app.use('/api/crm', crmRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-httpServer.listen(PORT, async () => {
+httpServer.listen(PORT, () => {
   console.log(`\n🐎 Stallion API running on port ${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV}`);
   console.log(`   Health: http://localhost:${PORT}/health\n`);
-  await loadRatesFromDB();
-  await syncRates();
+  // Run non-blocking — do not await, never block the event loop or exhaust the DB pool at startup
+  loadRatesFromDB().catch((e) => console.warn('[startup] loadRatesFromDB failed:', e.message));
+  setTimeout(() => {
+    syncRates().catch((e) => console.warn('[startup] syncRates failed:', e.message));
+  }, 5000);
   // Sync exchange rates every 6 hours
   cronSchedule('0 */6 * * *', () => { syncRates(); });
 });
