@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="50" fill="#f59e0b"/>
+  <!-- Unicorn / horse head silhouette -->
+  <!-- Horn -->
+  <polygon points="58,8 54,32 62,32" fill="white"/>
+  <!-- Mane flowing back -->
+  <path d="M62,28 C72,24 80,30 78,42 C76,52 68,50 70,60 C72,68 66,72 62,68" fill="white" opacity="0.85"/>
+  <!-- Head -->
+  <ellipse cx="50" cy="48" rx="20" ry="22" fill="white"/>
+  <!-- Snout -->
+  <ellipse cx="40" cy="62" rx="10" ry="7" fill="white"/>
+  <!-- Nostril -->
+  <ellipse cx="37" cy="64" rx="2" ry="1.5" fill="#f59e0b"/>
+  <!-- Eye -->
+  <circle cx="46" cy="44" r="3.5" fill="#1e293b"/>
+  <circle cx="47" cy="43" r="1" fill="white"/>
+  <!-- Ear -->
+  <polygon points="62,30 68,20 72,32" fill="white"/>
+  <polygon points="64,30 68,23 70,31" fill="#f59e0b"/>
+</svg>
