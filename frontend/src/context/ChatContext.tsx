@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { ChatMessage, Channel, ChatUser } from '@/types';
 
-const API = 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
 
 interface TypingInfo { userId: string; name: string; channelId?: string; toUserId?: string; }
 
