@@ -7,7 +7,7 @@ import { Client, ClientCost, User } from '@/types';
 import { formatCurrency, formatDate, getServiceLabel, getStatusColor, cn } from '@/lib/utils';
 import ClientModal from './ClientModal';
 import DateSelector from '@/components/DateSelector';
-
+ 
 type Tab = 'overview' | 'costs' | 'closers';
 
 export default function ClientDetail() {
