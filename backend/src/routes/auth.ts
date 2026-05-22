@@ -191,7 +191,7 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
         avatar,
       },
       select: USER_PUBLIC_SELECT,
-    });
+    }) as any;
   } else {
     if (!user.active) {
       res.status(403).json({ message: 'Account is inactive' });
@@ -213,10 +213,10 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
         lastLogin: new Date(),
       },
       select: USER_PUBLIC_SELECT,
-    });
+    }) as any;
   }
 
-  const token = signToken({ userId: user.id, email: user.email, role: user.role });
+  const token = signToken({ userId: user!.id, email: user!.email, role: user!.role });
   res.json({ token, user });
 });
 
