@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /clients
+Disallow: /leads
+Disallow: /expenses
+Disallow: /payments
+Disallow: /team
+Disallow: /settings
+Disallow: /chat
+Disallow: /meetings
+Disallow: /crm
+Disallow: /portal/
+
+Sitemap: https://stallion-system-front.vercel.app/sitemap.xml
