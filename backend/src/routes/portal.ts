@@ -221,42 +221,28 @@ router.get(
       if (to)   { const d = new Date(to);   d.setHours(23,59,59,999); dateFilter.lte = d; }
       const hasDateFilter = Object.keys(dateFilter).length > 0;
 
+      const safe = <T>(p: Promise<T>, fallback: T): Promise<T> =>
+        p.catch((e) => { console.error("[dashboard] query failed:", e?.message); return fallback; });
+
       const [client, recentPayments, filteredPayments, recentUpdates, pendingApprovals, unreadCount] =
         await Promise.all([
-          prisma.client.findUnique({ where: { id: clientId } }),
-          prisma.payment.findMany({
+          safe(prisma.client.findUnique({ where: { id: clientId } }), null),
+          safe(prisma.payment.findMany({ where: { clientId }, orderBy: { date: "desc" }, take: 3 }), []),
+          safe(prisma.payment.findMany({ where: { clientId, ...(hasDateFilter ? { date: dateFilter } : {}) }, orderBy: { date: "desc" } }), []),
+          safe(prisma.projectUpdate.findMany({
             where: { clientId },
-            orderBy: { date: "desc" },
-            take: 3,
-          }),
-          prisma.payment.findMany({
-            where: {
-              clientId,
-              ...(hasDateFilter ? { date: dateFilter } : {}),
-            },
-            orderBy: { date: "desc" },
-          }),
-          prisma.projectUpdate.findMany({
-            where: { clientId },
-            include: {
-              postedBy: { select: { name: true, avatar: true } },
-              _count: { select: { comments: true } },
-            },
+            include: { postedBy: { select: { name: true, avatar: true } }, _count: { select: { comments: true } } },
             orderBy: { createdAt: "desc" },
             take: 4,
-          }),
-          prisma.contentDelivery.count({
-            where: { clientId, status: "WAITING_APPROVAL" },
-          }),
-          prisma.clientNotification.count({
-            where: { clientPortalUserId, read: false },
-          }),
+          }), []),
+          safe(prisma.contentDelivery.count({ where: { clientId, status: "WAITING_APPROVAL" } }), 0),
+          safe(prisma.clientNotification.count({ where: { clientPortalUserId, read: false } }), 0),
         ]);
 
-      const paidTotal = filteredPayments
+      const paidTotal = (filteredPayments as any[])
         .filter((p) => p.status === "PAID")
         .reduce((s, p) => s + p.amount, 0);
-      const pendingPayments = filteredPayments.filter((p) =>
+      const pendingPayments = (filteredPayments as any[]).filter((p) =>
         ["PENDING", "OVERDUE"].includes(p.status),
       );
       const pendingAmount = pendingPayments.reduce((s, p) => s + p.amount, 0);

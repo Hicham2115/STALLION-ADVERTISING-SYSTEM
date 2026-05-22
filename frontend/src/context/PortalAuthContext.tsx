@@ -3,7 +3,7 @@ import axios from 'axios';
 import { PortalUser } from '@/types';
 
 const portalApi = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/portal`,
+  baseURL: '/api/portal',
   headers: { 'Content-Type': 'application/json' },
 });
 
