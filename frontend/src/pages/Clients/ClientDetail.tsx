@@ -9,7 +9,7 @@ import ClientModal from './ClientModal';
 import DateSelector from '@/components/DateSelector';
  
 type Tab = 'overview' | 'costs' | 'closers';
-
+ 
 export default function ClientDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
