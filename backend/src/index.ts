@@ -27,6 +27,7 @@ import currencyRoutes from './routes/currency';
 import meetingRoutes from './routes/meetings';
 import crmRoutes from './routes/crm';
 import { initSocket } from './socket';
+import { prisma } from './lib/prisma';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { syncRates, loadRatesFromDB } from './lib/currency';
 import { schedule as cronSchedule } from 'node-cron';
@@ -58,6 +59,33 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// DB diagnostic
+app.get('/db-test', async (_req, res) => {
+  const results: Record<string, unknown> = {};
+  try {
+    const raw = await Promise.race([
+      prisma.$queryRaw`SELECT 1 as n`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout after 5s')), 5000)),
+    ]);
+    results.rawQuery = raw;
+  } catch (e: any) { results.rawQuery = { error: e.message }; }
+  try {
+    const count = await Promise.race([
+      prisma.user.count(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout after 5s')), 5000)),
+    ]);
+    results.count = count;
+  } catch (e: any) { results.count = { error: e.message }; }
+  try {
+    const find = await Promise.race([
+      prisma.user.findFirst(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout after 5s')), 5000)),
+    ]);
+    results.findFirst = find;
+  } catch (e: any) { results.findFirst = { error: e.message }; }
+  res.json(results);
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
