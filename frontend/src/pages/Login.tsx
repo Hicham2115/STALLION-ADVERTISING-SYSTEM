@@ -2,15 +2,21 @@ import { useState, FormEvent, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { DASHBOARD_PATH } from '@/lib/authRoutes';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Globe } from 'lucide-react';
 import logo from '@/assets/png.png';
 import AuthLeftPanel from '@/components/AuthLeftPanel';
 import { AuthDivider, GoogleAuthButton } from '@/components/ClerkAuth';
 import { isClerkEnabled } from '@/lib/clerk';
 import { useTranslation } from 'react-i18next';
 
+const LANGUAGES = [
+  { code: 'en', label: 'EN', full: 'English' },
+  { code: 'fr', label: 'FR', full: 'Français' },
+  { code: 'ar', label: 'AR', full: 'العربية' },
+];
+
 export default function Login() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -51,7 +57,26 @@ export default function Login() {
       />
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-[#0a0f1e]">
+      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-[#0a0f1e] relative">
+        {/* Language switcher */}
+        <div className="absolute top-5 right-6 flex items-center gap-1">
+          <Globe className="w-4 h-4 text-slate-400 mr-1" />
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => i18n.changeLanguage(lang.code)}
+              title={lang.full}
+              className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
+                i18n.language === lang.code
+                  ? 'bg-amber-500 text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400'
+              }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
+
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center mb-8">
             <img src={logo} alt={t('auth.stallionAlt')} className="h-32 w-auto object-contain" />
