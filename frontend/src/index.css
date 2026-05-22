@@ -14,7 +14,7 @@
     --primary-foreground: 255 255 255;
     --muted: 241 245 249;
     --muted-foreground: 100 116 139;
-    --accent: 30 58 138;
+    --accent: 30 58 138;   
     --radius: 0.5rem;
   }
   .dark {

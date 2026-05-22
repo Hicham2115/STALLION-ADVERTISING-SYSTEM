@@ -4,7 +4,16 @@
       "Bash(brew services *)",
       "Bash(/opt/homebrew/opt/postgresql@16/bin/pg_isready)",
       "Bash(/opt/homebrew/opt/postgresql@17/bin/pg_isready)",
-      "Bash(/opt/homebrew/bin/pg_isready)"
+      "Bash(/opt/homebrew/bin/pg_isready)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(curl -s \"https://stallion-advertising-system-production.up.railway.app/api/auth/setup-status\" -H \"Origin: https://stallion-system-front.vercel.app\" -v)",
+      "Bash(curl -s -X POST https://stallion-advertising-system-production.up.railway.app/api/auth/register -H 'Content-Type: application/json' -H 'Origin: https://stallion-system-front.vercel.app' -d '{\"name\":\"Test Admin\",\"email\":\"test@test.com\",\"password\":\"test1234\"}')",
+      "Bash(curl -s -X POST https://stallion-advertising-system-production.up.railway.app/api/auth/login -H 'Content-Type: application/json' -H 'Origin: https://stallion-system-front.vercel.app' -d '{\"email\":\"test@test.com\",\"password\":\"test1234\"}')",
+      "Bash(curl --max-time 10 -s -X POST https://stallion-advertising-system-production.up.railway.app/api/auth/register -H 'Content-Type: application/json' -d '{\"name\":\"Test Admin\",\"email\":\"testadmin@test.com\",\"password\":\"test1234\"}')"
     ]
   }
 }
