@@ -37,61 +37,9 @@ router.post("/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const portalUser = await prisma.clientPortalUser.findUnique({
-    where: { email: email.toLowerCase().trim() },
-    include: {
-      client: {
-        select: {
-          id: true,
-          name: true,
-          service: true,
-          monthlyFee: true,
-          status: true,
-          startDate: true,
-          contactPerson: true,
-          email: true,
-          preferredCurrency: true,
-        },
-      },
-    },
-  });
-
-  if (!portalUser || !portalUser.active) {
-    res.status(401).json({ message: "Invalid credentials" });
-    return;
-  }
-
-  const valid = await bcrypt.compare(password, portalUser.password);
-  if (!valid) {
-    res.status(401).json({ message: "Invalid credentials" });
-    return;
-  }
-
-  await prisma.clientPortalUser.update({
-    where: { id: portalUser.id },
-    data: { lastLogin: new Date() },
-  });
-
-  const token = jwt.sign(
-    {
-      clientPortalUserId: portalUser.id,
-      clientId: portalUser.clientId,
-      type: "portal",
-    },
-    process.env.JWT_SECRET!,
-    { expiresIn: "30d" },
-  );
-
-  const { password: _, ...safeUser } = portalUser;
-  res.json({ token, user: safeUser });
-});
-
-router.get(
-  "/me",
-  portalAuthenticate,
-  async (req: PortalRequest, res: Response): Promise<void> => {
+  try {
     const portalUser = await prisma.clientPortalUser.findUnique({
-      where: { id: req.portalUser!.clientPortalUserId },
+      where: { email: email.toLowerCase().trim() },
       include: {
         client: {
           select: {
@@ -108,12 +56,81 @@ router.get(
         },
       },
     });
+
     if (!portalUser) {
-      res.status(404).json({ message: "Not found" });
+      console.log("Portal login: user not found for email:", email.toLowerCase().trim());
+      res.status(401).json({ message: "Invalid credentials" });
       return;
     }
+    if (!portalUser.active) {
+      console.log("Portal login: account inactive for email:", email.toLowerCase().trim());
+      res.status(401).json({ message: "Invalid credentials" });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, portalUser.password);
+    if (!valid) {
+      console.log("Portal login: password mismatch for email:", email.toLowerCase().trim());
+      res.status(401).json({ message: "Invalid credentials" });
+      return;
+    }
+
+    await prisma.clientPortalUser.update({
+      where: { id: portalUser.id },
+      data: { lastLogin: new Date() },
+    });
+
+    const token = jwt.sign(
+      {
+        clientPortalUserId: portalUser.id,
+        clientId: portalUser.clientId,
+        type: "portal",
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "30d" },
+    );
+
     const { password: _, ...safeUser } = portalUser;
-    res.json(safeUser);
+    res.json({ token, user: safeUser });
+  } catch (err) {
+    console.error("Portal login error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get(
+  "/me",
+  portalAuthenticate,
+  async (req: PortalRequest, res: Response): Promise<void> => {
+    try {
+      const portalUser = await prisma.clientPortalUser.findUnique({
+        where: { id: req.portalUser!.clientPortalUserId },
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              service: true,
+              monthlyFee: true,
+              status: true,
+              startDate: true,
+              contactPerson: true,
+              email: true,
+              preferredCurrency: true,
+            },
+          },
+        },
+      });
+      if (!portalUser) {
+        res.status(404).json({ message: "Not found" });
+        return;
+      }
+      const { password: _, ...safeUser } = portalUser;
+      res.json(safeUser);
+    } catch (err) {
+      console.error("Portal /me error:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
   },
 );
 

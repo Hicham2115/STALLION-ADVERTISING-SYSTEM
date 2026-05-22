@@ -112,27 +112,32 @@ router.post(
       return;
     }
 
-    const existing = await prisma.clientPortalUser.findUnique({
-      where: { clientId: req.params.clientId },
-    });
-    if (existing) {
-      res
-        .status(409)
-        .json({ message: "Portal account already exists for this client" });
-      return;
-    }
+    try {
+      const existing = await prisma.clientPortalUser.findUnique({
+        where: { clientId: req.params.clientId },
+      });
+      if (existing) {
+        res
+          .status(409)
+          .json({ message: "Portal account already exists for this client" });
+        return;
+      }
 
-    const hashed = await bcrypt.hash(password, 10);
-    const portalUser = await prisma.clientPortalUser.create({
-      data: {
-        email: email.toLowerCase().trim(),
-        name,
-        password: hashed,
-        clientId: req.params.clientId,
-      },
-    });
-    const { password: _, ...safe } = portalUser;
-    res.status(201).json(safe);
+      const hashed = await bcrypt.hash(password, 10);
+      const portalUser = await prisma.clientPortalUser.create({
+        data: {
+          email: email.toLowerCase().trim(),
+          name,
+          password: hashed,
+          clientId: req.params.clientId,
+        },
+      });
+      const { password: _, ...safe } = portalUser;
+      res.status(201).json(safe);
+    } catch (err) {
+      console.error("Create portal account error:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
   },
 );
 
