@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, CalendarDays, List, Settings2, Layers3,
   Video, ChevronLeft, ChevronRight, Clock, CheckCircle2,
@@ -217,6 +218,7 @@ function CalendarView({ meetings }: { meetings: Meeting[] }) {
 }
 
 export default function Meetings() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('upcoming');
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +242,7 @@ export default function Meetings() {
   }, [tab, fetchMeetings]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this meeting?')) return;
+    if (!confirm(t('meetings.deleteConfirm'))) return;
     await api.delete(`/meetings/${id}`);
     setMeetings(m => m.filter(x => x.id !== id));
   };
@@ -258,11 +260,11 @@ export default function Meetings() {
   };
 
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'upcoming',     label: 'Upcoming',     icon: Clock },
-    { id: 'all',          label: 'All Meetings',  icon: List },
-    { id: 'calendar',     label: 'Calendar',      icon: CalendarDays },
-    { id: 'availability', label: 'Availability',  icon: Settings2 },
-    { id: 'types',        label: 'Meeting Types', icon: Layers3 },
+    { id: 'upcoming',     label: t('meetings.upcoming'),     icon: Clock },
+    { id: 'all',          label: t('meetings.allMeetings'),  icon: List },
+    { id: 'calendar',     label: t('meetings.calendar'),     icon: CalendarDays },
+    { id: 'availability', label: t('meetings.availability'), icon: Settings2 },
+    { id: 'types',        label: t('meetings.types'),        icon: Layers3 },
   ];
 
   return (
@@ -270,11 +272,11 @@ export default function Meetings() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Meetings</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Schedule and manage all meetings</p>
+          <h1 className="page-title">{t('meetings.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('meetings.subtitle')}</p>
         </div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Schedule Meeting
+          <Plus className="w-4 h-4" /> {t('meetings.schedule')}
         </button>
       </div>
 
@@ -282,10 +284,10 @@ export default function Meetings() {
       {(tab === 'upcoming' || tab === 'all') && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Scheduled', count: stats.scheduled, color: 'text-blue-600' },
-            { label: 'Confirmed', count: stats.confirmed,  color: 'text-emerald-600' },
-            { label: 'Completed', count: stats.completed,  color: 'text-slate-600' },
-            { label: 'Cancelled', count: stats.cancelled,  color: 'text-red-600' },
+            { label: t('meetings.statsScheduled'), count: stats.scheduled, color: 'text-blue-600' },
+            { label: t('meetings.statsConfirmed'), count: stats.confirmed,  color: 'text-emerald-600' },
+            { label: t('meetings.statsCompleted'), count: stats.completed,  color: 'text-slate-600' },
+            { label: t('meetings.statsCancelled'), count: stats.cancelled,  color: 'text-red-600' },
           ].map(s => (
             <div key={s.label} className="card p-4">
               <p className="text-xs text-slate-500 dark:text-slate-400">{s.label}</p>
@@ -326,7 +328,7 @@ export default function Meetings() {
           {tab === 'all' && (
             <div className="flex gap-2">
               <select className="select w-44 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                <option value="">All Statuses</option>
+                <option value="">{t('meetings.allStatuses')}</option>
                 {Object.entries(STATUS_CONFIG).map(([v, cfg]) => <option key={v} value={v}>{cfg.label}</option>)}
               </select>
             </div>
@@ -339,9 +341,9 @@ export default function Meetings() {
           ) : meetings.length === 0 ? (
             <div className="card p-12 text-center text-slate-400">
               <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No meetings found</p>
+              <p className="font-medium">{t('meetings.noMeetingsFound')}</p>
               <p className="text-sm mt-1">
-                {tab === 'upcoming' ? 'No upcoming meetings scheduled.' : 'No meetings match your filters.'}
+                {tab === 'upcoming' ? t('meetings.noUpcoming') : t('meetings.noMatchFilter')}
               </p>
             </div>
           ) : (

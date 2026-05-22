@@ -29,6 +29,10 @@
   }
   * { @apply border-slate-200 dark:border-slate-700; }
   body { @apply bg-slate-50 dark:bg-[#0a0f1e] text-slate-900 dark:text-slate-100; }
+  /* Arabic RTL — flip sidebar to right, reverse flex rows */
+  [dir="rtl"] .sidebar-rtl { right: 0; left: auto; }
+  [dir="rtl"] .lg\:relative { direction: rtl; }
+  [dir="rtl"] body { font-family: 'Segoe UI', 'Arial', sans-serif; }
 }
 
 @layer components {

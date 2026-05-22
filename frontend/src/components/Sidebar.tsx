@@ -18,26 +18,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 import logo from "../assets/png.png";
-
-const managerNav = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", exact: true },
-  { to: "/clients", icon: Users, label: "Clients" },
-  { to: "/revenue", icon: DollarSign, label: "Revenue" },
-  { to: "/expenses", icon: Receipt, label: "Expenses" },
-  { to: "/leads", icon: Target, label: "Leads" },
-];
-
-const allNav = [
-  { to: "/tasks", icon: CheckSquare, label: "Tasks" },
-  { to: "/my-orders", icon: Package, label: "My Orders" },
-  { to: "/meetings", icon: CalendarClock, label: "Meetings" },
-  { to: "/chat", icon: MessageSquare, label: "Team Chat" },
-];
-
-const crmNav = [
-  { to: "/crm", icon: ShoppingCart, label: "CRM & Orders" },
-];
 
 interface SidebarProps {
   open: boolean;
@@ -67,6 +49,26 @@ function NavItem({ to, icon: Icon, label, exact, onClick }: { to: string; icon: 
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { isAdmin, isManager } = useAuth();
+  const { t } = useTranslation();
+
+  const managerNav = [
+    { to: "/", icon: LayoutDashboard, label: t('nav.dashboard'), exact: true },
+    { to: "/clients", icon: Users, label: t('nav.clients') },
+    { to: "/revenue", icon: DollarSign, label: t('nav.revenue') },
+    { to: "/expenses", icon: Receipt, label: t('nav.expenses') },
+    { to: "/leads", icon: Target, label: t('nav.leads') },
+  ];
+
+  const allNav = [
+    { to: "/tasks", icon: CheckSquare, label: t('nav.tasks') },
+    { to: "/my-orders", icon: Package, label: t('nav.myOrders') },
+    { to: "/meetings", icon: CalendarClock, label: t('nav.meetings') },
+    { to: "/chat", icon: MessageSquare, label: t('nav.teamChat') },
+  ];
+
+  const crmNav = [
+    { to: "/crm", icon: ShoppingCart, label: t('nav.crm') },
+  ];
 
   return (
     <aside
@@ -110,7 +112,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {isManager && (
           <>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">
-              CRM & Orders
+              {t('nav.crm')}
             </div>
             {crmNav.map(({ to, icon, label }) => (
               <NavItem key={to} to={to} icon={icon} label={label} onClick={onClose} />
@@ -124,9 +126,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">
               Administration
             </div>
-            <NavItem to="/team" icon={UserCog} label="Team Management" onClick={onClose} />
+            <NavItem to="/team" icon={UserCog} label={t('nav.team')} onClick={onClose} />
             <NavItem to="/settings/services" icon={Layers} label="Services" onClick={onClose} />
-            <NavItem to="/portal-admin" icon={Globe} label="Client Portals" onClick={onClose} />
+            <NavItem to="/portal-admin" icon={Globe} label={t('nav.portalClients')} onClick={onClose} />
           </>
         )}
       </nav>

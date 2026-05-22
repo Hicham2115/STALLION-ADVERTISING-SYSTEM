@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Receipt } from "lucide-react";
 import { portalApi } from "@/context/PortalAuthContext";
 import { ClientCost } from "@/types";
@@ -24,6 +25,7 @@ function InputField({
 }
 
 export default function PortalCostsPage() {
+  const { t } = useTranslation();
   const { currency, fmt } = usePortalCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,9 +67,9 @@ export default function PortalCostsPage() {
   return (
     <div className="space-y-6 max-w-6xl">
       <div>
-        <h1 className="text-xl font-bold text-white">Costs</h1>
+        <h1 className="text-xl font-bold text-white">{t('portal.costs')}</h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          Add and track your costs
+          {t('portal.addAndTrackCosts')}
         </p>
       </div>
 
@@ -77,20 +79,20 @@ export default function PortalCostsPage() {
             <Receipt className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-white">Add Cost</div>
-            <div className="text-xs text-slate-500">Name, amount, and date</div>
+            <div className="text-sm font-semibold text-white">{t('portal.addCost')}</div>
+            <div className="text-xs text-slate-500">{t('portal.addCostDesc')}</div>
           </div>
         </div>
 
         <div className="grid sm:grid-cols-3 gap-3">
           <InputField
-            label="Cost Name"
-            placeholder="e.g. Ads, Tools, Freelancer"
+            label={t('portal.costName')}
+            placeholder={t('portal.costNamePlaceholder')}
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
           <InputField
-            label={`Amount (${currency})`}
+            label={`${t('portal.costAmount')} (${currency})`}
             type="number"
             step="0.01"
             placeholder="0"
@@ -98,7 +100,7 @@ export default function PortalCostsPage() {
             onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
           />
           <DateSelector
-            label="Date"
+            label={t('portal.costDate')}
             value={form.date}
             onChange={(date) => setForm((f) => ({ ...f, date }))}
             dark
@@ -116,20 +118,20 @@ export default function PortalCostsPage() {
           )}
         >
           <Plus className="w-4 h-4" />
-          {saving ? "Saving..." : "Add Cost"}
+          {saving ? t('portal.saving') : t('portal.addCost')}
         </button>
       </div>
 
       <div className="bg-[#0d1528]/80 border border-slate-800/60 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800/60">
           <h3 className="text-sm font-semibold text-white">
-            Saved Costs ({costs.length})
+            {t('portal.savedCosts')} ({costs.length})
           </h3>
         </div>
         <div className="divide-y divide-slate-800/50">
           {costs.length === 0 ? (
             <div className="px-5 py-6 text-center text-sm text-slate-500">
-              No costs yet
+              {t('portal.noCosts')}
             </div>
           ) : (
             costs.map((c) => (

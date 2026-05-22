@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import api from "@/lib/api";
 import { Task, TaskStatus, Priority, User, Client } from "@/types";
@@ -34,6 +35,7 @@ export default function TaskModal({
   clients,
   onSaved,
 }: Props) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -80,7 +82,7 @@ export default function TaskModal({
         tags: form.tags
           ? form.tags
               .split(",")
-              .map((t) => t.trim())
+              .map((t2) => t2.trim())
               .filter(Boolean)
           : [],
       };
@@ -92,7 +94,7 @@ export default function TaskModal({
       onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Something went wrong");
+      setError(err.response?.data?.message || t('common.somethingWentWrong'));
     } finally {
       setSaving(false);
     }
@@ -107,10 +109,24 @@ export default function TaskModal({
       onSaved();
       onClose();
     } catch (err: any) {
-      setDeleteError(err.response?.data?.message || "Failed to delete task");
+      setDeleteError(err.response?.data?.message || t('tasks.failedToDelete'));
     } finally {
       setDeleting(false);
     }
+  };
+
+  const PRIORITY_LABELS: Record<Priority, string> = {
+    LOW: t('tasks.low'),
+    MEDIUM: t('tasks.medium'),
+    HIGH: t('tasks.high'),
+    URGENT: t('tasks.urgent'),
+  };
+
+  const STATUS_LABELS: Record<TaskStatus, string> = {
+    TODO: t('tasks.todo'),
+    IN_PROGRESS: t('tasks.inProgress'),
+    REVIEW: t('tasks.review'),
+    COMPLETED: t('tasks.completed'),
   };
 
   return (
@@ -118,7 +134,7 @@ export default function TaskModal({
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {task ? "Edit Task" : "New Task"}
+            {task ? t('tasks.editTask') : t('tasks.newTask')}
           </h2>
           <button
             onClick={onClose}
@@ -129,34 +145,34 @@ export default function TaskModal({
         </div>
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-4">
           <div>
-            <label className="label">Title *</label>
+            <label className="label">{t('tasks.titleLabel')} *</label>
             <input
               className="input"
               required
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
-              placeholder="Task title"
+              placeholder={t('tasks.titlePlaceholder')}
             />
           </div>
           <div>
-            <label className="label">Description</label>
+            <label className="label">{t('common.description')}</label>
             <textarea
               className="input resize-none"
               rows={2}
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
-              placeholder="Details..."
+              placeholder={t('tasks.detailsPlaceholder')}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Assign To</label>
+              <label className="label">{t('tasks.assignTo')}</label>
               <select
                 className="select"
                 value={form.assignedToId}
                 onChange={(e) => set("assignedToId", e.target.value)}
               >
-                <option value="">Unassigned</option>
+                <option value="">{t('tasks.unassigned')}</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -165,13 +181,13 @@ export default function TaskModal({
               </select>
             </div>
             <div>
-              <label className="label">Client</label>
+              <label className="label">{t('tasks.client')}</label>
               <select
                 className="select"
                 value={form.clientId}
                 onChange={(e) => set("clientId", e.target.value)}
               >
-                <option value="">No client</option>
+                <option value="">{t('tasks.noClient')}</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -180,7 +196,7 @@ export default function TaskModal({
               </select>
             </div>
             <div>
-              <label className="label">Priority</label>
+              <label className="label">{t('tasks.priority')}</label>
               <select
                 className="select"
                 value={form.priority}
@@ -188,13 +204,13 @@ export default function TaskModal({
               >
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>
-                    {p}
+                    {PRIORITY_LABELS[p]}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="label">Status</label>
+              <label className="label">{t('tasks.status')}</label>
               <select
                 className="select"
                 value={form.status}
@@ -202,14 +218,14 @@ export default function TaskModal({
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s.replace("_", " ")}
+                    {STATUS_LABELS[s]}
                   </option>
                 ))}
               </select>
             </div>
           </div>
           <div>
-            <label className="label">Due Date</label>
+            <label className="label">{t('tasks.dueDate')}</label>
             <input
               className="input"
               type="date"
@@ -218,12 +234,12 @@ export default function TaskModal({
             />
           </div>
           <div>
-            <label className="label">Tags (comma-separated)</label>
+            <label className="label">{t('tasks.tagsLabel')}</label>
             <input
               className="input"
               value={form.tags}
               onChange={(e) => set("tags", e.target.value)}
-              placeholder="e.g. seo, content, urgent"
+              placeholder={t('tasks.tagsPlaceholder')}
             />
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -234,21 +250,21 @@ export default function TaskModal({
               onClick={() => setConfirmDeleteOpen(true)}
               className="text-sm text-red-500 hover:text-red-600 font-medium"
             >
-              Delete task
+              {t('tasks.deleteTask')}
             </button>
           ) : (
             <div />
           )}
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-secondary">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={(e) => handleSubmit(e as any)}
               disabled={saving}
               className="btn-primary"
             >
-              {saving ? "Saving..." : task ? "Save Changes" : "Create Task"}
+              {saving ? t('common.saving') : task ? t('tasks.saveChanges') : t('tasks.createTask')}
             </button>
           </div>
         </div>
@@ -263,9 +279,9 @@ export default function TaskModal({
           />
           <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h3 className="font-semibold text-slate-900 dark:text-white">
-              Delete task?
+              {t('tasks.deleteConfirmTitle')}
             </h3>
-            <p className="text-sm text-slate-500">This cannot be undone.</p>
+            <p className="text-sm text-slate-500">{t('common.cannotBeUndone')}</p>
             {deleteError && (
               <p className="text-sm text-red-500">{deleteError}</p>
             )}
@@ -275,14 +291,14 @@ export default function TaskModal({
                 disabled={deleting}
                 className="btn-secondary flex-1 text-center py-2 text-sm"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
                 className="flex-1 py-2 text-sm rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-60"
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
           </div>

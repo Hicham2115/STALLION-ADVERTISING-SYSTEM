@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search, UserPlus, MoreVertical, Edit, KeyRound, ShieldOff,
   ShieldCheck, Trash2, ChevronLeft, ChevronRight, RefreshCw,
@@ -10,12 +11,6 @@ import { useAuth } from '@/context/AuthContext';
 import { cn, getInitials, formatDate, formatRelativeTime } from '@/lib/utils';
 import UserModal from './UserModal';
 
-const ROLE_LABELS: Record<Role, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Admin',
-  MANAGER: 'Manager',
-  TEAM_MEMBER: 'Team Member',
-};
 
 const ROLE_COLORS: Record<Role, string> = {
   SUPER_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
@@ -34,7 +29,15 @@ type ConfirmAction = {
 };
 
 export default function TeamManagement() {
+  const { t } = useTranslation();
   const { user: me, isSuperAdmin, roleLevel } = useAuth();
+
+  const ROLE_LABELS: Record<Role, string> = {
+    SUPER_ADMIN: t('team.superAdmin'),
+    ADMIN: t('team.admin'),
+    MANAGER: t('team.manager'),
+    TEAM_MEMBER: t('team.teamMember'),
+  };
 
   const [data, setData] = useState<UsersResponse>({ users: [], total: 0, page: 1, pages: 1 });
   const [loading, setLoading] = useState(true);
@@ -67,7 +70,7 @@ export default function TeamManagement() {
       const { data: res } = await api.get<UsersResponse>(`/users?${params}`);
       setData(res);
     } catch {
-      toast('Failed to load users', 'error');
+      toast(t('team.failedLoad'), 'error');
     } finally {
       setLoading(false);
     }
@@ -102,29 +105,29 @@ export default function TeamManagement() {
         if (password) {
           await api.post(`/users/${modalUser.id}/reset-password`, { newPassword: password });
         }
-        toast('User updated successfully');
+        toast(t('team.userUpdated'));
       } else {
         await api.post('/users', payload);
-        toast('User created successfully');
+        toast(t('team.userCreated'));
       }
       setModalUser(undefined);
       fetchUsers();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast(msg || 'Failed to save user', 'error');
+      toast(msg || t('team.failedSave'), 'error');
       throw err;
     }
   }
 
   async function handleSuspend(user: User) {
     setConfirm({
-      title: 'Suspend Account',
-      message: `${user.name}'s account will be suspended. They won't be able to log in until reactivated.`,
-      confirmLabel: 'Suspend',
+      title: t('team.suspendTitle'),
+      message: t('team.suspendMessage', { name: user.name }),
+      confirmLabel: t('team.suspendConfirm'),
       danger: true,
       onConfirm: async () => {
         await api.post(`/users/${user.id}/suspend`);
-        toast(`${user.name} has been suspended`);
+        toast(t('team.userSuspended', { name: user.name }));
         fetchUsers();
       },
     });
@@ -132,19 +135,19 @@ export default function TeamManagement() {
 
   async function handleActivate(user: User) {
     await api.post(`/users/${user.id}/activate`);
-    toast(`${user.name} has been activated`);
+    toast(t('team.userActivated', { name: user.name }));
     fetchUsers();
   }
 
   async function handleDelete(user: User) {
     setConfirm({
-      title: 'Delete User',
-      message: `Permanently delete ${user.name}? This action cannot be undone.`,
-      confirmLabel: 'Delete',
+      title: t('team.deleteTitle'),
+      message: t('team.deleteMessage', { name: user.name }),
+      confirmLabel: t('team.deleteConfirm'),
       danger: true,
       onConfirm: async () => {
         await api.delete(`/users/${user.id}`);
-        toast(`${user.name} has been deleted`);
+        toast(t('team.userDeleted', { name: user.name }));
         fetchUsers();
       },
     });
@@ -157,11 +160,11 @@ export default function TeamManagement() {
         `/users/${resetModal.id}/reset-password`,
         { newPassword: newPwd || undefined },
       );
-      toast(`Password reset. Temp: ${res.tempPassword}`);
+      toast(`${t('team.resetPwdTitle')}: ${res.tempPassword}`);
       setResetModal(null);
       setNewPwd('');
     } catch {
-      toast('Failed to reset password', 'error');
+      toast(t('team.failedLoad'), 'error');
     }
   }
 
@@ -173,9 +176,9 @@ export default function TeamManagement() {
   };
 
   function userStatus(u: User) {
-    if (!u.active) return { label: 'Inactive', cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' };
-    if (u.suspended) return { label: 'Suspended', cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' };
-    return { label: 'Active', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' };
+    if (!u.active) return { label: t('team.inactive'), cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' };
+    if (u.suspended) return { label: t('team.suspended'), cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' };
+    return { label: t('team.active'), cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' };
   }
 
   return (
@@ -198,9 +201,9 @@ export default function TeamManagement() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Team Management</h1>
+          <h1 className="page-title">{t('team.title')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Manage team members, roles, and access permissions
+            {t('team.subtitle')}
           </p>
         </div>
         <button
@@ -208,17 +211,17 @@ export default function TeamManagement() {
           className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
         >
           <UserPlus className="w-4 h-4" />
-          Add User
+          {t('team.addUser')}
         </button>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: Users, label: 'Total Users', value: data.total, color: 'text-blue-500' },
-          { icon: UserCheck, label: 'Active', value: stats.active, color: 'text-emerald-500' },
-          { icon: UserX, label: 'Suspended', value: stats.suspended, color: 'text-red-500' },
-          { icon: Shield, label: 'Admins', value: stats.admins, color: 'text-amber-500' },
+          { icon: Users, label: t('team.totalUsers'), value: data.total, color: 'text-blue-500' },
+          { icon: UserCheck, label: t('team.active'), value: stats.active, color: 'text-emerald-500' },
+          { icon: UserX, label: t('team.suspended'), value: stats.suspended, color: 'text-red-500' },
+          { icon: Shield, label: t('team.admins'), value: stats.admins, color: 'text-amber-500' },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="stat-card">
             <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800', color)}>
@@ -238,7 +241,7 @@ export default function TeamManagement() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             className="input pl-9 w-full"
-            placeholder="Search by name or email…"
+            placeholder={t('team.searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -248,21 +251,21 @@ export default function TeamManagement() {
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
         >
-          <option value="">All Roles</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-          <option value="ADMIN">Admin</option>
-          <option value="MANAGER">Manager</option>
-          <option value="TEAM_MEMBER">Team Member</option>
+          <option value="">{t('team.allRoles')}</option>
+          <option value="SUPER_ADMIN">{t('team.superAdmin')}</option>
+          <option value="ADMIN">{t('team.admin')}</option>
+          <option value="MANAGER">{t('team.manager')}</option>
+          <option value="TEAM_MEMBER">{t('team.teamMember')}</option>
         </select>
         <select
           className="select min-w-[140px]"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
         >
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('team.allStatuses')}</option>
+          <option value="active">{t('team.active')}</option>
+          <option value="suspended">{t('team.suspended')}</option>
+          <option value="inactive">{t('team.inactive')}</option>
         </select>
         <button onClick={fetchUsers} className="btn-secondary p-2.5" title="Refresh">
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -275,11 +278,11 @@ export default function TeamManagement() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">User</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Role</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 hidden md:table-cell">Joined</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell">Last Login</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">{t('team.tableUser')}</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">{t('team.tableRole')}</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">{t('team.tableStatus')}</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 hidden md:table-cell">{t('team.tableJoined')}</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell">{t('team.tableLastLogin')}</th>
                 <th className="px-4 py-3 w-12" />
               </tr>
             </thead>
@@ -298,8 +301,8 @@ export default function TeamManagement() {
                 <tr>
                   <td colSpan={6} className="px-4 py-16 text-center">
                     <Users className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">No users found</p>
-                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Try adjusting your filters</p>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t('team.noUsersFound')}</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">{t('team.adjustFilters')}</p>
                   </td>
                 </tr>
               ) : (
@@ -318,7 +321,7 @@ export default function TeamManagement() {
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-medium text-slate-900 dark:text-white">{u.name}</span>
-                              {isMe && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">You</span>}
+                              {isMe && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">{t('team.you')}</span>}
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400">{u.email}</div>
                             {u.phone && <div className="text-xs text-slate-400 dark:text-slate-500">{u.phone}</div>}
@@ -341,7 +344,7 @@ export default function TeamManagement() {
                       </td>
                       {/* Last login */}
                       <td className="px-4 py-3 text-slate-500 dark:text-slate-400 hidden lg:table-cell">
-                        {u.lastLogin ? formatRelativeTime(u.lastLogin) : <span className="text-slate-300 dark:text-slate-600">Never</span>}
+                        {u.lastLogin ? formatRelativeTime(u.lastLogin) : <span className="text-slate-300 dark:text-slate-600">{t('team.never')}</span>}
                       </td>
                       {/* Actions */}
                       <td className="px-4 py-3">
@@ -359,13 +362,13 @@ export default function TeamManagement() {
                                   onClick={() => { setModalUser(u); setOpenMenu(null); }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                 >
-                                  <Edit className="w-4 h-4 text-slate-400" /> Edit User
+                                  <Edit className="w-4 h-4 text-slate-400" /> {t('team.editUser')}
                                 </button>
                                 <button
                                   onClick={() => { setResetModal(u); setOpenMenu(null); }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                 >
-                                  <KeyRound className="w-4 h-4 text-slate-400" /> Reset Password
+                                  <KeyRound className="w-4 h-4 text-slate-400" /> {t('team.resetPassword')}
                                 </button>
                                 <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
                                 {u.suspended ? (
@@ -373,14 +376,14 @@ export default function TeamManagement() {
                                     onClick={() => { handleActivate(u); setOpenMenu(null); }}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                                   >
-                                    <ShieldCheck className="w-4 h-4" /> Activate Account
+                                    <ShieldCheck className="w-4 h-4" /> {t('team.activateAccount')}
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => { handleSuspend(u); setOpenMenu(null); }}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                                   >
-                                    <ShieldOff className="w-4 h-4" /> Suspend Account
+                                    <ShieldOff className="w-4 h-4" /> {t('team.suspendAccount')}
                                   </button>
                                 )}
                                 {isSuperAdmin && (
@@ -388,7 +391,7 @@ export default function TeamManagement() {
                                     onClick={() => { handleDelete(u); setOpenMenu(null); }}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                   >
-                                    <Trash2 className="w-4 h-4" /> Delete User
+                                    <Trash2 className="w-4 h-4" /> {t('team.deleteUser')}
                                   </button>
                                 )}
                               </div>
@@ -408,7 +411,7 @@ export default function TeamManagement() {
         {data.pages > 1 && (
           <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Showing {(page - 1) * 12 + 1}–{Math.min(page * 12, data.total)} of {data.total} users
+              {t('team.showing', { from: (page - 1) * 12 + 1, to: Math.min(page * 12, data.total), total: data.total })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -462,13 +465,13 @@ export default function TeamManagement() {
               <KeyRound className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Reset Password</h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('team.resetPwdTitle')}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Set a new password for <span className="font-medium text-slate-700 dark:text-slate-300">{resetModal.name}</span>
+                {t('team.resetPwdDesc', { name: resetModal.name })}
               </p>
             </div>
             <div>
-              <label className="label">New Password <span className="text-slate-400">(optional)</span></label>
+              <label className="label">{t('team.newPasswordLabel')} <span className="text-slate-400">{t('team.newPasswordOptional')}</span></label>
               <input
                 type="text"
                 className="input mt-1 w-full"
@@ -479,8 +482,8 @@ export default function TeamManagement() {
               <p className="text-xs text-slate-400 mt-1">Default: <span className="font-mono text-amber-600 dark:text-amber-400">Stallion@123</span></p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setResetModal(null); setNewPwd(''); }} className="btn-secondary flex-1 py-2 text-sm">Cancel</button>
-              <button onClick={handleResetPassword} className="btn-primary flex-1 py-2 text-sm">Reset</button>
+              <button onClick={() => { setResetModal(null); setNewPwd(''); }} className="btn-secondary flex-1 py-2 text-sm">{t('common.cancel')}</button>
+              <button onClick={handleResetPassword} className="btn-primary flex-1 py-2 text-sm">{t('team.resetPwdTitle')}</button>
             </div>
           </div>
         </div>
@@ -505,12 +508,12 @@ export default function TeamManagement() {
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{confirm.message}</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setConfirm(null)} className="btn-secondary flex-1 py-2 text-sm" disabled={confirmLoading}>Cancel</button>
+              <button onClick={() => setConfirm(null)} className="btn-secondary flex-1 py-2 text-sm" disabled={confirmLoading}>{t('common.cancel')}</button>
               <button
                 onClick={async () => {
                   setConfirmLoading(true);
                   try { await confirm.onConfirm(); setConfirm(null); }
-                  catch { toast('Action failed', 'error'); }
+                  catch { toast(t('team.failedAction'), 'error'); }
                   finally { setConfirmLoading(false); }
                 }}
                 disabled={confirmLoading}

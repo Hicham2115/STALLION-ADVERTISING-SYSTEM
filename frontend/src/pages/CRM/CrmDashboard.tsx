@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   TrendingUp,
   ShoppingCart,
@@ -105,6 +106,7 @@ interface Props {
 }
 
 export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
+  const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState("");
@@ -172,77 +174,77 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
   const kpis = s
     ? [
         {
-          label: "Total Revenue",
+          label: t('crm.totalRevenue'),
           value: fmt(s.totalRevenue),
           icon: DollarSign,
           color: "text-amber-500",
           bg: "bg-amber-500/10",
         },
         {
-          label: "Net Profit",
+          label: t('crm.netProfit'),
           value: fmt(s.totalNetProfit),
           icon: TrendingUp,
           color: s.totalNetProfit >= 0 ? "text-emerald-500" : "text-red-500",
           bg: s.totalNetProfit >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
         },
         {
-          label: "Total Orders",
+          label: t('crm.totalOrders'),
           value: s.totalOrders.toString(),
           icon: ShoppingCart,
           color: "text-blue-500",
           bg: "bg-blue-500/10",
         },
         {
-          label: "Confirmed",
+          label: t('crm.confirmed'),
           value: s.confirmed.toString(),
           icon: CheckCircle,
           color: "text-emerald-500",
           bg: "bg-emerald-500/10",
         },
         {
-          label: "Shipped",
+          label: t('crm.shipped'),
           value: shippedCount.toString(),
           icon: Truck,
           color: "text-sky-500",
           bg: "bg-sky-500/10",
         },
         {
-          label: "Cancelled",
+          label: t('crm.cancelled'),
           value: mergedCancelled.toString(),
           icon: XCircle,
           color: "text-red-500",
           bg: "bg-red-500/10",
         },
         {
-          label: "Conversion Rate",
+          label: t('crm.conversionRate'),
           value: `${s.conversionRate}%`,
           icon: BarChart3,
           color: "text-purple-500",
           bg: "bg-purple-500/10",
         },
         {
-          label: "Avg Order Value",
+          label: t('crm.averageOrder'),
           value: fmt(s.avgOrderValue),
           icon: Package,
           color: "text-orange-500",
           bg: "bg-orange-500/10",
         },
         {
-          label: "Ad Spend",
+          label: t('crm.adSpend'),
           value: fmt(s.totalAdSpend),
           icon: TrendingUp,
           color: "text-pink-500",
           bg: "bg-pink-500/10",
         },
         {
-          label: "Commissions",
+          label: t('crm.commissions'),
           value: fmt(s.totalCommissions),
           icon: Award,
           color: "text-indigo-500",
           bg: "bg-indigo-500/10",
         },
         {
-          label: "Costs",
+          label: t('crm.totalCosts'),
           value: fmt(s.totalLinkedCosts > 0 ? s.totalLinkedCosts : s.totalProductCost),
           icon: Package,
           color: "text-slate-400",
@@ -257,12 +259,12 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
       <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            {analyticsMode ? "Profit Analytics" : "CRM Dashboard"}
+            {analyticsMode ? t('crm.profitAnalytics') : t('crm.dashboard')}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {analyticsMode
-              ? "Deep financial insights and trends"
-              : "Business performance overview"}
+              ? t('crm.deepFinancialInsights')
+              : t('crm.businessOverview')}
           </p>
         </div>
         <div className="w-full xl:w-auto grid sm:grid-cols-2 gap-3">
@@ -271,7 +273,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             value={selectedClient}
             onChange={(e) => setSelectedClient(e.target.value)}
           >
-            <option value="">All Clients</option>
+            <option value="">{t('crm.allClients')}</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -283,7 +285,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
-            <option value="">All Months</option>
+            <option value="">{t('crm.allMonths')}</option>
             {monthOptions().map((month) => (
               <option key={month.key} value={month.key}>
                 {month.label}
@@ -325,32 +327,32 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
           {s && (
             <div className="card p-5">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                Profit Breakdown
+                {t('crm.profitBreakdown')}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
                   {
-                    label: "Revenue",
+                    label: t('crm.revenue'),
                     value: s.totalRevenue,
                     color: "bg-amber-500",
                   },
                   {
-                    label: "− Product Cost",
+                    label: t('crm.productCostLabel'),
                     value: -s.totalProductCost,
                     color: "bg-red-400",
                   },
                   {
-                    label: "− Shipping",
+                    label: t('crm.shippingLabel'),
                     value: -s.totalShipping,
                     color: "bg-red-400",
                   },
                   {
-                    label: "− Ad Spend",
+                    label: t('crm.adSpendLabel'),
                     value: -s.totalAdSpend,
                     color: "bg-red-400",
                   },
                   {
-                    label: "= Net Profit",
+                    label: t('crm.netProfitLabel'),
                     value: s.totalNetProfit,
                     color:
                       s.totalNetProfit >= 0 ? "bg-emerald-500" : "bg-red-600",
@@ -379,7 +381,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             {/* Revenue & Profit trend */}
             <div className="card p-5">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                Revenue & Profit Trend
+                {t('crm.revenueProfit')}
               </h3>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={data?.monthly || []}>
@@ -416,7 +418,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    name="Revenue"
+                    name={t('crm.revenue')}
                     stroke="#f59e0b"
                     fill="url(#revGrad)"
                     strokeWidth={2}
@@ -424,7 +426,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                   <Area
                     type="monotone"
                     dataKey="profit"
-                    name="Profit"
+                    name={t('crm.netProfit')}
                     stroke="#10b981"
                     fill="url(#profGrad)"
                     strokeWidth={2}
@@ -436,7 +438,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             {/* Orders by status */}
             <div className="card p-5">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                Orders by Status
+                {t('crm.ordersByStatus')}
               </h3>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -472,7 +474,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             {/* Orders per month */}
             <div className="card p-5">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                Monthly Orders
+                {t('crm.monthlyOrders')}
               </h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={data?.monthly || []}>
@@ -496,7 +498,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                   />
                   <Bar
                     dataKey="orders"
-                    name="Orders"
+                    name={t('crm.orders')}
                     fill="#f59e0b"
                     radius={[4, 4, 0, 0]}
                   />
@@ -507,7 +509,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             {/* Source breakdown */}
             <div className="card p-5">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                Orders by Source
+                {t('crm.ordersBySource')}
               </h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={data?.bySource || []} layout="vertical">
@@ -536,7 +538,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                       borderRadius: 8,
                     }}
                   />
-                  <Bar dataKey="count" name="Orders" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="count" name={t('crm.orders')} radius={[0, 4, 4, 0]}>
                     {(data?.bySource || []).map((_, i) => (
                       <Cell
                         key={i}
@@ -553,7 +555,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
           {(data?.topCities?.length ?? 0) > 0 && (
             <div className="card p-5">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                Top Cities
+                {t('crm.topCities')}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {data!.topCities.map((c, i) => (
@@ -568,7 +570,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                       {c.city}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {c.count} orders
+                      {t('crm.cityOrders', { count: c.count })}
                     </div>
                   </div>
                 ))}
@@ -580,19 +582,19 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
           {!analyticsMode && onNavigate && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: "Manage Orders", tab: "orders", color: "btn-primary" },
+                { label: t('crm.manageOrders'), tab: "orders", color: "btn-primary" },
                 {
-                  label: "Closers Performance",
+                  label: t('crm.closersPerformance'),
                   tab: "closers",
                   color: "btn-secondary",
                 },
                 {
-                  label: "Commission Rules",
+                  label: t('crm.commissionRules'),
                   tab: "commissions",
                   color: "btn-secondary",
                 },
                 {
-                  label: "Shopify Sync",
+                  label: t('crm.shopifySync'),
                   tab: "shopify",
                   color: "btn-secondary",
                 },

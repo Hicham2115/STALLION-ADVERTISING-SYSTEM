@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { DollarSign, FileText, Bell, CheckCircle, TrendingUp, Clock, ArrowRight, BarChart2, Calendar } from 'lucide-react';
 import { portalApi } from '@/context/PortalAuthContext';
@@ -44,6 +45,7 @@ const phaseColors: Record<string, string> = {
 };
 
 export default function PortalDashboardPage() {
+  const { t } = useTranslation();
   const { user } = usePortalAuth();
   const { fmt } = usePortalCurrency();
   const [data, setData] = useState<PortalDashboard | null>(null);
@@ -76,17 +78,17 @@ export default function PortalDashboardPage() {
       <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl p-6">
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative">
-          <div className="text-xs text-amber-400 font-semibold uppercase tracking-widest mb-1">Good to see you</div>
+          <div className="text-xs text-amber-400 font-semibold uppercase tracking-widest mb-1">{t('portal.goodToSeeYou')}</div>
           <h1 className="text-2xl font-bold text-white mb-1">
-            Welcome back, <span className="text-amber-400">{user?.name}</span>
+            {t('portal.welcomeBack')} <span className="text-amber-400">{user?.name}</span>
           </h1>
           <p className="text-slate-400 text-sm">
-            {data?.client?.name} — {data?.client?.service} &nbsp;·&nbsp; Account status:&nbsp;
+            {data?.client?.name} — {data?.client?.service} &nbsp;·&nbsp; {t('portal.accountStatus')}:&nbsp;
             <span className={cn(
               'font-semibold',
               data?.client?.status === 'ACTIVE' ? 'text-green-400' : 'text-amber-400',
             )}>
-              {data?.client?.status === 'ONE_TIME' ? 'One-Time' : data?.client?.status}
+              {data?.client?.status === 'ONE_TIME' ? t('portal.oneTime') : data?.client?.status}
             </span>
           </p>
         </div>
@@ -100,7 +102,7 @@ export default function PortalDashboardPage() {
           onChange={e => setSelectedMonth(e.target.value)}
           className="bg-[#0d1528]/80 border border-slate-700/60 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer"
         >
-          <option value="">All Months</option>
+          <option value="">{t('portal.allMonths')}</option>
           {monthOptions().map(m => (
             <option key={m.key} value={m.key}>{m.label}</option>
           ))}
@@ -111,21 +113,21 @@ export default function PortalDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            icon: DollarSign, label: 'Total Paid', value: fmt(data?.paidTotal ?? 0),
+            icon: DollarSign, label: t('portal.totalPaid'), value: fmt(data?.paidTotal ?? 0),
             color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20',
           },
           {
-            icon: FileText, label: 'Pending Invoices', value: `${data?.pendingInvoices ?? 0}`,
+            icon: FileText, label: t('portal.pendingInvoices'), value: `${data?.pendingInvoices ?? 0}`,
             sub: data?.pendingAmount ? fmt(data.pendingAmount) : undefined,
             color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20',
           },
           {
-            icon: CheckCircle, label: 'Awaiting Approval', value: `${data?.pendingApprovals ?? 0}`,
-            sub: 'creative items',
+            icon: CheckCircle, label: t('portal.awaitingApproval'), value: `${data?.pendingApprovals ?? 0}`,
+            sub: t('portal.creativeItems'),
             color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20',
           },
           {
-            icon: Bell, label: 'Unread Alerts', value: `${data?.unreadNotifications ?? 0}`,
+            icon: Bell, label: t('portal.unreadAlerts'), value: `${data?.unreadNotifications ?? 0}`,
             color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20',
           },
         ].map(({ icon: Icon, label, value, sub, color, bg }) => (
@@ -146,15 +148,15 @@ export default function PortalDashboardPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/60">
             <div className="flex items-center gap-2.5">
               <TrendingUp className="w-4.5 h-4.5 text-amber-400" />
-              <h3 className="text-sm font-semibold text-white">Recent Updates</h3>
+              <h3 className="text-sm font-semibold text-white">{t('portal.recentUpdates')}</h3>
             </div>
             <Link to="/portal/updates" className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+              {t('portal.viewAll')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-slate-800/50">
             {!data?.recentUpdates?.length ? (
-              <div className="px-5 py-6 text-center text-sm text-slate-500">No updates yet</div>
+              <div className="px-5 py-6 text-center text-sm text-slate-500">{t('portal.noUpdatesYet')}</div>
             ) : data.recentUpdates.map((u: ProjectUpdate) => (
               <div key={u.id} className="px-5 py-4 hover:bg-slate-800/20 transition-colors">
                 <div className="flex items-start gap-3">
@@ -185,15 +187,15 @@ export default function PortalDashboardPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/60">
             <div className="flex items-center gap-2.5">
               <FileText className="w-4.5 h-4.5 text-amber-400" />
-              <h3 className="text-sm font-semibold text-white">Recent Invoices</h3>
+              <h3 className="text-sm font-semibold text-white">{t('portal.recentInvoices')}</h3>
             </div>
             <Link to="/portal/invoices" className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+              {t('portal.viewAll')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-slate-800/50">
             {!data?.recentPayments?.length ? (
-              <div className="px-5 py-6 text-center text-sm text-slate-500">No invoices yet</div>
+              <div className="px-5 py-6 text-center text-sm text-slate-500">{t('portal.noInvoicesYet')}</div>
             ) : data.recentPayments.map((p: Payment) => (
               <div key={p.id} className="px-5 py-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -222,10 +224,10 @@ export default function PortalDashboardPage() {
       {/* Quick links */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { to: '/portal/analytics', icon: BarChart2, label: 'View Analytics', color: 'text-blue-400' },
-          { to: '/portal/content', icon: CheckCircle, label: 'Approve Content', color: 'text-green-400' },
-          { to: '/portal/updates', icon: TrendingUp, label: 'Project Updates', color: 'text-amber-400' },
-          { to: '/portal/invoices', icon: FileText, label: 'View Invoices', color: 'text-purple-400' },
+          { to: '/portal/analytics', icon: BarChart2, label: t('portal.viewAnalytics'), color: 'text-blue-400' },
+          { to: '/portal/content', icon: CheckCircle, label: t('portal.approveContent'), color: 'text-green-400' },
+          { to: '/portal/updates', icon: TrendingUp, label: t('portal.projectUpdates'), color: 'text-amber-400' },
+          { to: '/portal/invoices', icon: FileText, label: t('portal.viewInvoices'), color: 'text-purple-400' },
         ].map(({ to, icon: Icon, label, color }) => (
           <Link
             key={to}

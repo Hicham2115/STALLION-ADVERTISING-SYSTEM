@@ -20,8 +20,10 @@ import {
 import { cn, getInitials } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useCrmCurrency } from "@/context/CrmCurrencyContext";
+import { useTranslation } from "react-i18next";
 
 export default function ClosersSettings() {
+  const { t } = useTranslation();
   const { isAdmin } = useAuth();
   const { fmt } = useCrmCurrency();
 
@@ -213,10 +215,10 @@ export default function ClosersSettings() {
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5 text-slate-400" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Closers Settings
+            {t('crm.closersSettings')}
           </h2>
         </div>
-        <p className="text-sm text-slate-500 mt-2">Admin access required.</p>
+        <p className="text-sm text-slate-500 mt-2">{t('common.adminRequired')}</p>
       </div>
     );
   }
@@ -226,10 +228,10 @@ export default function ClosersSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Closers Settings
+            {t('crm.closersSettings')}
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Edit closer profiles and commission settings.
+            {t('crm.editCloserProfilesHint')}
           </p>
         </div>
         <button onClick={loadClosers} className="btn-secondary p-2.5">
@@ -243,7 +245,7 @@ export default function ClosersSettings() {
         </div>
       ) : closers.length === 0 ? (
         <div className="card p-10 text-center text-slate-400">
-          No closers found.
+          {t('crm.noClosersYet')}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -279,38 +281,38 @@ export default function ClosersSettings() {
                     onClick={() =>
                       openCommissionModalFor({ id: c.id, name: c.name })
                     }
-                    title="Edit commission rules"
+                    title={t('crm.commissions')}
                   >
                     <Link2 className="w-3.5 h-3.5" />
-                    Commission
+                    {t('crm.commissions')}
                   </button>
                   <button
                     className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5"
                     onClick={() => openProfileModal(c.id)}
-                    title="Edit closer profile"
+                    title={t('common.edit')}
                   >
                     <Pencil className="w-3.5 h-3.5" />
-                    Edit
+                    {t('common.edit')}
                   </button>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <Stat label="Total" value={c.totalOrders} />
-                <Stat label="Confirmed" value={c.confirmedOrders} />
-                <Stat label="Shipped" value={c.shippedOrders} />
-                <Stat label="Delivered" value={c.deliveredOrders} />
-                <Stat label="Rate" value={`${c.conversionRate}%`} accent />
-                <Stat label="Earned" value={fmt(c.totalEarnings)} accent />
+                <Stat label={t('crm.totalOrders')} value={c.totalOrders} />
+                <Stat label={t('crm.confirmed')} value={c.confirmedOrders} />
+                <Stat label={t('crm.shipped')} value={c.shippedOrders} />
+                <Stat label={t('crm.delivered')} value={c.deliveredOrders} />
+                <Stat label={t('crm.rate')} value={`${c.conversionRate}%`} accent />
+                <Stat label={t('crm.earned')} value={fmt(c.totalEarnings)} accent />
               </div>
 
               <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Commission rules
+                    {t('crm.commissionRules')}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {c.commissionRuleCount || 0} active
+                    {c.commissionRuleCount || 0} {t('crm.active')}
                   </div>
                 </div>
                 <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
@@ -339,10 +341,10 @@ export default function ClosersSettings() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Edit closer
+                  {t('crm.editCloser')}
                 </h3>
                 <p className="text-sm text-slate-500 mt-0.5">
-                  Update profile fields (admin only).
+                  {t('crm.updateProfileAdmin')}
                 </p>
               </div>
               <button
@@ -350,13 +352,13 @@ export default function ClosersSettings() {
                 disabled={profileSaving}
                 className="btn-secondary px-3 py-1.5 text-sm"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="label">Name</label>
+                <label className="label">{t('common.name')}</label>
                 <input
                   className="input mt-1"
                   value={profileForm.name}
@@ -366,7 +368,7 @@ export default function ClosersSettings() {
                 />
               </div>
               <div className="col-span-2">
-                <label className="label">Email</label>
+                <label className="label">{t('common.email')}</label>
                 <input
                   className="input mt-1"
                   value={profileForm.email}
@@ -376,7 +378,7 @@ export default function ClosersSettings() {
                 />
               </div>
               <div>
-                <label className="label">Phone</label>
+                <label className="label">{t('crm.phone')}</label>
                 <input
                   className="input mt-1"
                   value={profileForm.phone}
@@ -387,7 +389,7 @@ export default function ClosersSettings() {
                 />
               </div>
               <div>
-                <label className="label">Avatar URL</label>
+                <label className="label">{t('crm.avatarUrl')}</label>
                 <input
                   className="input mt-1"
                   value={profileForm.avatar}
@@ -410,7 +412,7 @@ export default function ClosersSettings() {
                 className="btn-secondary flex-1 py-2 text-sm flex items-center justify-center gap-2"
               >
                 <X className="w-4 h-4" />
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={saveProfile}
@@ -422,7 +424,7 @@ export default function ClosersSettings() {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {profileSaving ? "Saving…" : "Save"}
+                {profileSaving ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -442,11 +444,10 @@ export default function ClosersSettings() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Commission settings
+                  {t('crm.commissionRules')}
                 </h3>
                 <p className="text-sm text-slate-500 mt-0.5">
-                  Choose client(s) + commission for {commissionModal.closerName}
-                  .
+                  {t('crm.activateCloserDesc', { name: commissionModal.closerName })}
                 </p>
               </div>
               <button
@@ -454,16 +455,16 @@ export default function ClosersSettings() {
                 disabled={commissionSaving}
                 className="btn-secondary px-3 py-1.5 text-sm"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
 
             <div>
-              <label className="label">Client(s) *</label>
+              <label className="label">{t('crm.clientsLabel')}</label>
               <div className="mt-1 max-h-52 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2">
                 {clientList.length === 0 ? (
                   <div className="py-6 text-center text-sm text-slate-400">
-                    No clients found
+                    {t('crm.noClientsFound')}
                   </div>
                 ) : (
                   clientList.map((client) => {
@@ -496,7 +497,7 @@ export default function ClosersSettings() {
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-slate-500">
-                  Selected: {selectedClientIds.size}
+                  {t('crm.selectedCount', { count: selectedClientIds.size })}
                 </span>
                 <button
                   type="button"
@@ -504,14 +505,14 @@ export default function ClosersSettings() {
                   onClick={() => setSelectedClientIds(new Set())}
                   disabled={commissionSaving || selectedClientIds.size === 0}
                 >
-                  Clear
+                  {t('crm.clear')}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Commission Type</label>
+                <label className="label">{t('crm.commissionType')}</label>
                 <select
                   className="select mt-1"
                   value={commissionType}
@@ -519,15 +520,15 @@ export default function ClosersSettings() {
                     setCommissionType(e.target.value as CommissionType)
                   }
                 >
-                  <option value="FIXED_PER_ORDER">Fixed per Order</option>
-                  <option value="PERCENTAGE">Percentage of Sale</option>
+                  <option value="FIXED_PER_ORDER">{t('crm.fixedPerOrder')}</option>
+                  <option value="PERCENTAGE">{t('crm.percentageOfSale')}</option>
                 </select>
               </div>
               <div>
                 <label className="label">
                   {commissionType === "FIXED_PER_ORDER"
-                    ? "Fixed Amount"
-                    : "Percentage"}
+                    ? t('crm.fixedAmountLabel')
+                    : t('crm.percentageLabel')}
                 </label>
                 <input
                   className="input mt-1"
@@ -553,7 +554,7 @@ export default function ClosersSettings() {
                 disabled={commissionSaving}
                 className="btn-secondary flex-1 py-2 text-sm"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={saveCommissionRules}
@@ -563,7 +564,7 @@ export default function ClosersSettings() {
                 {commissionSaving && (
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                {commissionSaving ? "Saving…" : "Save"}
+                {commissionSaving ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit, CheckCircle, DollarSign, Award } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { CommissionRule, CloserCommissionRecord, Client, User } from '@/types';
 import { cn, formatDate } from '@/lib/utils';
 import { useCrmCurrency } from '@/context/CrmCurrencyContext';
 
 export default function Commissions() {
+  const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
   const [tab, setTab] = useState<'rules' | 'records'>('rules');
   const [rules, setRules] = useState<CommissionRule[]>([]);
@@ -65,7 +67,7 @@ export default function Commissions() {
   }
 
   async function deleteRule(id: string) {
-    if (!window.confirm('Delete this commission rule?')) return;
+    if (!window.confirm(t('crm.deleteRuleConfirm'))) return;
     await api.delete(`/crm/commission-rules/${id}`);
     setRules(r => r.filter(x => x.id !== id));
   }
@@ -94,13 +96,13 @@ export default function Commissions() {
     <div className="space-y-5 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Commission Management</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Rules and payout tracking</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('crm.commissionManagement')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('crm.rulesAndPayouts')}</p>
         </div>
         {tab === 'rules' && (
           <button onClick={() => { setShowForm(true); setEditRule(null); setForm({ clientId: '', closerId: '', name: '', type: 'FIXED_PER_ORDER', fixedAmount: '', percentage: '', description: '' }); }}
             className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Add Rule
+            <Plus className="w-4 h-4" /> {t('crm.addRule')}
           </button>
         )}
       </div>
@@ -108,9 +110,9 @@ export default function Commissions() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total Rules', value: rules.length.toString(), icon: Award, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-          { label: 'Pending Payout', value: fmt(pendingTotal), icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-          { label: 'Total Paid', value: fmt(paidTotal), icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: t('crm.totalRules'), value: rules.length.toString(), icon: Award, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+          { label: t('crm.pendingPayout'), value: fmt(pendingTotal), icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: t('crm.totalPaid'), value: fmt(paidTotal), icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="card p-4 flex items-center gap-4">
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', bg)}>
@@ -126,11 +128,11 @@ export default function Commissions() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
-        {(['rules', 'records'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
+        {(['rules', 'records'] as const).map(tb => (
+          <button key={tb} onClick={() => setTab(tb)}
             className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize',
-              tab === t ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
-            {t === 'rules' ? 'Commission Rules' : 'Payout Records'}
+              tab === tb ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
+            {tb === 'rules' ? t('crm.commissionRulesTab') : t('crm.payoutRecords')}
           </button>
         ))}
       </div>
@@ -141,55 +143,55 @@ export default function Commissions() {
           {showForm && (
             <div className="card p-5 border-2 border-amber-400/30">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                {editRule ? 'Edit Rule' : 'New Commission Rule'}
+                {editRule ? t('crm.editRule') : t('crm.newCommissionRule')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Rule Name *</label>
+                  <label className="label">{t('crm.ruleName')} *</label>
                   <input className="input mt-1" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Standard Fixed" />
                 </div>
                 <div>
-                  <label className="label">Client *</label>
+                  <label className="label">{t('crm.allClients').replace('All ', '')} *</label>
                   <select className="select mt-1" value={form.clientId} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))}>
-                    <option value="">All Clients</option>
+                    <option value="">{t('crm.allClients')}</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Closer (optional)</label>
+                  <label className="label">{t('crm.closerOptional')}</label>
                   <select className="select mt-1" value={form.closerId} onChange={e => setForm(f => ({ ...f, closerId: e.target.value }))}>
-                    <option value="">All Closers</option>
+                    <option value="">{t('crm.allClosers')}</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Commission Type</label>
+                  <label className="label">{t('crm.commissionType')}</label>
                   <select className="select mt-1" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                    <option value="FIXED_PER_ORDER">Fixed per Order</option>
-                    <option value="PERCENTAGE">Percentage of Sale</option>
+                    <option value="FIXED_PER_ORDER">{t('crm.fixedPerOrder')}</option>
+                    <option value="PERCENTAGE">{t('crm.percentageOfSale')}</option>
                   </select>
                 </div>
                 {form.type === 'FIXED_PER_ORDER' ? (
                   <div>
-                    <label className="label">Fixed Amount (MAD)</label>
+                    <label className="label">{t('crm.fixedAmount')}</label>
                     <input className="input mt-1" type="number" step="0.01" value={form.fixedAmount} onChange={e => setForm(f => ({ ...f, fixedAmount: e.target.value }))} placeholder="20" />
                   </div>
                 ) : (
                   <div>
-                    <label className="label">Percentage (%)</label>
+                    <label className="label">{t('crm.percentageLabel')}</label>
                     <input className="input mt-1" type="number" step="0.1" max="100" value={form.percentage} onChange={e => setForm(f => ({ ...f, percentage: e.target.value }))} placeholder="5" />
                   </div>
                 )}
                 <div>
-                  <label className="label">Description</label>
+                  <label className="label">{t('common.description')}</label>
                   <input className="input mt-1" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
                 </div>
               </div>
               <div className="flex gap-3 mt-4">
-                <button onClick={() => { setShowForm(false); setEditRule(null); }} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+                <button onClick={() => { setShowForm(false); setEditRule(null); }} className="btn-secondary px-4 py-2 text-sm">{t('common.cancel')}</button>
                 <button onClick={saveRule} disabled={saving || !form.name} className="btn-primary px-6 py-2 text-sm flex items-center gap-2">
                   {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                  {saving ? 'Saving…' : 'Save Rule'}
+                  {saving ? t('common.saving') : t('crm.saveRule')}
                 </button>
               </div>
             </div>
@@ -206,8 +208,8 @@ export default function Commissions() {
                     <div className="font-semibold text-slate-900 dark:text-white">{rule.name}</div>
                     <div className="text-xs text-slate-500 mt-0.5">
                       {rule.type === 'FIXED_PER_ORDER'
-                        ? `${rule.fixedAmount} MAD per shipped order`
-                        : `${rule.percentage}% of order amount`}
+                        ? `${rule.fixedAmount} MAD ${t('crm.perShippedOrder')}`
+                        : `${rule.percentage}% ${t('crm.percentOfSale')}`}
                       {rule.client && ` · ${rule.client.name}`}
                       {rule.closer && ` · ${rule.closer.name}`}
                     </div>
@@ -215,7 +217,7 @@ export default function Commissions() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={cn('badge text-xs', rule.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500')}>
-                    {rule.active ? 'Active' : 'Inactive'}
+                    {rule.active ? t('crm.active') : t('crm.inactive')}
                   </span>
                   <button onClick={() => openEdit(rule)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                     <Edit className="w-3.5 h-3.5" />
@@ -229,8 +231,8 @@ export default function Commissions() {
             {rules.length === 0 && !loading && (
               <div className="card p-12 text-center text-slate-400">
                 <Award className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>No commission rules yet</p>
-                <p className="text-xs mt-1">Create rules to automatically calculate closer commissions</p>
+                <p>{t('crm.noCommissionRules')}</p>
+                <p className="text-xs mt-1">{t('crm.createRulesHint')}</p>
               </div>
             )}
           </div>
@@ -244,8 +246,8 @@ export default function Commissions() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  {['Closer', 'Order', 'Amount', 'Date', 'Status', ''].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                  {[t('crm.colCloser'), t('crm.colOrder'), t('crm.colCommission'), t('common.date'), t('common.status'), ''].map((h, i) => (
+                    <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -261,23 +263,23 @@ export default function Commissions() {
                     <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(r.createdAt)}</td>
                     <td className="px-4 py-3">
                       {r.paid ? (
-                        <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs">Paid</span>
+                        <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs">{t('crm.paid')}</span>
                       ) : (
-                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">Pending</span>
+                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">{t('crm.pending')}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {!r.paid && (
                         <button onClick={() => payCommission(r.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
-                          <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
+                          <CheckCircle className="w-3.5 h-3.5" /> {t('crm.markPaid')}
                         </button>
                       )}
                     </td>
                   </tr>
                 ))}
                 {records.length === 0 && !loading && (
-                  <tr><td colSpan={6} className="text-center py-12 text-slate-400">No commission records yet</td></tr>
+                  <tr><td colSpan={6} className="text-center py-12 text-slate-400">{t('crm.noCommissionRecords')}</td></tr>
                 )}
               </tbody>
             </table>

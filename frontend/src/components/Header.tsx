@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Sun, Moon, Bell, LogOut, UserCircle, Check, Activity } from 'lucide-react';
+import { Menu, Sun, Moon, Bell, LogOut, UserCircle, Check, Activity, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { UserButton } from '@clerk/clerk-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -52,10 +53,19 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
+const LANGUAGES = [
+  { code: 'en', label: 'EN', full: 'English' },
+  { code: 'fr', label: 'FR', full: 'Français' },
+  { code: 'ar', label: 'AR', full: 'العربية' },
+];
+
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout, isClerkUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
   const [notifications, setNotifications] = useState<ActivityLog[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -89,10 +99,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
     }
-    if (notifOpen) document.addEventListener('mousedown', handleClickOutside);
+    if (notifOpen || langOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [notifOpen]);
+  }, [notifOpen, langOpen]);
 
   const markAllRead = () => {
     const now = new Date().toISOString();
@@ -113,16 +126,50 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         <div className="hidden md:block">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Welcome back, <span className="font-semibold text-slate-900 dark:text-white">{user?.name.split(' ')[0]}</span>
+            {t('header.welcomeBack')} <span className="font-semibold text-slate-900 dark:text-white">{user?.name.split(' ')[0]}</span>
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Language switcher */}
+        <div className="relative" ref={langRef}>
+          <button
+            onClick={() => setLangOpen((o) => !o)}
+            className="flex items-center gap-1.5 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+            title={t('common.language')}
+          >
+            <Globe className="w-4 h-4" />
+            <span className="text-xs font-semibold uppercase hidden sm:inline">
+              {LANGUAGES.find((l) => l.code === i18n.language)?.label ?? 'EN'}
+            </span>
+          </button>
+
+          {langOpen && (
+            <div className="absolute right-0 top-11 w-36 bg-white dark:bg-[#0d1528] border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-2xl z-[100] overflow-hidden py-1">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => { i18n.changeLanguage(lang.code); setLangOpen(false); }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left',
+                    i18n.language === lang.code
+                      ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  )}
+                >
+                  <span className="text-xs font-bold w-5 text-center">{lang.label}</span>
+                  <span>{lang.full}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
-          title="Toggle theme"
+          title={t('header.toggleTheme')}
         >
           {theme === 'light' ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
         </button>
@@ -148,10 +195,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white">Activity Feed</span>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">{t('header.activityFeed')}</span>
                   {unread > 0 && (
                     <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
-                      {unread} new
+                      {unread} {t('header.new')}
                     </span>
                   )}
                 </div>
@@ -161,7 +208,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     className="flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 font-medium transition-colors"
                   >
                     <Check className="w-3 h-3" />
-                    Mark all read
+                    {t('header.markAllRead')}
                   </button>
                 )}
               </div>
@@ -175,7 +222,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 ) : notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-24 text-slate-400 text-sm gap-2">
                     <Bell className="w-6 h-6 opacity-30" />
-                    No recent activity
+                    {t('header.noActivity')}
                   </div>
                 ) : notifications.map((n) => {
                   const isNew = readAt ? new Date(n.createdAt) > new Date(readAt) : true;
@@ -220,7 +267,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
               {notifications.length > 0 && (
                 <div className="px-4 py-2.5 border-t border-slate-200 dark:border-slate-700/50 text-center">
-                  <span className="text-xs text-slate-400">Last 20 activities</span>
+                  <span className="text-xs text-slate-400">{t('header.lastActivities')}</span>
                 </div>
               )}
             </div>

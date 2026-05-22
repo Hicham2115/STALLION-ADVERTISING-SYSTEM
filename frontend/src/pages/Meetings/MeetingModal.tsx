@@ -1,8 +1,10 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { X, Link, Video } from 'lucide-react';
+import { X, Video } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Meeting, MeetingType, MeetingStatus } from '@/types';
-import { cn } from '@/lib/utils';
+
+const TIMEZONES = ['Africa/Casablanca', 'Europe/Paris', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai'];
 
 interface Props {
   open: boolean;
@@ -11,17 +13,16 @@ interface Props {
   onSaved: () => void;
 }
 
-const STATUSES: { value: MeetingStatus; label: string; color: string }[] = [
-  { value: 'SCHEDULED', label: 'Scheduled', color: 'bg-blue-100 text-blue-700' },
-  { value: 'CONFIRMED', label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'COMPLETED', label: 'Completed', color: 'bg-slate-100 text-slate-700' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-100 text-red-700' },
-  { value: 'RESCHEDULED', label: 'Rescheduled', color: 'bg-amber-100 text-amber-700' },
-];
-
-const TIMEZONES = ['Africa/Casablanca', 'Europe/Paris', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai'];
-
 export default function MeetingModal({ open, onClose, meeting, onSaved }: Props) {
+  const { t } = useTranslation();
+
+  const STATUSES: { value: MeetingStatus; label: string }[] = [
+    { value: 'SCHEDULED', label: t('meetings.statusScheduled') },
+    { value: 'CONFIRMED', label: t('meetings.statusConfirmed') },
+    { value: 'COMPLETED', label: t('meetings.statusCompleted') },
+    { value: 'CANCELLED', label: t('meetings.statusCancelled') },
+    { value: 'RESCHEDULED', label: t('meetings.statusRescheduled') },
+  ];
   const [form, setForm] = useState({
     title: '', description: '', clientId: '', adminId: '', meetingTypeId: '',
     meetingLink: '', startDate: '', startTime: '', durationMin: 30,
@@ -102,7 +103,7 @@ export default function MeetingModal({ open, onClose, meeting, onSaved }: Props)
       else await api.post('/meetings', payload);
       onSaved(); onClose();
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Something went wrong');
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || t('common.somethingWentWrong'));
     } finally { setSaving(false); }
   };
 
@@ -111,31 +112,31 @@ export default function MeetingModal({ open, onClose, meeting, onSaved }: Props)
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-900 z-10">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {meeting ? 'Edit Meeting' : 'Schedule Meeting'}
+            {meeting ? t('meetings.editMeeting') : t('meetings.scheduleMeeting')}
           </h2>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="label">Meeting Title *</label>
-            <input className="input" required value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. Strategy Call" />
+            <label className="label">{t('meetings.meetingTitle')} *</label>
+            <input className="input" required value={form.title} onChange={e => set('title', e.target.value)} placeholder={t('meetings.meetingTitlePlaceholder')} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Meeting Type</label>
+              <label className="label">{t('meetings.meetingType')}</label>
               <select className="select" value={form.meetingTypeId} onChange={e => {
                 set('meetingTypeId', e.target.value);
-                const t = types.find(x => x.id === e.target.value);
-                if (t) set('durationMin', t.duration);
+                const mt = types.find(x => x.id === e.target.value);
+                if (mt) set('durationMin', mt.duration);
               }}>
-                <option value="">— No type —</option>
-                {types.map(t => <option key={t.id} value={t.id}>{t.name} ({t.duration}m)</option>)}
+                <option value="">{t('meetings.noType')}</option>
+                {types.map(mt => <option key={mt.id} value={mt.id}>{mt.name} ({mt.duration}m)</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Status</label>
+              <label className="label">{t('meetings.status')}</label>
               <select className="select" value={form.status} onChange={e => set('status', e.target.value as MeetingStatus)}>
                 {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -144,16 +145,16 @@ export default function MeetingModal({ open, onClose, meeting, onSaved }: Props)
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Client</label>
+              <label className="label">{t('meetings.client')}</label>
               <select className="select" value={form.clientId} onChange={e => set('clientId', e.target.value)}>
-                <option value="">— No client —</option>
+                <option value="">{t('meetings.noClient')}</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Assigned To *</label>
+              <label className="label">{t('meetings.assignedTo')}</label>
               <select className="select" required value={form.adminId} onChange={e => set('adminId', e.target.value)}>
-                <option value="">— Select admin —</option>
+                <option value="">{t('meetings.selectAdmin')}</option>
                 {admins.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
@@ -161,15 +162,15 @@ export default function MeetingModal({ open, onClose, meeting, onSaved }: Props)
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Date *</label>
+              <label className="label">{t('meetings.date')} *</label>
               <input className="input" type="date" required value={form.startDate} onChange={e => set('startDate', e.target.value)} />
             </div>
             <div>
-              <label className="label">Start Time *</label>
+              <label className="label">{t('meetings.time')} *</label>
               <input className="input" type="time" required value={form.startTime} onChange={e => set('startTime', e.target.value)} />
             </div>
             <div>
-              <label className="label">Duration (min)</label>
+              <label className="label">{t('meetings.durationMin')}</label>
               <select className="select" value={form.durationMin} onChange={e => set('durationMin', Number(e.target.value))}>
                 {[15, 30, 45, 60, 90, 120].map(d => <option key={d} value={d}>{d} min</option>)}
               </select>
@@ -178,48 +179,48 @@ export default function MeetingModal({ open, onClose, meeting, onSaved }: Props)
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Timezone</label>
+              <label className="label">{t('meetings.timezone')}</label>
               <select className="select" value={form.timezone} onChange={e => set('timezone', e.target.value)}>
                 {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Meeting Link</label>
+              <label className="label">{t('meetings.meetingLink')}</label>
               <div className="relative">
                 <Video className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input className="input pl-9" value={form.meetingLink} onChange={e => set('meetingLink', e.target.value)} placeholder="https://meet.google.com/..." />
+                <input className="input pl-9" value={form.meetingLink} onChange={e => set('meetingLink', e.target.value)} placeholder={t('meetings.meetingLinkPlaceholder')} />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="label">Description</label>
-            <textarea className="input resize-none" rows={2} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Meeting agenda or description..." />
+            <label className="label">{t('meetings.description')}</label>
+            <textarea className="input resize-none" rows={2} value={form.description} onChange={e => set('description', e.target.value)} placeholder={t('meetings.descriptionPlaceholder')} />
           </div>
 
           <div>
-            <label className="label">Notes (shared with client)</label>
-            <textarea className="input resize-none" rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Notes visible to client..." />
+            <label className="label">{t('meetings.notes')}</label>
+            <textarea className="input resize-none" rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder={t('meetings.notesPlaceholder')} />
           </div>
 
           <div>
-            <label className="label">Internal Notes</label>
-            <textarea className="input resize-none" rows={2} value={form.internalNotes} onChange={e => set('internalNotes', e.target.value)} placeholder="Internal team notes..." />
+            <label className="label">{t('meetings.internalNotes')}</label>
+            <textarea className="input resize-none" rows={2} value={form.internalNotes} onChange={e => set('internalNotes', e.target.value)} placeholder={t('meetings.internalNotesPlaceholder')} />
           </div>
 
           {form.status === 'CANCELLED' && (
             <div>
-              <label className="label">Cancellation Reason</label>
-              <input className="input" value={form.cancelReason} onChange={e => set('cancelReason', e.target.value)} placeholder="Reason for cancellation..." />
+              <label className="label">{t('meetings.cancelReason')}</label>
+              <input className="input" value={form.cancelReason} onChange={e => set('cancelReason', e.target.value)} placeholder={t('meetings.cancelReasonPlaceholder')} />
             </div>
           )}
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="button" onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? 'Saving...' : meeting ? 'Save Changes' : 'Schedule Meeting'}
+              {saving ? t('meetings.saving') : meeting ? t('meetings.saveChanges') : t('meetings.scheduleMeeting')}
             </button>
           </div>
         </form>

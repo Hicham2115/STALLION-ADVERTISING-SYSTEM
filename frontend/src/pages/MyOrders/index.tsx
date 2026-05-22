@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Search,
@@ -158,6 +159,7 @@ const defaultForm = {
 };
 
 export default function MyOrders() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [clients, setClients] = useState<MyClient[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
@@ -181,10 +183,12 @@ export default function MyOrders() {
 
   const loadAll = useCallback(async () => {
     setClientsLoading(true);
+    const month = monthOptions().find((m) => m.key === selectedMonth);
+    const dateQs = month ? `?from=${month.from}&to=${month.to}` : "";
     try {
       const [clientsRes, statsRes] = await Promise.all([
         api.get<MyClient[]>("/crm/my-clients"),
-        api.get<MyStats>("/crm/my-stats"),
+        api.get<MyStats>(`/crm/my-stats${dateQs}`),
       ]);
       setClients(clientsRes.data);
 
@@ -216,7 +220,7 @@ export default function MyOrders() {
     } finally {
       setClientsLoading(false);
     }
-  }, []);
+  }, [selectedMonth]);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -224,6 +228,8 @@ export default function MyOrders() {
       const params = new URLSearchParams({ page: String(page) });
       if (search) params.set("search", search);
       if (statusFilter) params.set("status", statusFilter);
+      const month = monthOptions().find((m) => m.key === selectedMonth);
+      if (month) { params.set("from", month.from); params.set("to", month.to); }
       const { data } = await api.get<{
         orders: MyOrder[];
         total: number;
@@ -235,7 +241,7 @@ export default function MyOrders() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, selectedMonth]);
 
   useEffect(() => {
     loadAll();
@@ -266,7 +272,7 @@ export default function MyOrders() {
       !form.productName ||
       !form.orderAmount
     ) {
-      setError("Client, customer name, product and amount are required");
+      setError(t('myOrders.clientRequired'));
       return;
     }
     setSaving(true);
@@ -285,7 +291,7 @@ export default function MyOrders() {
       setShowForm(false);
       await Promise.all([loadOrders(), loadAll()]);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to save order");
+      setError(err.response?.data?.message || t('myOrders.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -309,17 +315,16 @@ export default function MyOrders() {
       <div className="max-w-2xl mx-auto text-center py-20">
         <Package className="w-14 h-14 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-          No clients assigned
+          {t('myOrders.noClientsAssigned')}
         </h2>
         <p className="text-slate-500 mt-2 text-sm">
-          Ask your admin to assign you as a closer to a client before you can
-          add orders.
+          {t('myOrders.noClientsAssignedHint')}
         </p>
         <button
           onClick={loadAll}
           className="mt-5 btn-secondary flex items-center gap-2 mx-auto"
         >
-          <RefreshCw className="w-4 h-4" /> Refresh
+          <RefreshCw className="w-4 h-4" /> {t('common.reset')}
         </button>
       </div>
     );
@@ -331,11 +336,12 @@ export default function MyOrders() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            My Orders
+            {t('myOrders.title')}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Orders you've submitted · {clients.length} client
-            {clients.length !== 1 ? "s" : ""} assigned
+            {clients.length !== 1
+              ? t('myOrders.ordersSubmittedCountPlural', { count: clients.length })
+              : t('myOrders.ordersSubmittedCount', { count: clients.length })}
           </p>
         </div>
         <button
@@ -344,11 +350,11 @@ export default function MyOrders() {
         >
           {showForm ? (
             <>
-              <X className="w-4 h-4" /> Cancel
+              <X className="w-4 h-4" /> {t('common.cancel')}
             </>
           ) : (
             <>
-              <Plus className="w-4 h-4" /> Add Order
+              <Plus className="w-4 h-4" /> {t('myOrders.addOrder')}
             </>
           )}
         </button>
@@ -359,42 +365,42 @@ export default function MyOrders() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             {
-              label: "Total Orders",
+              label: t('myOrders.totalOrders'),
               value: stats.totalOrders.toString(),
               icon: Package,
               color: "text-blue-500",
               bg: "bg-blue-500/10",
             },
             {
-              label: "Confirmed",
+              label: t('myOrders.confirmed'),
               value: stats.confirmed.toString(),
               icon: CheckCircle,
               color: "text-emerald-500",
               bg: "bg-emerald-500/10",
             },
             {
-              label: "Shipped",
+              label: t('myOrders.shipped'),
               value: String(stats.shipped ?? 0),
               icon: CheckCircle,
               color: "text-amber-500",
               bg: "bg-amber-500/10",
             },
             {
-              label: "Conv. Rate",
+              label: t('myOrders.convRate'),
               value: `${stats.conversionRate}%`,
               icon: TrendingUp,
               color: "text-purple-500",
               bg: "bg-purple-500/10",
             },
             {
-              label: "Pending Pay",
+              label: t('myOrders.pendingPay'),
               value: fmt(stats.pendingCommission),
               icon: DollarSign,
               color: "text-amber-600",
               bg: "bg-amber-500/10",
             },
             {
-              label: "Total Earned",
+              label: t('myOrders.totalEarned'),
               value: fmt(stats.totalCommission),
               icon: DollarSign,
               color: "text-emerald-600",
@@ -431,13 +437,13 @@ export default function MyOrders() {
           className="card p-5 border-2 border-amber-400/30 space-y-4"
         >
           <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <Plus className="w-4 h-4 text-amber-500" /> New Order
+            <Plus className="w-4 h-4 text-amber-500" /> {t('myOrders.newOrder')}
           </h3>
 
           {/* Client */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Client *</label>
+              <label className="label">{t('myOrders.clientLabel')}</label>
               <select
                 className="select mt-1"
                 value={form.clientId}
@@ -453,7 +459,7 @@ export default function MyOrders() {
               </select>
             </div>
             <div>
-              <label className="label">Order Status</label>
+              <label className="label">{t('myOrders.orderStatus')}</label>
               <select
                 className="select mt-1"
                 value={form.status}
@@ -471,7 +477,7 @@ export default function MyOrders() {
           {/* Customer */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Customer Name *</label>
+              <label className="label">{t('myOrders.customerName')}</label>
               <input
                 className="input mt-1"
                 value={form.customerName}
@@ -481,7 +487,7 @@ export default function MyOrders() {
               />
             </div>
             <div>
-              <label className="label">Phone</label>
+              <label className="label">{t('myOrders.phone')}</label>
               <input
                 className="input mt-1"
                 value={form.customerPhone}
@@ -490,7 +496,7 @@ export default function MyOrders() {
               />
             </div>
             <div>
-              <label className="label">City</label>
+              <label className="label">{t('myOrders.city')}</label>
               <input
                 className="input mt-1"
                 value={form.customerCity}
@@ -503,7 +509,7 @@ export default function MyOrders() {
           {/* Product */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Product Name *</label>
+              <label className="label">{t('myOrders.productName')}</label>
               <input
                 className="input mt-1"
                 value={form.productName}
@@ -513,7 +519,7 @@ export default function MyOrders() {
               />
             </div>
             <div>
-              <label className="label">Quantity</label>
+              <label className="label">{t('myOrders.quantity')}</label>
               <input
                 className="input mt-1"
                 type="number"
@@ -527,7 +533,7 @@ export default function MyOrders() {
           {/* Financials */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Order Amount (MAD) *</label>
+              <label className="label">{t('myOrders.orderAmountMAD')}</label>
               <input
                 className="input mt-1"
                 type="number"
@@ -539,7 +545,7 @@ export default function MyOrders() {
               />
             </div>
             <div>
-              <label className="label">Product Cost (MAD)</label>
+              <label className="label">{t('myOrders.productCostMAD')}</label>
               <input
                 className="input mt-1"
                 type="number"
@@ -550,7 +556,7 @@ export default function MyOrders() {
               />
             </div>
             <div>
-              <label className="label">Shipping Cost (MAD)</label>
+              <label className="label">{t('myOrders.shippingCostMAD')}</label>
               <input
                 className="input mt-1"
                 type="number"
@@ -571,13 +577,13 @@ export default function MyOrders() {
                 : "bg-red-50 dark:bg-red-900/10 text-red-600",
             )}
           >
-            Estimated Margin: {netProfit.toFixed(2)} MAD
+            {t('myOrders.estimatedMargin', { value: netProfit.toFixed(2) })}
           </div>
 
           {/* Source + Notes */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Source</label>
+              <label className="label">{t('myOrders.source')}</label>
               <select
                 className="select mt-1"
                 value={form.source}
@@ -591,7 +597,7 @@ export default function MyOrders() {
               </select>
             </div>
             <div>
-              <label className="label">Notes</label>
+              <label className="label">{t('myOrders.notes')}</label>
               <input
                 className="input mt-1"
                 value={form.notes}
@@ -609,7 +615,7 @@ export default function MyOrders() {
               onClick={() => setShowForm(false)}
               className="btn-secondary px-5 py-2 text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -619,7 +625,7 @@ export default function MyOrders() {
               {saving && (
                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               )}
-              {saving ? "Saving…" : "Submit Order"}
+              {saving ? t('settings.saving') : t('myOrders.submitOrder')}
             </button>
           </div>
         </form>
@@ -631,7 +637,7 @@ export default function MyOrders() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             className="input pl-9 w-full"
-            placeholder="Search orders…"
+            placeholder={t('myOrders.search')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -647,13 +653,26 @@ export default function MyOrders() {
             setPage(1);
           }}
         >
-          <option value="">All Statuses</option>
+          <option value="">{t('myOrders.allStatuses')}</option>
           {LIST_STATUSES.map((s) => (
             <option key={s} value={s}>
               {STATUS_CONFIG[s]?.label ?? s.replace(/_/g, " ")}
             </option>
           ))}
         </select>
+        <div className="flex items-center gap-1.5 w-full sm:w-44">
+          <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <select
+            className="select flex-1"
+            value={selectedMonth}
+            onChange={(e) => { setSelectedMonth(e.target.value); setPage(1); }}
+          >
+            <option value="">{t('myOrders.allMonths')}</option>
+            {monthOptions().map((m) => (
+              <option key={m.key} value={m.key}>{m.label}</option>
+            ))}
+          </select>
+        </div>
         <button onClick={loadOrders} className="btn-secondary p-2.5">
           <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
         </button>
@@ -666,13 +685,13 @@ export default function MyOrders() {
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 {[
-                  "Customer",
-                  "Product",
-                  "Amount",
-                  "Commission",
-                  "Status",
-                  "Client",
-                  "Date",
+                  t('myOrders.colCustomer'),
+                  t('myOrders.colProduct'),
+                  t('myOrders.colAmount'),
+                  t('myOrders.colCommission'),
+                  t('common.status'),
+                  t('common.name'),
+                  t('common.date'),
                 ].map((h) => (
                   <th
                     key={h}
@@ -698,7 +717,7 @@ export default function MyOrders() {
                 <tr>
                   <td colSpan={7} className="text-center py-14 text-slate-400">
                     <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    No orders found
+                    {t('crm.noOrdersFound')}
                   </td>
                 </tr>
               ) : (

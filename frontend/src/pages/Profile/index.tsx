@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import ClerkProfileView from './ClerkProfileView';
 import {
   User, Mail, Phone, Lock, Upload, Eye, EyeOff,
@@ -9,12 +10,6 @@ import { useAuth } from '@/context/AuthContext';
 import { cn, formatDate, formatRelativeTime, getInitials } from '@/lib/utils';
 import { Role } from '@/types';
 
-const ROLE_LABELS: Record<Role, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Administrator',
-  MANAGER: 'Manager',
-  TEAM_MEMBER: 'Team Member',
-};
 
 const ROLE_COLORS: Record<Role, string> = {
   SUPER_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
@@ -27,7 +22,15 @@ type Tab = 'info' | 'security';
 type Toast = { message: string; type: 'success' | 'error' };
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { user, updateUser, isClerkUser } = useAuth();
+
+  const ROLE_LABELS: Record<Role, string> = {
+    SUPER_ADMIN: t('team.superAdmin'),
+    ADMIN: t('team.admin'),
+    MANAGER: t('team.manager'),
+    TEAM_MEMBER: t('team.teamMember'),
+  };
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<Tab>('info');
@@ -67,7 +70,7 @@ export default function Profile() {
   function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { showToast('Image must be under 2MB', 'error'); return; }
+    if (file.size > 2 * 1024 * 1024) { showToast(t('profile.imageTooLarge'), 'error'); return; }
     const reader = new FileReader();
     reader.onload = () => setInfo(f => ({ ...f, avatar: reader.result as string }));
     reader.readAsDataURL(file);
@@ -75,9 +78,9 @@ export default function Profile() {
 
   function validateInfo() {
     const errs: Record<string, string> = {};
-    if (!info.name.trim()) errs.name = 'Name is required';
-    if (!info.email.trim()) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) errs.email = 'Invalid email';
+    if (!info.name.trim()) errs.name = t('auth.nameRequired');
+    if (!info.email.trim()) errs.email = t('auth.emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) errs.email = t('auth.emailInvalid');
     setInfoErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -93,9 +96,9 @@ export default function Profile() {
         avatar: info.avatar || undefined,
       });
       updateUser({ ...user!, ...data });
-      showToast('Profile updated successfully');
+      showToast(t('profile.profileUpdated'));
     } catch {
-      showToast('Failed to update profile', 'error');
+      showToast(t('profile.failedUpdate'), 'error');
     } finally {
       setInfoSaving(false);
     }
@@ -103,10 +106,10 @@ export default function Profile() {
 
   function validatePwd() {
     const errs: Record<string, string> = {};
-    if (!pwd.current) errs.current = 'Current password is required';
-    if (!pwd.next) errs.next = 'New password is required';
-    else if (pwd.next.length < 8) errs.next = 'Minimum 8 characters';
-    if (pwd.next !== pwd.confirm) errs.confirm = 'Passwords do not match';
+    if (!pwd.current) errs.current = t('auth.passwordRequired');
+    if (!pwd.next) errs.next = t('auth.passwordRequired');
+    else if (pwd.next.length < 8) errs.next = t('auth.passwordMinLength');
+    if (pwd.next !== pwd.confirm) errs.confirm = t('auth.passwordMismatch');
     setPwdErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -121,10 +124,10 @@ export default function Profile() {
         newPassword: pwd.next,
       });
       setPwd({ current: '', next: '', confirm: '' });
-      showToast('Password changed successfully');
+      showToast(t('profile.passwordChanged'));
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      showToast(msg || 'Failed to change password', 'error');
+      showToast(msg || t('profile.failedPassword'), 'error');
     } finally {
       setPwdSaving(false);
     }
@@ -136,9 +139,9 @@ export default function Profile() {
     return (
       <div className="max-w-3xl mx-auto space-y-6 w-full">
         <div>
-          <h1 className="page-title">My Profile</h1>
+          <h1 className="page-title">{t('profile.title')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Signed in with Google — manage your account details below
+            {t('profile.clerkSubtitle')}
           </p>
         </div>
         <ClerkProfileView />
@@ -161,8 +164,8 @@ export default function Profile() {
 
       {/* Header */}
       <div>
-        <h1 className="page-title">My Profile</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your personal information and security settings</p>
+        <h1 className="page-title">{t('profile.title')}</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('profile.subtitle')}</p>
       </div>
 
       {/* Profile card */}
@@ -200,18 +203,18 @@ export default function Profile() {
               </span>
               <span className="badge text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 <Check className="w-3 h-3 mr-1" />
-                Active
+                {t('profile.activeStatus')}
               </span>
             </div>
             <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-400 dark:text-slate-500 justify-center sm:justify-start">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                Joined {formatDate(user.createdAt)}
+                {t('profile.joined')} {formatDate(user.createdAt)}
               </span>
               {user.lastLogin && (
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  Last login {formatRelativeTime(user.lastLogin)}
+                  {t('profile.lastLogin')} {formatRelativeTime(user.lastLogin)}
                 </span>
               )}
             </div>
@@ -221,13 +224,13 @@ export default function Profile() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
-        {([['info', 'Personal Info'], ['security', 'Security']] as [Tab, string][]).map(([t, label]) => (
+        {([['info', t('profile.tabInfo')], ['security', t('profile.tabSecurity')]] as [Tab, string][]).map(([tabKey, label]) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={cn(
               'px-4 py-2 text-sm font-medium rounded-lg transition-all',
-              tab === t
+              tab === tabKey
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300',
             )}
@@ -240,24 +243,24 @@ export default function Profile() {
       {/* Personal Info Tab */}
       {tab === 'info' && (
         <div className="card p-6">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-5">Personal Information</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-5">{t('profile.personalInfo')}</h3>
           <form onSubmit={saveInfo} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="label">Full Name *</label>
+                <label className="label">{t('profile.fullNameLabel')}</label>
                 <div className="relative mt-1">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     className={cn('input pl-9', infoErrors.name && 'border-red-400')}
                     value={info.name}
                     onChange={e => { setInfo(f => ({ ...f, name: e.target.value })); setInfoErrors(e2 => ({ ...e2, name: '' })); }}
-                    placeholder="Your full name"
+                    placeholder={t('profile.fullNamePlaceholder')}
                   />
                 </div>
                 {infoErrors.name && <p className="text-xs text-red-500 mt-1">{infoErrors.name}</p>}
               </div>
               <div>
-                <label className="label">Email Address *</label>
+                <label className="label">{t('profile.emailAddress')}</label>
                 <div className="relative mt-1">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -269,12 +272,12 @@ export default function Profile() {
                     placeholder="your@email.com"
                   />
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Contact an admin to change your email</p>
+                <p className="text-xs text-slate-400 mt-1">{t('profile.emailHint')}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="label">Phone Number <span className="text-slate-400">(optional)</span></label>
+                <label className="label">{t('profile.phone')} <span className="text-slate-400">{t('profile.phoneOptional')}</span></label>
                 <div className="relative mt-1">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -282,12 +285,12 @@ export default function Profile() {
                     className="input pl-9"
                     value={info.phone}
                     onChange={e => setInfo(f => ({ ...f, phone: e.target.value }))}
-                    placeholder="+212 600 000 000"
+                    placeholder={t('profile.phonePlaceholder')}
                   />
                 </div>
               </div>
               <div>
-                <label className="label">Role</label>
+                <label className="label">{t('profile.role')}</label>
                 <div className="relative mt-1">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
@@ -308,13 +311,13 @@ export default function Profile() {
               <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-sm">
                 <img src={info.avatar} alt="New avatar" className="w-10 h-10 rounded-lg object-cover" />
                 <div>
-                  <p className="font-medium text-amber-700 dark:text-amber-400">New photo selected</p>
+                  <p className="font-medium text-amber-700 dark:text-amber-400">{t('profile.newPhotoSelected')}</p>
                   <button
                     type="button"
                     onClick={() => setInfo(f => ({ ...f, avatar: user.avatar ?? '' }))}
                     className="text-xs text-amber-600 dark:text-amber-500 underline"
                   >
-                    Remove
+                    {t('profile.removePhoto')}
                   </button>
                 </div>
               </div>
@@ -327,8 +330,8 @@ export default function Profile() {
                 className="btn-primary px-6 py-2 text-sm flex items-center gap-2 disabled:opacity-60"
               >
                 {infoSaving
-                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving…</>
-                  : <><Upload className="w-3.5 h-3.5" />Save Changes</>
+                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('profile.saving')}</>
+                  : <><Upload className="w-3.5 h-3.5" />{t('profile.save')}</>
                 }
               </button>
             </div>
@@ -339,14 +342,14 @@ export default function Profile() {
       {/* Security Tab */}
       {tab === 'security' && (
         <div className="card p-6">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">Change Password</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Choose a strong password with at least 8 characters</p>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">{t('profile.changePassword')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">{t('profile.changePasswordSubtitle')}</p>
           <form onSubmit={savePassword} className="space-y-5">
             {(
               [
-                { key: 'current', label: 'Current Password', placeholder: 'Enter your current password' },
-                { key: 'next', label: 'New Password', placeholder: 'Min. 8 characters' },
-                { key: 'confirm', label: 'Confirm New Password', placeholder: 'Repeat your new password' },
+                { key: 'current', label: t('profile.currentPassword'), placeholder: t('profile.currentPasswordPlaceholder') },
+                { key: 'next', label: t('profile.newPassword'), placeholder: t('profile.newPasswordPlaceholder') },
+                { key: 'confirm', label: t('profile.confirmNewPassword'), placeholder: t('profile.confirmNewPasswordPlaceholder') },
               ] as { key: 'current' | 'next' | 'confirm'; label: string; placeholder: string }[]
             ).map(({ key, label, placeholder }) => (
               <div key={key}>
@@ -376,10 +379,10 @@ export default function Profile() {
             {pwd.next && (
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {[
-                  { ok: pwd.next.length >= 8, label: 'At least 8 characters' },
-                  { ok: /[A-Z]/.test(pwd.next), label: 'Uppercase letter' },
-                  { ok: /[0-9]/.test(pwd.next), label: 'Number' },
-                  { ok: /[^A-Za-z0-9]/.test(pwd.next), label: 'Special character' },
+                  { ok: pwd.next.length >= 8, label: t('profile.pwdHintLength') },
+                  { ok: /[A-Z]/.test(pwd.next), label: t('profile.pwdHintUppercase') },
+                  { ok: /[0-9]/.test(pwd.next), label: t('profile.pwdHintNumber') },
+                  { ok: /[^A-Za-z0-9]/.test(pwd.next), label: t('profile.pwdHintSpecial') },
                 ].map(({ ok, label }) => (
                   <div key={label} className={cn('flex items-center gap-1.5', ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400')}>
                     <div className={cn('w-1.5 h-1.5 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600')} />
@@ -396,8 +399,8 @@ export default function Profile() {
                 className="btn-primary px-6 py-2 text-sm flex items-center gap-2 disabled:opacity-60"
               >
                 {pwdSaving
-                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Changing…</>
-                  : <><Lock className="w-3.5 h-3.5" />Change Password</>
+                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('profile.changing')}</>
+                  : <><Lock className="w-3.5 h-3.5" />{t('profile.changePasswordBtn')}</>
                 }
               </button>
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, MessageSquare, ChevronDown, ChevronUp, GitBranch, User } from 'lucide-react';
 import { portalApi } from '@/context/PortalAuthContext';
 import { usePortalAuth } from '@/context/PortalAuthContext';
@@ -19,6 +20,7 @@ function CommentThread({ update, onNewComment }: {
   update: ProjectUpdate;
   onNewComment: (updateId: string, comment: UpdateComment) => void;
 }) {
+  const { t } = useTranslation();
   const { user } = usePortalAuth();
   const [expanded, setExpanded] = useState(false);
   const [content, setContent] = useState('');
@@ -44,7 +46,7 @@ function CommentThread({ update, onNewComment }: {
         className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors"
       >
         <MessageSquare className="w-3.5 h-3.5" />
-        <span>{update.comments?.length ?? 0} comment{update.comments?.length !== 1 ? 's' : ''}</span>
+        <span>{(update.comments?.length ?? 0) === 1 ? t('portal.commentSingular', { count: 1 }) : t('portal.commentPlural', { count: update.comments?.length ?? 0 })}</span>
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
 
@@ -68,7 +70,7 @@ function CommentThread({ update, onNewComment }: {
                   {c.content}
                 </div>
                 <div className={cn('flex items-center gap-2 mt-1 text-[10px] text-slate-500', c.isClient ? 'flex-row-reverse' : '')}>
-                  <span className="font-medium">{c.isClient ? 'You' : c.authorName}</span>
+                  <span className="font-medium">{c.isClient ? t('team.you') : c.authorName}</span>
                   <span>·</span>
                   <span>{new Date(c.createdAt).toLocaleDateString()}</span>
                 </div>
@@ -88,7 +90,7 @@ function CommentThread({ update, onNewComment }: {
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); } }}
                 rows={1}
-                placeholder="Write a comment..."
+                placeholder={t('portal.writeComment')}
                 className="w-full bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2 pr-9 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 resize-none"
               />
               <button
@@ -107,6 +109,7 @@ function CommentThread({ update, onNewComment }: {
 }
 
 export default function UpdatesPage() {
+  const { t } = useTranslation();
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -125,8 +128,8 @@ export default function UpdatesPage() {
   return (
     <div className="space-y-5 max-w-3xl">
       <div>
-        <h1 className="text-xl font-bold text-white">Project Updates</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Stay up to date with your campaign progress</p>
+        <h1 className="text-xl font-bold text-white">{t('portal.projectUpdatesTitle')}</h1>
+        <p className="text-sm text-slate-500 mt-0.5">{t('portal.projectUpdatesDesc')}</p>
       </div>
 
       {loading ? (
@@ -136,7 +139,7 @@ export default function UpdatesPage() {
       ) : updates.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 text-slate-500">
           <GitBranch className="w-10 h-10 mb-3 opacity-30" />
-          <p className="text-sm">No project updates yet</p>
+          <p className="text-sm">{t('portal.noProjectUpdates')}</p>
         </div>
       ) : (
         <div className="relative">
@@ -191,7 +194,7 @@ export default function UpdatesPage() {
                         rel="noopener noreferrer"
                         className="mt-3 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors"
                       >
-                        📎 View attached file
+                        📎 {t('portal.viewAttachedFile')}
                       </a>
                     )}
 

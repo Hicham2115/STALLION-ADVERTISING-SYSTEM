@@ -12,6 +12,7 @@ import api from '@/lib/api';
 import { DashboardStats, MonthlyChartData, Currency } from '@/types';
 import { formatCurrency, formatRelativeTime, getInitials, getServiceLabel, cn } from '@/lib/utils';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 
 interface TopClient { id: string; name: string; service: string; status: string; revenue: number }
 
@@ -53,6 +54,7 @@ function ProgressBar({ value, color = 'bg-amber-500' }: { value: number; color?:
 const CURRENCIES: Currency[] = ['MAD', 'USD', 'EUR'];
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [chart, setChart] = useState<MonthlyChartData[]>([]);
   const [topClients, setTopClients] = useState<TopClient[]>([]);
@@ -88,7 +90,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">CEO Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('dashboard.ceoDashboard')}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
             {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
@@ -110,7 +112,7 @@ export default function Dashboard() {
             ))}
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-400">Annual Run Rate</p>
+            <p className="text-xs text-slate-400">{t('dashboard.annualRunRate')}</p>
             <p className="text-xl font-bold text-amber-500">{fc(stats.mrr * 12)}</p>
           </div>
         </div>
@@ -121,18 +123,19 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
           <span className="text-red-700 dark:text-red-400 font-medium">
-            {stats.overduePayments} overdue payment{stats.overduePayments > 1 ? 's' : ''} — {fc(stats.pendingInvoicesAmount)} at risk
+            {stats.overduePayments} {stats.overduePayments > 1 ? t('dashboard.overdueAlertPlural', { amount: fc(stats.pendingInvoicesAmount) }) : t('dashboard.overdueAlert')}
+            {stats.overduePayments === 1 && ` — ${fc(stats.pendingInvoicesAmount)} at risk`}
           </span>
-          <Link to="/revenue" className="ml-auto text-red-600 dark:text-red-400 underline text-xs hover:no-underline">View</Link>
+          <Link to="/revenue" className="ml-auto text-red-600 dark:text-red-400 underline text-xs hover:no-underline">{t('dashboard.view')}</Link>
         </div>
       )}
 
       {/* Row 1: Core KPIs */}
       <div>
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Core Metrics</p>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{t('dashboard.coreMetrics')}</p>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <KpiCard
-            label="Monthly Revenue"
+            label={t('dashboard.monthlyRevenue')}
             value={fc(stats.monthlyRevenue)}
             icon={DollarSign}
             iconBg="bg-emerald-100 dark:bg-emerald-900/30"
@@ -141,27 +144,27 @@ export default function Dashboard() {
             link="/revenue"
           />
           <KpiCard
-            label="Active Clients"
+            label={t('dashboard.activeClients')}
             value={String(stats.activeClients)}
-            sub={`${stats.openLeads} open leads`}
+            sub={`${stats.openLeads} ${t('dashboard.openLeads').toLowerCase()}`}
             icon={Users}
             iconBg="bg-blue-100 dark:bg-blue-900/30"
             color="text-blue-600"
             link="/clients"
           />
           <KpiCard
-            label="Pending Tasks"
+            label={t('dashboard.pendingTasks')}
             value={String(stats.pendingTasks)}
-            sub="across all projects"
+            sub={t('dashboard.acrossAllProjects')}
             icon={CheckSquare}
             iconBg="bg-amber-100 dark:bg-amber-900/30"
             color="text-amber-600"
             link="/tasks"
           />
           <KpiCard
-            label="Open Leads"
+            label={t('dashboard.openLeads')}
             value={String(stats.openLeads)}
-            sub={`${stats.conversionRate.toFixed(0)}% conversion rate`}
+            sub={`${stats.conversionRate.toFixed(0)}% ${t('dashboard.conversionRate')}`}
             icon={Target}
             iconBg="bg-purple-100 dark:bg-purple-900/30"
             color="text-purple-600"
@@ -172,18 +175,18 @@ export default function Dashboard() {
 
       {/* Row 2: CEO Decision KPIs */}
       <div>
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Business Health</p>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{t('dashboard.businessHealth')}</p>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <KpiCard
-            label="MRR (Contract Value)"
+            label={t('dashboard.mrr')}
             value={fc(stats.mrr)}
-            sub="from active client contracts"
+            sub={t('dashboard.fromActiveContracts')}
             icon={Repeat}
             iconBg="bg-teal-100 dark:bg-teal-900/30"
             color="text-teal-600"
           />
           <KpiCard
-            label="Client Retention"
+            label={t('dashboard.clientRetention')}
             value={`${stats.retentionRate.toFixed(0)}%`}
             sub={`${stats.activeClients} active of ${stats.activeClients + Math.round(stats.activeClients * (100 - stats.retentionRate) / Math.max(stats.retentionRate, 1))} total`}
             icon={ShieldCheck}
@@ -191,18 +194,18 @@ export default function Dashboard() {
             color={stats.retentionRate >= 80 ? 'text-emerald-600' : 'text-amber-600'}
           />
           <KpiCard
-            label="Pending Invoices"
+            label={t('dashboard.pendingInvoices')}
             value={fc(stats.pendingInvoicesAmount)}
-            sub={`${stats.pendingInvoicesCount} invoice${stats.pendingInvoicesCount !== 1 ? 's' : ''} outstanding`}
+            sub={`${stats.pendingInvoicesCount} ${stats.pendingInvoicesCount !== 1 ? t('dashboard.invoicesOutstandingPlural') : t('dashboard.invoicesOutstanding')}`}
             icon={Receipt}
             iconBg={stats.pendingInvoicesCount > 0 ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-slate-100 dark:bg-slate-800'}
             color={stats.pendingInvoicesCount > 0 ? 'text-orange-600' : 'text-slate-400'}
             link="/revenue"
           />
           <KpiCard
-            label="Team Productivity"
+            label={t('dashboard.teamProductivity')}
             value={`${stats.teamProductivity.toFixed(0)}%`}
-            sub="tasks completed (30 days)"
+            sub={t('dashboard.tasksCompleted30Days')}
             icon={Zap}
             iconBg={stats.teamProductivity >= 70 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}
             color={stats.teamProductivity >= 70 ? 'text-emerald-600' : 'text-amber-600'}
@@ -214,21 +217,21 @@ export default function Dashboard() {
       {/* P&L + Financial Ratios */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4 flex flex-col gap-1">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Yearly Revenue</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('dashboard.yearlyRevenue')}</span>
           <span className="text-xl font-bold text-emerald-600">{fc(stats.yearlyRevenue)}</span>
         </div>
         <div className="card p-4 flex flex-col gap-1">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Monthly Expenses</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('dashboard.monthlyExpenses')}</span>
           <span className="text-xl font-bold text-red-500">{fc(stats.monthlyExpenses)}</span>
         </div>
         <div className="card p-4 flex flex-col gap-1">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Monthly Profit</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('dashboard.monthlyProfit')}</span>
           <span className={cn('text-xl font-bold', stats.monthlyProfit >= 0 ? 'text-emerald-600' : 'text-red-500')}>
             {fc(stats.monthlyProfit)}
           </span>
         </div>
         <div className="card p-4 flex flex-col gap-1">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Profit Margin</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('dashboard.profitMargin')}</span>
           <span className={cn('text-xl font-bold', stats.profitMargin >= 30 ? 'text-emerald-600' : stats.profitMargin >= 0 ? 'text-amber-600' : 'text-red-500')}>
             {stats.monthlyRevenue > 0 ? `${stats.profitMargin.toFixed(1)}%` : '—'}
           </span>
@@ -239,7 +242,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue/Expenses chart */}
         <div className="card p-5 lg:col-span-2">
-          <h2 className="font-semibold text-slate-900 dark:text-white mb-4">{year} Revenue vs Expenses</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-white mb-4">{year} {t('dashboard.revenueVsExpenses')}</h2>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chart} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
@@ -261,8 +264,8 @@ export default function Dashboard() {
                 formatter={(v: number) => fc(v)}
               />
               <Legend iconSize={10} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              <Area type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} fill="url(#rev)" name="Revenue" />
-              <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} fill="url(#exp)" name="Expenses" />
+              <Area type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} fill="url(#rev)" name={t('dashboard.totalRevenue')} />
+              <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} fill="url(#exp)" name={t('dashboard.monthlyExpenses')} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -271,33 +274,33 @@ export default function Dashboard() {
         <div className="card p-5 flex flex-col gap-4">
           <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
             <Gauge className="w-4 h-4 text-amber-500" />
-            Performance Indicators
+            {t('dashboard.performanceIndicators')}
           </h2>
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-slate-500 dark:text-slate-400">Lead Conversion</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('dashboard.leadConversion')}</span>
                 <span className="font-semibold text-slate-900 dark:text-white">{stats.conversionRate.toFixed(0)}%</span>
               </div>
               <ProgressBar value={stats.conversionRate} color="bg-purple-500" />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-slate-500 dark:text-slate-400">Client Retention</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('dashboard.clientRetention')}</span>
                 <span className="font-semibold text-slate-900 dark:text-white">{stats.retentionRate.toFixed(0)}%</span>
               </div>
               <ProgressBar value={stats.retentionRate} color={stats.retentionRate >= 80 ? 'bg-emerald-500' : 'bg-amber-500'} />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-slate-500 dark:text-slate-400">Profit Margin</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('dashboard.profitMargin')}</span>
                 <span className="font-semibold text-slate-900 dark:text-white">{stats.profitMargin.toFixed(0)}%</span>
               </div>
               <ProgressBar value={stats.profitMargin} color={stats.profitMargin >= 30 ? 'bg-emerald-500' : 'bg-amber-500'} />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-slate-500 dark:text-slate-400">Team Productivity</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('dashboard.teamProductivity')}</span>
                 <span className="font-semibold text-slate-900 dark:text-white">{stats.teamProductivity.toFixed(0)}%</span>
               </div>
               <ProgressBar value={stats.teamProductivity} color={stats.teamProductivity >= 70 ? 'bg-emerald-500' : 'bg-amber-500'} />
@@ -307,23 +310,23 @@ export default function Dashboard() {
               <div className="flex justify-between py-1">
                 <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                   <BarChart3 className="w-3.5 h-3.5" />
-                  ROAS (Ad Spend)
+                  {t('dashboard.roas')}
                 </div>
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {stats.roas !== null ? `${stats.roas.toFixed(1)}x` : 'No ad spend'}
+                  {stats.roas !== null ? `${stats.roas.toFixed(1)}x` : t('dashboard.noAdSpend')}
                 </span>
               </div>
               <div className="flex justify-between py-1">
                 <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                   <Clock className="w-3.5 h-3.5" />
-                  Cashflow Forecast
+                  {t('dashboard.cashflowForecast')}
                 </div>
                 <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                   {fc(stats.cashflowForecast)}
                 </span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-sm text-slate-500 dark:text-slate-400">Avg Client Value</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">{t('dashboard.avgClientValue')}</span>
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">
                   {stats.activeClients > 0 ? fc(stats.mrr / stats.activeClients) : '—'}
                 </span>
@@ -338,9 +341,9 @@ export default function Dashboard() {
         {/* Top clients */}
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-900 dark:text-white">Top Clients by Revenue</h2>
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t('dashboard.topClients')}</h2>
             <Link to="/clients" className="text-xs text-amber-500 hover:text-amber-600 flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+              {t('dashboard.viewAll')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="space-y-2">
@@ -359,7 +362,7 @@ export default function Dashboard() {
               </Link>
             ))}
             {topClients.length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">No revenue data yet</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t('dashboard.noRevenueData')}</p>
             )}
           </div>
         </div>
@@ -369,7 +372,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <Activity className="w-4 h-4 text-amber-500" />
-              Recent Activity
+              {t('dashboard.recentActivity')}
             </h2>
           </div>
           <div className="space-y-3">
@@ -385,7 +388,7 @@ export default function Dashboard() {
               </div>
             ))}
             {stats.recentActivity.length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">No recent activity</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t('dashboard.noActivity')}</p>
             )}
           </div>
         </div>

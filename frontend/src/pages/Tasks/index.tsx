@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Search, LayoutGrid, List, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 import { Task, TaskStatus, User, Client } from "@/types";
@@ -15,34 +16,36 @@ import { useAuth } from "@/context/AuthContext";
 
 const STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS", "REVIEW", "COMPLETED"];
 
-const STATUS_CONFIG: Record<
-  TaskStatus,
-  { label: string; color: string; border: string }
-> = {
-  TODO: {
-    label: "To Do",
-    color: "bg-slate-50 dark:bg-slate-800/30",
-    border: "border-slate-200 dark:border-slate-700",
-  },
-  IN_PROGRESS: {
-    label: "In Progress",
-    color: "bg-blue-50 dark:bg-blue-900/10",
-    border: "border-blue-200 dark:border-blue-800",
-  },
-  REVIEW: {
-    label: "Review",
-    color: "bg-purple-50 dark:bg-purple-900/10",
-    border: "border-purple-200 dark:border-purple-800",
-  },
-  COMPLETED: {
-    label: "Completed",
-    color: "bg-emerald-50 dark:bg-emerald-900/10",
-    border: "border-emerald-200 dark:border-emerald-800",
-  },
-};
-
 export default function Tasks() {
+  const { t } = useTranslation();
   const { isAdmin } = useAuth();
+
+  const STATUS_CONFIG: Record<
+    TaskStatus,
+    { label: string; color: string; border: string }
+  > = {
+    TODO: {
+      label: t('tasks.todo'),
+      color: "bg-slate-50 dark:bg-slate-800/30",
+      border: "border-slate-200 dark:border-slate-700",
+    },
+    IN_PROGRESS: {
+      label: t('tasks.inProgress'),
+      color: "bg-blue-50 dark:bg-blue-900/10",
+      border: "border-blue-200 dark:border-blue-800",
+    },
+    REVIEW: {
+      label: t('tasks.review'),
+      color: "bg-purple-50 dark:bg-purple-900/10",
+      border: "border-purple-200 dark:border-purple-800",
+    },
+    COMPLETED: {
+      label: t('tasks.completed'),
+      color: "bg-emerald-50 dark:bg-emerald-900/10",
+      border: "border-emerald-200 dark:border-emerald-800",
+    },
+  };
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -65,12 +68,12 @@ export default function Tasks() {
     if (statusFilter) params.set("status", statusFilter);
     if (priorityFilter) params.set("priority", priorityFilter);
     if (assigneeFilter) params.set("assignedToId", assigneeFilter);
-    const [t, u, c] = await Promise.all([
+    const [t2, u, c] = await Promise.all([
       api.get<Task[]>(`/tasks?${params}`),
       api.get<{ users: User[] }>("/users?limit=100"),
       api.get<Client[]>("/clients?archived=false"),
     ]);
-    setTasks(t.data);
+    setTasks(t2.data);
     setUsers(u.data.users);
     setClients(c.data);
     setLoading(false);
@@ -83,7 +86,7 @@ export default function Tasks() {
   const updateStatus = async (taskId: string, newStatus: TaskStatus) => {
     await api.put(`/tasks/${taskId}`, { status: newStatus });
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
+      prev.map((t2) => (t2.id === taskId ? { ...t2, status: newStatus } : t2)),
     );
   };
 
@@ -98,28 +101,28 @@ export default function Tasks() {
     setDeleteError("");
     try {
       await api.delete(`/tasks/${confirmDeleteId}`);
-      setTasks((prev) => prev.filter((t) => t.id !== confirmDeleteId));
+      setTasks((prev) => prev.filter((t2) => t2.id !== confirmDeleteId));
       setConfirmDeleteId(null);
     } catch (err: any) {
-      setDeleteError(err.response?.data?.message || "Failed to delete task");
+      setDeleteError(err.response?.data?.message || t('tasks.failedToDelete'));
     } finally {
       setDeleting(false);
     }
   };
 
   const byStatus = (status: TaskStatus) =>
-    tasks.filter((t) => t.status === status);
+    tasks.filter((t2) => t2.status === status);
   const overdueTasks = tasks.filter(
-    (t) => t.dueDate && isOverdue(t.dueDate) && t.status !== "COMPLETED",
+    (t2) => t2.dueDate && isOverdue(t2.dueDate) && t2.status !== "COMPLETED",
   ).length;
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Tasks</h1>
+          <h1 className="page-title">{t('tasks.title')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {tasks.length} total tasks
+            {t('tasks.totalTasks', { count: tasks.length })}
           </p>
         </div>
         <button
@@ -129,14 +132,14 @@ export default function Tasks() {
           }}
           className="btn-primary"
         >
-          <Plus className="w-4 h-4" /> Add Task
+          <Plus className="w-4 h-4" /> {t('tasks.addTask')}
         </button>
       </div>
 
       {overdueTasks > 0 && (
         <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-400">
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          {overdueTasks} overdue task{overdueTasks > 1 ? "s" : ""}
+          {t('tasks.overdueTasks', { count: overdueTasks })}
         </div>
       )}
 
@@ -146,7 +149,7 @@ export default function Tasks() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             className="input pl-9"
-            placeholder="Search tasks..."
+            placeholder={t('tasks.search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -156,24 +159,22 @@ export default function Tasks() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">All Statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s.replace("_", " ")}
-            </option>
-          ))}
+          <option value="">{t('tasks.allStatuses')}</option>
+          <option value="TODO">{t('tasks.todo')}</option>
+          <option value="IN_PROGRESS">{t('tasks.inProgress')}</option>
+          <option value="REVIEW">{t('tasks.review')}</option>
+          <option value="COMPLETED">{t('tasks.completed')}</option>
         </select>
         <select
           className="select w-auto min-w-28"
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
         >
-          <option value="">All Priorities</option>
-          {["LOW", "MEDIUM", "HIGH", "URGENT"].map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
+          <option value="">{t('tasks.allPriorities')}</option>
+          <option value="LOW">{t('tasks.low')}</option>
+          <option value="MEDIUM">{t('tasks.medium')}</option>
+          <option value="HIGH">{t('tasks.high')}</option>
+          <option value="URGENT">{t('tasks.urgent')}</option>
         </select>
         {isAdmin && (
           <select
@@ -181,7 +182,7 @@ export default function Tasks() {
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
           >
-            <option value="">All Members</option>
+            <option value="">{t('tasks.allMembers')}</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
@@ -258,7 +259,7 @@ export default function Tasks() {
                   ))}
                   {statusTasks.length === 0 && (
                     <div className="text-center py-8 text-xs text-slate-400">
-                      No tasks here
+                      {t('tasks.noTasksHere')}
                     </div>
                   )}
                 </div>
@@ -273,13 +274,13 @@ export default function Tasks() {
               <thead className="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
                   {[
-                    "Task",
-                    "Client",
-                    "Assigned To",
-                    "Priority",
-                    "Due Date",
-                    "Status",
-                    "Actions",
+                    t('tasks.task'),
+                    t('tasks.client'),
+                    t('tasks.assignedTo'),
+                    t('tasks.priority'),
+                    t('tasks.dueDate'),
+                    t('tasks.status'),
+                    t('common.actions'),
                   ].map((h) => (
                     <th
                       key={h}
@@ -318,7 +319,7 @@ export default function Tasks() {
                         {task.client?.name || "—"}
                       </td>
                       <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                        {task.assignedTo?.name || "Unassigned"}
+                        {task.assignedTo?.name || t('tasks.unassigned')}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -356,13 +357,13 @@ export default function Tasks() {
                             }}
                             className="text-xs text-blue-500 hover:underline"
                           >
-                            Edit
+                            {t('common.edit')}
                           </button>
                           <button
                             onClick={() => deleteTask(task.id)}
                             className="text-xs text-red-500 hover:underline"
                           >
-                            Delete
+                            {t('common.delete')}
                           </button>
                         </div>
                       </td>
@@ -375,7 +376,7 @@ export default function Tasks() {
                       colSpan={7}
                       className="text-center py-10 text-slate-400"
                     >
-                      No tasks found
+                      {t('tasks.noTasks')}
                     </td>
                   </tr>
                 )}
@@ -403,9 +404,9 @@ export default function Tasks() {
           />
           <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h3 className="font-semibold text-slate-900 dark:text-white">
-              Delete task?
+              {t('tasks.deleteConfirmTitle')}
             </h3>
-            <p className="text-sm text-slate-500">This cannot be undone.</p>
+            <p className="text-sm text-slate-500">{t('common.cannotBeUndone')}</p>
             {deleteError && (
               <p className="text-sm text-red-500">{deleteError}</p>
             )}
@@ -415,14 +416,14 @@ export default function Tasks() {
                 disabled={deleting}
                 className="bg-slate-200 dark:bg-slate-700 flex-1 rounded-xl py-2 text-sm"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
                 className="flex-1 py-2 text-sm rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-60"
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
           </div>

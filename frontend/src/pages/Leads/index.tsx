@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Search, LayoutGrid, List, AlertCircle, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Lead, LeadStage, User } from '@/types';
@@ -8,14 +9,16 @@ import LeadCard from './LeadCard';
 
 const STAGES: LeadStage[] = ['NEW', 'WARMED', 'CLOSED_WON', 'CLOSED_LOST'];
 
-const STAGE_CONFIG: Record<LeadStage, { label: string; color: string; border: string }> = {
-  NEW: { label: 'New', color: 'bg-blue-50 dark:bg-blue-900/10', border: 'border-blue-200 dark:border-blue-800' },
-  WARMED: { label: 'Warmed', color: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-200 dark:border-amber-800' },
-  CLOSED_WON: { label: 'Closed Won', color: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-200 dark:border-emerald-800' },
-  CLOSED_LOST: { label: 'Closed Lost', color: 'bg-slate-50 dark:bg-slate-800/30', border: 'border-slate-200 dark:border-slate-700' },
-};
-
 export default function Leads() {
+  const { t } = useTranslation();
+
+  const STAGE_CONFIG: Record<LeadStage, { label: string; color: string; border: string }> = {
+    NEW: { label: t('leads.new'), color: 'bg-blue-50 dark:bg-blue-900/10', border: 'border-blue-200 dark:border-blue-800' },
+    WARMED: { label: t('leads.warmed'), color: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-200 dark:border-amber-800' },
+    CLOSED_WON: { label: t('leads.closedWon'), color: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-200 dark:border-emerald-800' },
+    CLOSED_LOST: { label: t('leads.closedLost'), color: 'bg-slate-50 dark:bg-slate-800/30', border: 'border-slate-200 dark:border-slate-700' },
+  };
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,6 @@ export default function Leads() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -46,7 +48,7 @@ export default function Leads() {
   };
 
   const deleteLead = async (leadId: string) => {
-    if (!window.confirm('Delete this lead? This cannot be undone.')) return;
+    if (!window.confirm(t('leads.confirmDelete'))) return;
     await api.delete(`/leads/${leadId}`);
     setLeads((prev) => prev.filter((l) => l.id !== leadId));
   };
@@ -65,27 +67,27 @@ export default function Leads() {
     <div className="max-w-7xl mx-auto space-y-5">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Leads CRM</h1>
+          <h1 className="page-title">{t('leads.crmTitle')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {leads.length} leads · Pipeline: {formatCurrency(totalPipeline)}
+            {t('leads.leadsCount', { count: leads.length })} · {t('leads.pipeline')}: {formatCurrency(totalPipeline)}
           </p>
         </div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }} className="btn-primary">
-          <Plus className="w-4 h-4" /> Add Lead
+          <Plus className="w-4 h-4" /> {t('leads.addLead')}
         </button>
       </div>
 
       {staleLeads > 0 && (
         <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-400">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          {staleLeads} lead{staleLeads > 1 ? 's' : ''} with overdue follow-up dates
+          {t('leads.overdueFollowUp', { count: staleLeads })}
         </div>
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input className="input pl-9" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="input pl-9" placeholder={t('leads.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
           <button onClick={() => setView('board')} className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', view === 'board' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500')}>
@@ -129,7 +131,7 @@ export default function Leads() {
                     />
                   ))}
                   {stageLeads.length === 0 && (
-                    <div className="text-center py-8 text-xs text-slate-400">No leads here</div>
+                    <div className="text-center py-8 text-xs text-slate-400">{t('leads.noLeadsHere')}</div>
                   )}
                 </div>
               </div>
@@ -143,7 +145,17 @@ export default function Leads() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
-                  {['Lead', 'Company', 'Service', 'Value', 'Source', 'Stage', 'Follow-up', 'Assigned', 'Actions'].map((h) => (
+                  {[
+                    t('leads.lead'),
+                    t('leads.company'),
+                    t('leads.service'),
+                    t('leads.value'),
+                    t('leads.source'),
+                    t('leads.stage'),
+                    t('leads.followUp'),
+                    t('leads.assigned'),
+                    t('common.actions'),
+                  ].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -168,8 +180,8 @@ export default function Leads() {
                     <td className="px-4 py-3 text-slate-500">{lead.assignedTo?.name || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { setEditing(lead); setModalOpen(true); }} className="text-xs text-blue-500 hover:underline">Edit</button>
-                        <button onClick={() => deleteLead(lead.id)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Delete lead">
+                        <button onClick={() => { setEditing(lead); setModalOpen(true); }} className="text-xs text-blue-500 hover:underline">{t('common.edit')}</button>
+                        <button onClick={() => deleteLead(lead.id)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title={t('leads.deleteLead')}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -177,7 +189,7 @@ export default function Leads() {
                   </tr>
                 ))}
                 {leads.length === 0 && (
-                  <tr><td colSpan={9} className="text-center py-10 text-slate-400">No leads found</td></tr>
+                  <tr><td colSpan={9} className="text-center py-10 text-slate-400">{t('leads.noLeads')}</td></tr>
                 )}
               </tbody>
             </table>

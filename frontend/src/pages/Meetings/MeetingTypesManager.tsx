@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { MeetingType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -10,6 +11,7 @@ const DURATIONS = [15, 30, 45, 60, 90, 120];
 type FormState = { name: string; duration: number; description: string; color: string };
 
 export default function MeetingTypesManager() {
+  const { t } = useTranslation();
   const [types, setTypes] = useState<MeetingType[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<MeetingType | null>(null);
@@ -26,9 +28,9 @@ export default function MeetingTypesManager() {
     setShowForm(true);
   };
 
-  const openEdit = (t: MeetingType) => {
-    setEditing(t);
-    setForm({ name: t.name, duration: t.duration, description: t.description || '', color: t.color });
+  const openEdit = (mt: MeetingType) => {
+    setEditing(mt);
+    setForm({ name: mt.name, duration: mt.duration, description: mt.description || '', color: mt.color });
     setShowForm(true);
   };
 
@@ -44,52 +46,52 @@ export default function MeetingTypesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this meeting type?')) return;
+    if (!confirm(t('meetings.deleteTypeConfirm'))) return;
     await api.delete(`/meetings/types/${id}`);
     setTypes(t => t.filter(x => x.id !== id));
   };
 
-  const toggleActive = async (t: MeetingType) => {
-    await api.put(`/meetings/types/${t.id}`, { active: !t.active });
-    setTypes(prev => prev.map(x => x.id === t.id ? { ...x, active: !x.active } : x));
+  const toggleActive = async (mt: MeetingType) => {
+    await api.put(`/meetings/types/${mt.id}`, { active: !mt.active });
+    setTypes(prev => prev.map(x => x.id === mt.id ? { ...x, active: !x.active } : x));
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-900 dark:text-white">Meeting Types</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Define the types of meetings clients can book</p>
+          <h3 className="font-semibold text-slate-900 dark:text-white">{t('meetings.types')}</h3>
+          <p className="text-xs text-slate-500 mt-0.5">{t('meetings.typesDesc')}</p>
         </div>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Add Type
+          <Plus className="w-4 h-4" /> {t('meetings.addType')}
         </button>
       </div>
 
       {showForm && (
         <div className="card p-5 border-2 border-amber-500/30">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium text-slate-900 dark:text-white">{editing ? 'Edit Type' : 'New Meeting Type'}</h4>
+            <h4 className="font-medium text-slate-900 dark:text-white">{editing ? t('meetings.editType') : t('meetings.newMeetingType')}</h4>
             <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="label">Name *</label>
-              <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Strategy Call" />
+              <label className="label">{t('common.name')} *</label>
+              <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={t('meetings.meetingTitlePlaceholder')} />
             </div>
             <div>
-              <label className="label">Duration</label>
+              <label className="label">{t('meetings.duration')}</label>
               <select className="select" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))}>
-                {DURATIONS.map(d => <option key={d} value={d}>{d} minutes</option>)}
+                {DURATIONS.map(d => <option key={d} value={d}>{d} {t('meetings.minutes')}</option>)}
               </select>
             </div>
           </div>
           <div className="mb-4">
-            <label className="label">Description</label>
-            <input className="input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description..." />
+            <label className="label">{t('common.description')}</label>
+            <input className="input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder={t('meetings.descriptionPlaceholder')} />
           </div>
           <div className="mb-4">
-            <label className="label">Color</label>
+            <label className="label">{t('meetings.color')}</label>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map(c => (
                 <button
@@ -103,46 +105,46 @@ export default function MeetingTypesManager() {
             </div>
           </div>
           <div className="flex gap-3 justify-end">
-            <button onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button onClick={handleSave} disabled={saving || !form.name} className="btn-primary flex items-center gap-2">
-              <Check className="w-4 h-4" /> {saving ? 'Saving...' : 'Save'}
+              <Check className="w-4 h-4" /> {saving ? t('meetings.saving') : t('common.save')}
             </button>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {types.map(t => (
-          <div key={t.id} className={cn('card p-4 border-l-4 transition-all', !t.active && 'opacity-60')} style={{ borderLeftColor: t.color }}>
+        {types.map(mt => (
+          <div key={mt.id} className={cn('card p-4 border-l-4 transition-all', !mt.active && 'opacity-60')} style={{ borderLeftColor: mt.color }}>
             <div className="flex items-start justify-between mb-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.color }} />
-                  <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{t.name}</h4>
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: mt.color }} />
+                  <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{mt.name}</h4>
                 </div>
-                <p className="text-xs text-slate-500">{t.duration} minutes</p>
+                <p className="text-xs text-slate-500">{mt.duration} {t('meetings.minutes')}</p>
               </div>
               <label className="flex items-center cursor-pointer">
-                <input type="checkbox" checked={t.active} onChange={() => toggleActive(t)} className="sr-only" />
-                <div className={cn('w-8 h-4 rounded-full transition-colors relative', t.active ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700')}>
-                  <div className={cn('absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all', t.active ? 'left-4.5' : 'left-0.5')} style={{ left: t.active ? '17px' : '2px' }} />
+                <input type="checkbox" checked={mt.active} onChange={() => toggleActive(mt)} className="sr-only" />
+                <div className={cn('w-8 h-4 rounded-full transition-colors relative', mt.active ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700')}>
+                  <div className={cn('absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all', mt.active ? 'left-4.5' : 'left-0.5')} style={{ left: mt.active ? '17px' : '2px' }} />
                 </div>
               </label>
             </div>
-            {t.description && <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{t.description}</p>}
+            {mt.description && <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{mt.description}</p>}
             <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button onClick={() => openEdit(t)} className="flex items-center gap-1 text-xs text-blue-500 hover:underline">
-                <Pencil className="w-3 h-3" /> Edit
+              <button onClick={() => openEdit(mt)} className="flex items-center gap-1 text-xs text-blue-500 hover:underline">
+                <Pencil className="w-3 h-3" /> {t('common.edit')}
               </button>
-              <button onClick={() => handleDelete(t.id)} className="flex items-center gap-1 text-xs text-red-500 hover:underline">
-                <Trash2 className="w-3 h-3" /> Delete
+              <button onClick={() => handleDelete(mt.id)} className="flex items-center gap-1 text-xs text-red-500 hover:underline">
+                <Trash2 className="w-3 h-3" /> {t('common.delete')}
               </button>
             </div>
           </div>
         ))}
         {types.length === 0 && !showForm && (
           <div className="col-span-3 text-center py-10 text-slate-400 text-sm">
-            No meeting types yet. Create one to allow clients to book meetings.
+            {t('meetings.noMeetingTypes')}
           </div>
         )}
       </div>

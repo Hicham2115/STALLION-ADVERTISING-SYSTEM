@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Calendar, AlertTriangle, Trash2 } from "lucide-react";
 import { Task, TaskStatus } from "@/types";
 import {
@@ -16,13 +17,6 @@ interface Props {
   statuses: TaskStatus[];
 }
 
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
-  REVIEW: "Review",
-  COMPLETED: "Done",
-};
-
 export default function TaskCard({
   task,
   onEdit,
@@ -30,6 +24,15 @@ export default function TaskCard({
   onDelete,
   statuses,
 }: Props) {
+  const { t } = useTranslation();
+
+  const STATUS_LABELS: Record<TaskStatus, string> = {
+    TODO: t('tasks.todo'),
+    IN_PROGRESS: t('tasks.inProgress'),
+    REVIEW: t('tasks.review'),
+    COMPLETED: t('tasks.done'),
+  };
+
   const overdue =
     task.dueDate && isOverdue(task.dueDate) && task.status !== "COMPLETED";
   const currentIdx = statuses.indexOf(task.status);
@@ -61,7 +64,7 @@ export default function TaskCard({
           )}
           <button
             type="button"
-            aria-label="Delete task"
+            aria-label={t('tasks.deleteTask')}
             className="text-slate-400 hover:text-red-500 transition-colors"
             onClick={(e) => {
               e.stopPropagation();

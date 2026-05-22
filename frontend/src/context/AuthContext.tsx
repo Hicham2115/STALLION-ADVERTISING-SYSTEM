@@ -101,7 +101,7 @@ export function AuthProvider({ children, clerkSignOut }: AuthProviderProps) {
     fetchMe();
   }, [fetchMe]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const { data } = await api.post<{ token: string; user: User }>(
       "/auth/login",
       { email, password },
@@ -114,9 +114,9 @@ export function AuthProvider({ children, clerkSignOut }: AuthProviderProps) {
       isLoading: false,
       authMethod: "email",
     });
-  };
+  }, []);
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = useCallback(async (name: string, email: string, password: string) => {
     const { data } = await api.post<{ token: string; user: User }>(
       "/auth/register",
       { name, email, password },
@@ -129,9 +129,9 @@ export function AuthProvider({ children, clerkSignOut }: AuthProviderProps) {
       isLoading: false,
       authMethod: "email",
     });
-  };
+  }, []);
 
-  const loginWithClerk = async (
+  const loginWithClerk = useCallback(async (
     clerkToken: string,
     mode: "sign-in" | "sign-up",
   ) => {
@@ -148,35 +148,35 @@ export function AuthProvider({ children, clerkSignOut }: AuthProviderProps) {
       isLoading: false,
       authMethod: "clerk",
     });
-  };
+  }, []);
 
-  const syncClerkProfile = async () => {
+  const syncClerkProfile = useCallback(async () => {
     const { data } = await api.post<User>("/auth/clerk/sync");
     setState((s) => ({
       ...s,
       user: data,
       authMethod: "clerk",
     }));
-  };
+  }, []);
 
-  const clearAppSession = () => {
+  const clearAppSession = useCallback(() => {
     localStorage.removeItem("stallion_token");
     clearAuthMethod();
     setState({ user: null, token: null, isLoading: false, authMethod: null });
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     clearAppSession();
     void clerkSignOut?.();
-  };
+  }, [clearAppSession, clerkSignOut]);
 
-  const updateUser = (user: User) => {
+  const updateUser = useCallback((user: User) => {
     setState((s) => ({
       ...s,
       user,
       authMethod: resolveAuthMethod(user),
     }));
-  };
+  }, []);
 
   const userRole = state.user?.role ?? "TEAM_MEMBER";
   const roleLevel = ROLE_LEVELS[userRole] ?? 1;

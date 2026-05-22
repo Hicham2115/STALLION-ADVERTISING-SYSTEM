@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, CheckCircle, Clock } from 'lucide-react';
 import api from '@/lib/api';
 import { Expense, ExpenseCategory, ExpenseType, ExpensePaymentStatus, PaymentMethod } from '@/types';
@@ -27,6 +28,7 @@ const defaultForm = {
 };
 
 export default function ExpenseModal({ open, onClose, expense, onSaved }: Props) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -68,7 +70,7 @@ export default function ExpenseModal({ open, onClose, expense, onSaved }: Props)
       onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong');
+      setError(err.response?.data?.message || t('common.somethingWentWrong'));
     } finally {
       setSaving(false);
     }
@@ -78,49 +80,49 @@ export default function ExpenseModal({ open, onClose, expense, onSaved }: Props)
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{expense ? 'Edit Expense' : 'Add Expense'}</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{expense ? t('expenses.editExpense') : t('expenses.addExpense')}</h2>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="label">Expense Name *</label>
-            <input className="input" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Adobe Creative Cloud" />
+            <label className="label">{t('expenses.expenseName')} *</label>
+            <input className="input" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={t('expenses.expenseNamePlaceholder')} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Category *</label>
+              <label className="label">{t('expenses.category')} *</label>
               <select className="select" value={form.category} onChange={(e) => set('category', e.target.value as ExpenseCategory)}>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{getCategoryLabel(c)}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Type</label>
+              <label className="label">{t('expenses.type')}</label>
               <select className="select" value={form.type} onChange={(e) => set('type', e.target.value as ExpenseType)}>
-                <option value="FIXED">Fixed</option>
-                <option value="VARIABLE">Variable</option>
+                <option value="FIXED">{t('expenses.fixed')}</option>
+                <option value="VARIABLE">{t('expenses.variable')}</option>
               </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Amount (MAD) *</label>
+              <label className="label">{t('expenses.amountMAD')} *</label>
               <input className="input" type="number" required min="0" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder="0.00" />
             </div>
             <div>
-              <label className="label">Date *</label>
+              <label className="label">{t('expenses.date')} *</label>
               <input className="input" type="date" required value={form.date} onChange={(e) => set('date', e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="label">Payment Method</label>
+            <label className="label">{t('expenses.paymentMethod')}</label>
             <select className="select" value={form.method} onChange={(e) => set('method', e.target.value as PaymentMethod)}>
-              {METHODS.map((m) => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
+              {METHODS.map((m) => <option key={m} value={m}>{t(`expenses.methods.${m}`)}</option>)}
             </select>
           </div>
 
           {/* Payment status toggle */}
           <div>
-            <label className="label">Payment Status</label>
+            <label className="label">{t('expenses.paymentStatus')}</label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -133,7 +135,7 @@ export default function ExpenseModal({ open, onClose, expense, onSaved }: Props)
                 )}
               >
                 <Clock className="w-4 h-4" />
-                Pending
+                {t('expenses.pending')}
               </button>
               <button
                 type="button"
@@ -146,23 +148,25 @@ export default function ExpenseModal({ open, onClose, expense, onSaved }: Props)
                 )}
               >
                 <CheckCircle className="w-4 h-4" />
-                Paid
+                {t('expenses.paid')}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="label">Notes</label>
-            <textarea className="input resize-none" rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Optional notes..." />
+            <label className="label">{t('common.notes')}</label>
+            <textarea className="input resize-none" rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder={t('expenses.notesPlaceholder')} />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.recurring} onChange={(e) => set('recurring', e.target.checked)} className="w-4 h-4 accent-amber-500" />
-            <span className="text-sm text-slate-700 dark:text-slate-300">Recurring expense</span>
+            <span className="text-sm text-slate-700 dark:text-slate-300">{t('expenses.recurringExpense')}</span>
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving...' : expense ? 'Save Changes' : 'Add Expense'}</button>
+            <button type="button" onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? t('common.saving') : expense ? t('expenses.saveChanges') : t('expenses.addExpense')}
+            </button>
           </div>
         </form>
       </div>

@@ -30,6 +30,33 @@ router.get('/channels', async (req: AuthRequest, res: Response): Promise<void> =
   res.json(channels);
 });
 
+// POST /api/chat/channels — create channel (manager+)
+router.post('/channels', requireRole('MANAGER'), async (req: AuthRequest, res: Response): Promise<void> => {
+  const { name, description, type = 'PUBLIC', memberIds = [] } = req.body;
+  if (!name?.trim()) { res.status(400).json({ message: 'name required' }); return; }
+
+  const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const existing = await prisma.channel.findUnique({ where: { slug } });
+  if (existing) { res.status(409).json({ message: `Channel "${slug}" already exists` }); return; }
+
+  const channel = await prisma.channel.create({
+    data: {
+      name: name.trim(),
+      slug,
+      description: description?.trim() || null,
+      type,
+      ...(memberIds.length > 0 ? {
+        members: { create: (memberIds as string[]).map((userId) => ({ userId })) },
+      } : {}),
+    },
+    include: {
+      _count: { select: { messages: true } },
+      members: { include: { user: { select: { id: true, name: true, avatar: true, role: true } } } },
+    },
+  });
+  res.status(201).json(channel);
+});
+
 // GET /api/chat/channels/:id/messages
 router.get('/channels/:id/messages', async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;

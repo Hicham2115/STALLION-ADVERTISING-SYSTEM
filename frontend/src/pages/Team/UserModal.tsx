@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Eye, EyeOff, Upload, User } from 'lucide-react';
 import { User as UserType, Role } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
-const ROLES: { value: Role; label: string; desc: string }[] = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', desc: 'Full system access, manages all users' },
-  { value: 'ADMIN', label: 'Admin', desc: 'Manages team members and agency data' },
-  { value: 'MANAGER', label: 'Manager', desc: 'Views team, limited editing rights' },
-  { value: 'TEAM_MEMBER', label: 'Team Member', desc: 'Access to own profile and tasks' },
-];
 
 interface Props {
   user: UserType | null;
@@ -18,7 +13,15 @@ interface Props {
 }
 
 export default function UserModal({ user, onClose, onSave }: Props) {
+  const { t } = useTranslation();
   const { roleLevel } = useAuth();
+
+  const ROLES: { value: Role; label: string; desc: string }[] = [
+    { value: 'SUPER_ADMIN', label: t('team.superAdmin'), desc: t('team.superAdminDesc') },
+    { value: 'ADMIN', label: t('team.admin'), desc: t('team.adminDesc') },
+    { value: 'MANAGER', label: t('team.manager'), desc: t('team.managerDesc') },
+    { value: 'TEAM_MEMBER', label: t('team.teamMember'), desc: t('team.teamMemberDesc') },
+  ];
   const fileRef = useRef<HTMLInputElement>(null);
   const isEdit = !!user;
 
@@ -58,7 +61,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      setErrors(err => ({ ...err, avatar: 'Image must be under 2MB' }));
+      setErrors(err => ({ ...err, avatar: t('team.imageTooLarge') }));
       return;
     }
     const reader = new FileReader();
@@ -68,16 +71,16 @@ export default function UserModal({ user, onClose, onSave }: Props) {
 
   function validate() {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = 'Full name is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email address';
+    if (!form.name.trim()) errs.name = t('auth.nameRequired');
+    if (!form.email.trim()) errs.email = t('auth.emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('auth.emailInvalid');
     if (!isEdit) {
-      if (!form.password) errs.password = 'Password is required';
-      else if (form.password.length < 8) errs.password = 'Minimum 8 characters';
-      if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+      if (!form.password) errs.password = t('auth.passwordRequired');
+      else if (form.password.length < 8) errs.password = t('auth.passwordMinLength');
+      if (form.password !== form.confirmPassword) errs.confirmPassword = t('auth.passwordMismatch');
     } else if (form.password) {
-      if (form.password.length < 8) errs.password = 'Minimum 8 characters';
-      if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+      if (form.password.length < 8) errs.password = t('auth.passwordMinLength');
+      if (form.password !== form.confirmPassword) errs.confirmPassword = t('auth.passwordMismatch');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -111,10 +114,10 @@ export default function UserModal({ user, onClose, onSave }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {isEdit ? 'Edit User' : 'Create New User'}
+              {isEdit ? t('team.editUserTitle') : t('team.createUser')}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isEdit ? 'Update profile and settings' : 'Add a new team member to your agency'}
+              {isEdit ? t('team.editUserSubtitle') : t('team.createUserSubtitle')}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
@@ -143,7 +146,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
                 className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 <Upload className="w-3.5 h-3.5" />
-                Upload photo
+                {t('team.uploadPhoto')}
               </button>
               <p className="text-xs text-slate-400 mt-1">JPG, PNG · Max 2MB</p>
               {errors.avatar && <p className="text-xs text-red-500 mt-0.5">{errors.avatar}</p>}
@@ -154,7 +157,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
           {/* Name + Email */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Full Name *</label>
+              <label className="label">{t('team.fullName')}</label>
               <input
                 className={cn('input mt-1', errors.name && 'border-red-400 focus:ring-red-400')}
                 placeholder="Ahmed Al-Rashid"
@@ -164,7 +167,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
               {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="label">Email *</label>
+              <label className="label">{t('team.emailLabel')}</label>
               <input
                 type="email"
                 className={cn('input mt-1', errors.email && 'border-red-400 focus:ring-red-400')}
@@ -178,7 +181,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
 
           {/* Phone */}
           <div>
-            <label className="label">Phone Number <span className="text-slate-400">(optional)</span></label>
+            <label className="label">{t('profile.phone')} <span className="text-slate-400">{t('profile.phoneOptional')}</span></label>
             <input
               type="tel"
               className="input mt-1"
@@ -190,7 +193,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
 
           {/* Role */}
           <div>
-            <label className="label">Role *</label>
+            <label className="label">{t('team.roleLabel')}</label>
             <div className="mt-1 space-y-2">
               {availableRoles.map(r => (
                 <label
@@ -223,8 +226,8 @@ export default function UserModal({ user, onClose, onSave }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">
-                {isEdit ? 'New Password' : 'Password *'}
-                {isEdit && <span className="text-slate-400 ml-1">(leave blank to keep)</span>}
+                {isEdit ? t('team.newPasswordLabel2') : t('team.passwordLabel')}
+                {isEdit && <span className="text-slate-400 ml-1">{t('team.keepBlank')}</span>}
               </label>
               <div className="relative mt-1">
                 <input
@@ -241,7 +244,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
               {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
             </div>
             <div>
-              <label className="label">Confirm Password {!isEdit && '*'}</label>
+              <label className="label">{t('team.confirmPasswordLabel')} {!isEdit && '*'}</label>
               <div className="relative mt-1">
                 <input
                   type={showConfirm ? 'text' : 'password'}
@@ -260,7 +263,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
 
           {!isEdit && (
             <p className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2">
-              Default password if left blank: <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">Stallion@123</span>
+              {t('team.defaultPwd')} <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">Stallion@123</span>
             </p>
           )}
         </form>
@@ -268,7 +271,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <button type="button" onClick={onClose} className="btn-secondary px-4 py-2 text-sm">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -276,7 +279,7 @@ export default function UserModal({ user, onClose, onSave }: Props) {
             className="btn-primary px-5 py-2 text-sm flex items-center gap-2 disabled:opacity-60"
           >
             {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create User'}
+            {saving ? t('settings.saving') : isEdit ? t('team.saveChanges') : t('team.createUserBtn')}
           </button>
         </div>
       </div>

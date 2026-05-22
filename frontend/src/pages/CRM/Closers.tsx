@@ -10,7 +10,7 @@ import {
   ToggleRight,
   Search,
 } from "lucide-react";
-
+import { useTranslation } from "react-i18next";
 import api from "@/lib/api";
 import { Client, CloserStat, CommissionRule, CommissionType } from "@/types";
 import { cn, getInitials } from "@/lib/utils";
@@ -29,6 +29,7 @@ import {
 const RANK_COLORS = ["#f59e0b", "#94a3b8", "#92400e", "#6366f1", "#10b981"];
 
 export default function Closers() {
+  const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
   const [view, setView] = useState<"performance" | "team">("performance");
   const [closers, setClosers] = useState<CloserStat[]>([]);
@@ -117,7 +118,6 @@ export default function Closers() {
     setActivateError("");
 
     try {
-      // 1) Make the user a closer (activate)
       await api.put(`/users/${activateModal.closerId}/toggle-closer`);
 
       const selectedClients = clients.filter((c) =>
@@ -125,10 +125,8 @@ export default function Closers() {
       );
       const valueNum = Number(commissionValue);
 
-      // 2) For each selected client: assign closer + create/update commission rule
       await Promise.all(
         selectedClients.map(async (client) => {
-          // Assign closer to client (ignore duplicates)
           try {
             await api.post(`/clients/${client.id}/closers`, {
               userId: activateModal.closerId,
@@ -137,7 +135,6 @@ export default function Closers() {
             if (err?.response?.status !== 409) throw err;
           }
 
-          // Create or update an existing closer-specific rule for this client
           const { data: existing } = await api.get<CommissionRule[]>(
             `/crm/commission-rules?clientId=${client.id}`,
           );
@@ -172,7 +169,6 @@ export default function Closers() {
       setActivateError(
         err?.response?.data?.message || "Failed to activate closer.",
       );
-      // If activation succeeded but later steps failed, user is still a closer.
       await loadClosers();
     } finally {
       setActivating(false);
@@ -203,10 +199,10 @@ export default function Closers() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Closers
+            {t('crm.closers')}
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            {teamClosers.length} designated closers
+            {t('crm.closersCount', { count: teamClosers.length })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -221,7 +217,7 @@ export default function Closers() {
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
               )}
             >
-              <Award className="w-3.5 h-3.5" /> Performance
+              <Award className="w-3.5 h-3.5" /> {t('crm.performance')}
             </button>
             <button
               onClick={() => setView("team")}
@@ -232,7 +228,7 @@ export default function Closers() {
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
               )}
             >
-              <Users className="w-3.5 h-3.5" /> Manage Team
+              <Users className="w-3.5 h-3.5" /> {t('crm.manageTeam')}
             </button>
           </div>
           <button onClick={loadClosers} className="btn-secondary p-2.5">
@@ -305,17 +301,17 @@ export default function Closers() {
                         <div className="font-bold text-amber-600 dark:text-amber-400">
                           {c.shippedFromConfirmedOrders ?? 0}
                         </div>
-                        <div className="text-xs text-slate-500">Shipped</div>
+                        <div className="text-xs text-slate-500">{t('crm.shipped')}</div>
                       </div>
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
                         <div className="font-bold text-emerald-600 dark:text-emerald-400">
                           {c.conversionRate}%
                         </div>
-                        <div className="text-xs text-slate-500">Rate</div>
+                        <div className="text-xs text-slate-500">{t('crm.rate')}</div>
                       </div>
                     </div>
                     <div className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {fmt(c.totalEarnings)} earned
+                      {fmt(c.totalEarnings)} {t('crm.earned')}
                     </div>
                   </div>
                 ))}
@@ -326,7 +322,7 @@ export default function Closers() {
             {chartData.length > 0 && (
               <div className="card p-5">
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                  Shipped Orders by Closer
+                  {t('crm.shippedByCloser')}
                 </h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={chartData}>
@@ -350,7 +346,7 @@ export default function Closers() {
                     />
                     <Bar
                       dataKey="confirmed"
-                      name="Confirmed"
+                      name={t('crm.confirmed')}
                       radius={[4, 4, 0, 0]}
                     >
                       {chartData.map((_, i) => (
@@ -369,13 +365,13 @@ export default function Closers() {
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                     <tr>
                       {[
-                        "Rank",
-                        "Agent",
-                        "Total Orders",
-                        "Confirmed",
-                        "Shipped",
-                        "Shipping Rate",
-                        "Earnings",
+                        t('crm.colRank'),
+                        t('crm.colAgent'),
+                        t('crm.totalOrders'),
+                        t('crm.confirmed'),
+                        t('crm.shipped'),
+                        t('crm.colShippingRate'),
+                        t('crm.colEarnings'),
                       ].map((h) => (
                         <th
                           key={h}
@@ -479,8 +475,7 @@ export default function Closers() {
                           colSpan={7}
                           className="text-center py-12 text-slate-400"
                         >
-                          No closers designated yet — go to "Manage Team" to
-                          assign them.
+                          {t('crm.noClosersYet')}
                         </td>
                       </tr>
                     )}
@@ -500,14 +495,13 @@ export default function Closers() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   className="input pl-9 w-full"
-                  placeholder="Search team members…"
+                  placeholder={t('crm.searchTeam')}
                   value={teamSearch}
                   onChange={(e) => setTeamSearch(e.target.value)}
                 />
               </div>
               <p className="text-sm text-slate-500">
-                Toggle users to designate them as closers. Closers appear in the
-                performance leaderboard and can be assigned to clients.
+                {t('crm.toggleClosersHint')}
               </p>
             </div>
 
@@ -543,7 +537,7 @@ export default function Closers() {
                     <div className="flex items-center gap-3">
                       {c.isCloser && (
                         <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">
-                          Closer
+                          {t('crm.designatedCloser')}
                         </span>
                       )}
                       <button
@@ -560,8 +554,8 @@ export default function Closers() {
                         )}
                         title={
                           c.isCloser
-                            ? "Remove from closer team"
-                            : "Add to closer team"
+                            ? t('crm.removeFromTeam')
+                            : t('crm.addToTeam')
                         }
                       >
                         {isToggling ? (
@@ -578,7 +572,7 @@ export default function Closers() {
               })}
               {filteredUsers.length === 0 && (
                 <div className="py-10 text-center text-slate-400 text-sm">
-                  No users found
+                  {t('crm.noUsersFound')}
                 </div>
               )}
             </div>
@@ -597,11 +591,10 @@ export default function Closers() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Activate closer
+                  {t('crm.activateCloser')}
                 </h3>
                 <p className="text-sm text-slate-500 mt-0.5">
-                  Choose client(s) + commission settings for{" "}
-                  {activateModal.closerName}.
+                  {t('crm.activateCloserDesc', { name: activateModal.closerName })}
                 </p>
               </div>
               <button
@@ -609,16 +602,16 @@ export default function Closers() {
                 disabled={activating}
                 className="btn-secondary px-3 py-1.5 text-sm"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
 
             <div>
-              <label className="label">Client(s) *</label>
+              <label className="label">{t('crm.clientsLabel')}</label>
               <div className="mt-1 max-h-52 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2">
                 {clientList.length === 0 ? (
                   <div className="py-6 text-center text-sm text-slate-400">
-                    No clients found
+                    {t('crm.noClientsFound')}
                   </div>
                 ) : (
                   clientList.map((client) => {
@@ -651,7 +644,7 @@ export default function Closers() {
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-slate-500">
-                  Selected: {selectedClientIds.size}
+                  {t('crm.selectedCount', { count: selectedClientIds.size })}
                 </span>
                 <button
                   type="button"
@@ -659,14 +652,14 @@ export default function Closers() {
                   onClick={() => setSelectedClientIds(new Set())}
                   disabled={activating || selectedClientIds.size === 0}
                 >
-                  Clear
+                  {t('crm.clear')}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Commission Type</label>
+                <label className="label">{t('crm.commissionType')}</label>
                 <select
                   className="select mt-1"
                   value={commissionType}
@@ -674,15 +667,15 @@ export default function Closers() {
                     setCommissionType(e.target.value as CommissionType)
                   }
                 >
-                  <option value="FIXED_PER_ORDER">Fixed per Order</option>
-                  <option value="PERCENTAGE">Percentage of Sale</option>
+                  <option value="FIXED_PER_ORDER">{t('crm.fixedPerOrder')}</option>
+                  <option value="PERCENTAGE">{t('crm.percentageOfSale')}</option>
                 </select>
               </div>
               <div>
                 <label className="label">
                   {commissionType === "FIXED_PER_ORDER"
-                    ? "Fixed Amount"
-                    : "Percentage"}
+                    ? t('crm.fixedAmountLabel')
+                    : t('crm.percentageLabel')}
                 </label>
                 <input
                   className="input mt-1"
@@ -708,7 +701,7 @@ export default function Closers() {
                 disabled={activating}
                 className="btn-secondary flex-1 py-2 text-sm"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={activateCloserWithCommission}
@@ -718,7 +711,7 @@ export default function Closers() {
                 {activating && (
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                {activating ? "Saving…" : "Activate & Save"}
+                {activating ? t('crm.saving') : t('crm.activateAndSave')}
               </button>
             </div>
           </div>

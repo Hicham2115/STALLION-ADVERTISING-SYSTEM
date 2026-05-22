@@ -2,16 +2,15 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Hash, Lock, MessageSquare, Search, Send, Smile,
-  Edit2, Trash2, Reply, Wifi, WifiOff, Users, UserPlus, X,
+  Edit2, Trash2, Reply, Wifi, WifiOff, Users, UserPlus, X, Plus,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
 import { ChatMessage, Channel } from '@/types';
 import { cn } from '@/lib/utils';
 
 const EMOJIS = ['👍', '❤️', '🔥', '😂', '😮', '😢', '👏', '🎉'];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -39,6 +38,179 @@ function Avatar({ name, avatar, size = 8 }: { name: string; avatar?: string; siz
   );
 }
 
+// ── Create Channel Modal ──────────────────────────────────────────────────────
+
+function CreateChannelModal({
+  allUsers,
+  onClose,
+  onCreated,
+}: {
+  allUsers: { id: string; name: string; avatar?: string; role: string }[];
+  onClose: () => void;
+  onCreated: (channelId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { createChannel } = useChat();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const filteredUsers = allUsers.filter((u) =>
+    u.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggleUser = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) { setError(t('chat.channelNameRequired')); return; }
+    setError('');
+    setLoading(true);
+    try {
+      await createChannel(name.trim(), description.trim(), type, Array.from(selectedIds));
+      onCreated(name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('chat.failedCreate'));
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="font-bold text-slate-900 dark:text-white">{t('chat.createChannel')}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-5 space-y-4 overflow-y-auto flex-1">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wider">
+                {t('chat.channelName')}
+              </label>
+              <input
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('chat.channelNamePlaceholder')}
+                className="w-full input text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wider">
+                {t('chat.description')} <span className="font-normal normal-case text-slate-400">({t('common.optional')})</span>
+              </label>
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('chat.channelDescPlaceholder')}
+                className="w-full input text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">
+                {t('chat.visibility')}
+              </label>
+              <div className="flex gap-3">
+                {(['PUBLIC', 'PRIVATE'] as const).map((visType) => (
+                  <button
+                    key={visType}
+                    type="button"
+                    onClick={() => setType(visType)}
+                    className={cn(
+                      'flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+                      type === visType
+                        ? 'bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/20 dark:border-amber-500 dark:text-amber-400'
+                        : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    {visType === 'PRIVATE' ? <Lock className="w-4 h-4" /> : <Hash className="w-4 h-4" />}
+                    {visType === 'PUBLIC' ? t('chat.public') : t('chat.private')}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-slate-400">
+                {type === 'PUBLIC' ? t('chat.publicDesc') : t('chat.privateDesc')}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">
+                {t('chat.addMembers')}{' '}
+                {selectedIds.size > 0 && (
+                  <span className="normal-case font-normal text-amber-500">({selectedIds.size} {t('chat.selected')})</span>
+                )}
+              </label>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('chat.searchTeamMembers')}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none"
+                />
+              </div>
+              <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-600 divide-y divide-slate-100 dark:divide-slate-700">
+                {filteredUsers.length === 0 ? (
+                  <p className="py-4 text-center text-xs text-slate-400">{t('chat.noUsersFound')}</p>
+                ) : filteredUsers.map((u) => (
+                  <label
+                    key={u.id}
+                    className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(u.id)}
+                      onChange={() => toggleUser(u.id)}
+                      className="w-3.5 h-3.5 rounded accent-amber-500"
+                    />
+                    <Avatar name={u.name} avatar={u.avatar} size={7} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">{u.name}</p>
+                      <p className="text-xs text-slate-400">{u.role.replace(/_/g, ' ')}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+          </div>
+
+          <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2 flex-shrink-0">
+            <button type="button" onClick={onClose} className="btn-secondary text-sm px-4 py-2">
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !name.trim()}
+              className="btn-primary text-sm px-4 py-2 disabled:opacity-50"
+            >
+              {loading ? t('chat.creating') : t('chat.createChannel')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Member Management Modal ───────────────────────────────────────────────────
 
 function MemberManagePanel({
@@ -50,6 +222,7 @@ function MemberManagePanel({
   allUsers: { id: string; name: string; avatar?: string; role: string }[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { addMember, removeMember, isManager } = { ...useChat(), isManager: useAuth().isManager };
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState('');
@@ -73,7 +246,7 @@ function MemberManagePanel({
   return (
     <div className="absolute right-0 top-12 z-30 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl flex flex-col max-h-[480px]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-        <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Manage Members — #{channel.name}</h3>
+        <h3 className="font-semibold text-sm text-slate-900 dark:text-white">{t('chat.manageMembers')} — #{channel.name}</h3>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
           <X className="w-4 h-4" />
         </button>
@@ -83,7 +256,7 @@ function MemberManagePanel({
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none"
-            placeholder="Search users..."
+            placeholder={t('chat.searchUsers')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -92,11 +265,10 @@ function MemberManagePanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Current members */}
         {currentMembers.length > 0 && (
           <div className="p-3">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Members ({channel.members?.length || 0})
+              {t('chat.members')} ({channel.members?.length || 0})
             </p>
             {currentMembers.map(({ user: u }) => (
               <div key={u.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg group hover:bg-slate-50 dark:hover:bg-slate-700">
@@ -111,7 +283,7 @@ function MemberManagePanel({
                     disabled={loading === u.id}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-red-500 hover:text-red-600 font-medium px-2 py-0.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
-                    {loading === u.id ? '...' : 'Remove'}
+                    {loading === u.id ? '...' : t('chat.remove')}
                   </button>
                 )}
               </div>
@@ -119,10 +291,9 @@ function MemberManagePanel({
           </div>
         )}
 
-        {/* Add members */}
         {isManager && nonMembers.length > 0 && (
           <div className="p-3 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Add Members</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('chat.addMembers')}</p>
             {nonMembers.map((u) => (
               <div key={u.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
                 <Avatar name={u.name} avatar={u.avatar} size={7} />
@@ -135,7 +306,7 @@ function MemberManagePanel({
                   disabled={loading === u.id}
                   className="text-xs text-emerald-600 hover:text-emerald-700 font-medium px-2 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                 >
-                  {loading === u.id ? '...' : '+ Add'}
+                  {loading === u.id ? '...' : t('chat.add')}
                 </button>
               </div>
             ))}
@@ -143,7 +314,7 @@ function MemberManagePanel({
         )}
 
         {currentMembers.length === 0 && nonMembers.length === 0 && (
-          <div className="py-8 text-center text-xs text-slate-400">No users match your search</div>
+          <div className="py-8 text-center text-xs text-slate-400">{t('chat.noUsersMatch')}</div>
         )}
       </div>
     </div>
@@ -167,6 +338,7 @@ function MessageBubble({
   onDelete: (id: string) => void;
   onReact: (id: string, emoji: string) => void;
 }) {
+  const { t } = useTranslation();
   const [showActions, setShowActions] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const { user } = useAuth();
@@ -175,13 +347,10 @@ function MessageBubble({
     return (
       <div className="flex gap-3 px-4 py-1.5 opacity-40">
         <div className="w-8 flex-shrink-0" />
-        <p className="text-xs italic text-slate-400 self-center">This message was deleted</p>
+        <p className="text-xs italic text-slate-400 self-center">{t('chat.deletedMessage')}</p>
       </div>
     );
   }
-
-  // Skip temp messages that were replaced by real ones (temp IDs start with "temp-")
-  // They will be replaced when the socket echo arrives via mergeMessages
 
   const reactionGroups: Record<string, { count: number; users: string[]; hasMe: boolean }> = {};
   (msg.reactions || []).forEach((r) => {
@@ -205,8 +374,8 @@ function MessageBubble({
         <div className="flex items-baseline gap-2 mb-0.5">
           <span className="font-semibold text-sm text-slate-900 dark:text-white">{msg.sender.name}</span>
           <span className="text-xs text-slate-400">{formatTime(msg.createdAt)}</span>
-          {msg.edited && <span className="text-xs text-slate-400 italic">(edited)</span>}
-          {msg.id.startsWith('temp-') && <span className="text-xs text-slate-300 dark:text-slate-600">sending...</span>}
+          {msg.edited && <span className="text-xs text-slate-400 italic">{t('chat.edited')}</span>}
+          {msg.id.startsWith('temp-') && <span className="text-xs text-slate-300 dark:text-slate-600">{t('chat.sending')}</span>}
         </div>
 
         {msg.replyTo && (
@@ -240,14 +409,13 @@ function MessageBubble({
         )}
       </div>
 
-      {/* Hover actions — skip for temp messages */}
       {showActions && !msg.id.startsWith('temp-') && (
         <div className="absolute right-4 top-1 flex items-center gap-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-md px-1 py-0.5 z-10">
           <div className="relative">
             <button
               onClick={() => setShowEmoji(!showEmoji)}
               className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-              title="React"
+              title={t('chat.react')}
             >
               <Smile className="w-3.5 h-3.5" />
             </button>
@@ -260,15 +428,15 @@ function MessageBubble({
               </div>
             )}
           </div>
-          <button onClick={() => onReply(msg)} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" title="Reply">
+          <button onClick={() => onReply(msg)} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" title={t('chat.reply')}>
             <Reply className="w-3.5 h-3.5" />
           </button>
           {isOwn && (
-            <button onClick={() => onEdit(msg)} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500" title="Edit">
+            <button onClick={() => onEdit(msg)} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500" title={t('chat.edit')}>
               <Edit2 className="w-3.5 h-3.5" />
             </button>
           )}
-          <button onClick={() => onDelete(msg.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500" title="Delete">
+          <button onClick={() => onDelete(msg.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500" title={t('chat.delete')}>
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -290,6 +458,7 @@ function MessageInput({
   onCancelEdit: () => void;
   placeholder: string;
 }) {
+  const { t } = useTranslation();
   const [content, setContent] = useState('');
   const typingTimer = useRef<ReturnType<typeof setTimeout>>();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -325,14 +494,14 @@ function MessageInput({
       {replyTo && (
         <div className="flex items-center gap-2 mb-2 pl-3 border-l-2 border-amber-400 bg-amber-50 dark:bg-amber-900/10 rounded-r py-1 pr-2">
           <p className="text-xs text-slate-500 flex-1 truncate">
-            <span className="font-medium text-amber-600">Replying to {replyTo.sender.name}:</span> {replyTo.content}
+            <span className="font-medium text-amber-600">{t('chat.replyingTo', { name: replyTo.sender.name })}</span> {replyTo.content}
           </p>
           <button onClick={onCancelReply} className="text-slate-400 hover:text-slate-600 leading-none text-base">&times;</button>
         </div>
       )}
       {editingMsg && (
         <div className="flex items-center gap-2 mb-2 pl-3 border-l-2 border-blue-400 bg-blue-50 dark:bg-blue-900/10 rounded-r py-1 pr-2">
-          <p className="text-xs text-blue-600 flex-1">Editing message</p>
+          <p className="text-xs text-blue-600 flex-1">{t('chat.editingMessage')}</p>
           <button onClick={onCancelEdit} className="text-slate-400 hover:text-slate-600 leading-none text-base">&times;</button>
         </div>
       )}
@@ -355,7 +524,7 @@ function MessageInput({
           <Send className="w-4 h-4" />
         </button>
       </div>
-      <p className="text-xs text-slate-400 mt-1">Enter to send · Shift+Enter for new line</p>
+      <p className="text-xs text-slate-400 mt-1">{t('chat.sendMessage')}</p>
     </div>
   );
 }
@@ -363,6 +532,7 @@ function MessageInput({
 // ── Main Chat Page ────────────────────────────────────────────────────────────
 
 export default function Chat() {
+  const { t } = useTranslation();
   const { type, id } = useParams<{ type?: string; id?: string }>();
   const navigate = useNavigate();
   const { user, isManager } = useAuth();
@@ -380,6 +550,7 @@ export default function Chat() {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [showMemberPanel, setShowMemberPanel] = useState(false);
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeChannelId = type === 'channel' ? id : undefined;
@@ -394,26 +565,22 @@ export default function Chat() {
       ? (dmMessages[convId] || [])
       : [];
 
-  const currentTypers = typingUsers.filter((t) => {
-    if (activeChannelId) return t.channelId === activeChannelId && t.userId !== user?.id;
-    if (activeDmUserId) return t.toUserId === user?.id && t.userId === activeDmUserId;
+  const currentTypers = typingUsers.filter((typer) => {
+    if (activeChannelId) return typer.channelId === activeChannelId && typer.userId !== user?.id;
+    if (activeDmUserId) return typer.toUserId === user?.id && typer.userId === activeDmUserId;
     return false;
   });
 
-  // Load on mount
   useEffect(() => { loadUsers(); }, []);
 
-  // Load channel messages when channel changes
   useEffect(() => {
     if (activeChannelId) loadChannelMessages(activeChannelId);
   }, [activeChannelId]);
 
-  // Load DM messages when DM user changes
   useEffect(() => {
     if (activeDmUserId) loadDmMessages(activeDmUserId);
   }, [activeDmUserId]);
 
-  // Auto-navigate to general on first load
   useEffect(() => {
     if (!type && channels.length > 0) {
       const general = channels.find((c) => c.slug === 'general') || channels[0];
@@ -421,12 +588,10 @@ export default function Chat() {
     }
   }, [type, channels]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // Close member panel when channel changes
   useEffect(() => { setShowMemberPanel(false); }, [activeChannelId]);
 
   const handleSend = useCallback((content: string, replyToId?: string) => {
@@ -453,7 +618,7 @@ export default function Chat() {
       <div className="w-60 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
         <div className="p-3 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-2.5">
-            <h2 className="font-bold text-slate-900 dark:text-white text-sm">Team Chat</h2>
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">{t('chat.title')}</h2>
             <div className="flex items-center gap-1">
               {connected
                 ? <Wifi className="w-3.5 h-3.5 text-emerald-500" />
@@ -464,7 +629,7 @@ export default function Chat() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-              placeholder="Search..."
+              placeholder={t('chat.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -472,8 +637,18 @@ export default function Chat() {
         </div>
 
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-          {/* Channels */}
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 pt-1 pb-1">Channels</p>
+          <div className="flex items-center justify-between px-2 pt-1 pb-1">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('chat.channels')}</p>
+            {isManager && (
+              <button
+                onClick={() => setShowCreateChannel(true)}
+                title={t('chat.newChannel')}
+                className="text-slate-400 hover:text-amber-500 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
           {filteredChannels.map((ch) => (
             <button
               key={ch.id}
@@ -490,13 +665,12 @@ export default function Chat() {
                 : <Hash className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />}
               <span className="truncate">{ch.name}</span>
               {ch.type === 'PRIVATE' && (
-                <span className="ml-auto text-xs bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded">private</span>
+                <span className="ml-auto text-xs bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded">{t('chat.private')}</span>
               )}
             </button>
           ))}
 
-          {/* DMs */}
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 pt-3 pb-1">Direct Messages</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 pt-3 pb-1">{t('chat.directMessages')}</p>
           {filteredUsers.map((u) => (
             <button
               key={u.id}
@@ -520,7 +694,6 @@ export default function Chat() {
           ))}
         </div>
 
-        {/* Current user strip */}
         <div className="p-3 border-t border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
             <div className="relative flex-shrink-0">
@@ -535,18 +708,30 @@ export default function Chat() {
         </div>
       </div>
 
+      {showCreateChannel && (
+        <CreateChannelModal
+          allUsers={users}
+          onClose={() => setShowCreateChannel(false)}
+          onCreated={(slug) => {
+            setTimeout(() => {
+              const created = channels.find((c) => c.slug === slug);
+              if (created) navigate(`/chat/channel/${created.id}`);
+            }, 100);
+          }}
+        />
+      )}
+
       {/* ── Main area ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {!type ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center text-slate-400">
               <MessageSquare className="w-16 h-16 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Select a channel or conversation</p>
+              <p className="font-medium">{t('chat.selectConversation')}</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 {activeChannel ? (
@@ -571,13 +756,12 @@ export default function Chat() {
                   )}
                   {activeDmUser && (
                     <p className="text-xs text-slate-400">
-                      {onlineUsers.has(activeDmUser.id) ? 'Online' : 'Offline'}
+                      {onlineUsers.has(activeDmUser.id) ? t('chat.online') : t('chat.offline')}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Channel action buttons */}
               {activeChannel && (
                 <div className="flex items-center gap-1 relative">
                   {isManager && (
@@ -591,7 +775,7 @@ export default function Chat() {
                       )}
                     >
                       <UserPlus className="w-3.5 h-3.5" />
-                      Manage Members
+                      {t('chat.manageMembers')}
                     </button>
                   )}
                   <button
@@ -618,13 +802,12 @@ export default function Chat() {
               )}
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto py-2">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
                   <MessageSquare className="w-12 h-12 mb-3 opacity-30" />
-                  <p className="font-medium">No messages yet</p>
-                  <p className="text-sm">Be the first to say something!</p>
+                  <p className="font-medium">{t('chat.noMessages')}</p>
+                  <p className="text-sm">{t('chat.beFirst')}</p>
                 </div>
               )}
               {messages.map((msg) => (
@@ -647,14 +830,13 @@ export default function Chat() {
                     ))}
                   </div>
                   <span className="text-xs text-slate-400 italic">
-                    {currentTypers.map((t) => t.name).join(', ')} {currentTypers.length === 1 ? 'is' : 'are'} typing...
+                    {currentTypers.map((typer) => typer.name).join(', ')} {currentTypers.length === 1 ? t('chat.isTyping') : t('chat.areTyping')}
                   </span>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <MessageInput
               onSend={handleSend}
               onTyping={handleTyping}
@@ -664,8 +846,8 @@ export default function Chat() {
               onCancelEdit={() => setEditingMsg(null)}
               placeholder={
                 activeChannel
-                  ? `Message #${activeChannel.name}`
-                  : `Message ${activeDmUser?.name || ''}`
+                  ? t('chat.messagePlaceholder', { channel: activeChannel.name })
+                  : t('chat.dmPlaceholder', { name: activeDmUser?.name || '' })
               }
             />
           </>

@@ -1,30 +1,32 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText, DollarSign, AlertCircle, CheckCircle, Clock, Download } from 'lucide-react';
 import { portalApi } from '@/context/PortalAuthContext';
 import { usePortalCurrency } from '@/context/PortalCurrencyContext';
 import { Payment, PaymentStatus } from '@/types';
 import { cn } from '@/lib/utils';
 
-const STATUS_TABS: { value: PaymentStatus | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'All Invoices' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'OVERDUE', label: 'Overdue' },
-  { value: 'PAID', label: 'Paid' },
-];
-
-const STATUS_CONFIG: Record<PaymentStatus, { label: string; color: string; icon: React.ElementType }> = {
-  PAID: { label: 'Paid', color: 'text-green-400 bg-green-500/10 border-green-500/20', icon: CheckCircle },
-  PENDING: { label: 'Pending', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', icon: Clock },
-  OVERDUE: { label: 'Overdue', color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: AlertCircle },
-};
-
-const METHOD_LABELS: Record<string, string> = {
-  BANK_TRANSFER: 'Bank Transfer', CREDIT_CARD: 'Credit Card', CASH: 'Cash',
-  CHECK: 'Check', PAYPAL: 'PayPal', OTHER: 'Other',
-};
-
 export default function InvoicesPage() {
+  const { t } = useTranslation();
   const { fmt } = usePortalCurrency();
+
+  const STATUS_TABS: { value: PaymentStatus | 'ALL'; label: string }[] = [
+    { value: 'ALL', label: t('portal.allInvoices') },
+    { value: 'PENDING', label: t('portal.pendingLabel') },
+    { value: 'OVERDUE', label: t('portal.overdueLabel') },
+    { value: 'PAID', label: t('portal.paid') },
+  ];
+
+  const STATUS_CONFIG: Record<PaymentStatus, { label: string; color: string; icon: React.ElementType }> = {
+    PAID: { label: t('portal.paid'), color: 'text-green-400 bg-green-500/10 border-green-500/20', icon: CheckCircle },
+    PENDING: { label: t('portal.pendingLabel'), color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', icon: Clock },
+    OVERDUE: { label: t('portal.overdueLabel'), color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: AlertCircle },
+  };
+
+  const METHOD_LABELS: Record<string, string> = {
+    BANK_TRANSFER: t('portal.methodBankTransfer'), CREDIT_CARD: t('portal.methodCreditCard'), CASH: t('portal.methodCash'),
+    CHECK: t('portal.methodCheck'), PAYPAL: t('portal.methodPaypal'), OTHER: t('portal.methodOther'),
+  };
   const [invoices, setInvoices] = useState<Payment[]>([]);
   const [activeTab, setActiveTab] = useState<PaymentStatus | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
@@ -52,16 +54,16 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-5 max-w-4xl">
       <div>
-        <h1 className="text-xl font-bold text-white">Invoices</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Your billing history and outstanding payments</p>
+        <h1 className="text-xl font-bold text-white">{t('portal.invoices')}</h1>
+        <p className="text-sm text-slate-500 mt-0.5">{t('portal.billingHistory')}</p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total Paid', value: fmt(totals.paid), icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-          { label: 'Pending', value: fmt(totals.pending), icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-          { label: 'Overdue', value: fmt(totals.overdue), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
+          { label: t('portal.totalPaid'), value: fmt(totals.paid), icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+          { label: t('portal.pendingLabel'), value: fmt(totals.pending), icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+          { label: t('portal.overdueLabel'), value: fmt(totals.overdue), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-[#0d1528]/80 border border-slate-800/60 rounded-2xl p-4">
             <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center mb-3', bg)}>
@@ -98,17 +100,17 @@ export default function InvoicesPage() {
         ) : invoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-slate-500">
             <FileText className="w-10 h-10 mb-3 opacity-30" />
-            <p className="text-sm">No invoices found</p>
+            <p className="text-sm">{t('portal.noInvoicesFound')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-800/50">
             {/* Header */}
             <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-3">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice</span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">PDF</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('portal.invoiceNumber')}</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('portal.invoiceDate')}</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.amount')}</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.status')}</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('portal.pdfColumn')}</span>
             </div>
 
             {invoices.map((inv) => {
@@ -149,7 +151,7 @@ export default function InvoicesPage() {
                         download={`${inv.invoiceNumber || `INV-${inv.id.slice(-6).toUpperCase()}`}.pdf`}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-colors text-xs font-medium whitespace-nowrap"
                       >
-                        <Download className="w-3.5 h-3.5" /> Download
+                        <Download className="w-3.5 h-3.5" /> {t('portal.downloadInvoice')}
                       </a>
                     ) : (
                       <span className="text-xs text-slate-600">—</span>

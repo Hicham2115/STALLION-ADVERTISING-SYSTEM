@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Calendar, DollarSign, AlertCircle, Trash2 } from 'lucide-react';
 import { Lead, LeadStage } from '@/types';
 import { formatCurrency, formatDate, getInitials, isOverdue, cn } from '@/lib/utils';
@@ -10,14 +11,16 @@ interface Props {
   stages: LeadStage[];
 }
 
-const STAGE_LABELS: Record<LeadStage, string> = {
-  NEW: 'New',
-  WARMED: 'Warmed',
-  CLOSED_WON: 'Won',
-  CLOSED_LOST: 'Lost',
-};
-
 export default function LeadCard({ lead, onEdit, onDelete, onMoveStage, stages }: Props) {
+  const { t } = useTranslation();
+
+  const STAGE_LABELS: Record<LeadStage, string> = {
+    NEW: t('leads.new'),
+    WARMED: t('leads.warmed'),
+    CLOSED_WON: t('leads.closedWon'),
+    CLOSED_LOST: t('leads.closedLost'),
+  };
+
   const stale = lead.followUpDate && isOverdue(lead.followUpDate) && !['CLOSED_WON', 'CLOSED_LOST'].includes(lead.stage);
   const currentIdx = stages.indexOf(lead.stage);
   const nextStage = currentIdx < stages.length - 1 ? stages[currentIdx + 1] : null;
@@ -80,7 +83,7 @@ export default function LeadCard({ lead, onEdit, onDelete, onMoveStage, stages }
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(lead.id); }}
             className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            title="Delete lead"
+            title={t('leads.deleteLead')}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

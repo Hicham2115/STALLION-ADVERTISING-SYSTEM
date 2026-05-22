@@ -1,5 +1,6 @@
 import { useEffect, useState, FormEvent, useRef } from 'react';
 import { X, Upload, FileText, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Payment, Client, PaymentMethod, PaymentStatus } from '@/types';
 
@@ -26,6 +27,7 @@ const defaultForm = {
 };
 
 export default function PaymentModal({ open, onClose, payment, clients, onSaved }: Props) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -52,7 +54,7 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
   function handlePdfFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setError('PDF must be under 10MB'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError(t('revenue.pdfTooLarge')); return; }
     const reader = new FileReader();
     reader.onload = () => setForm(f => ({ ...f, pdfUrl: reader.result as string }));
     reader.readAsDataURL(file);
@@ -81,7 +83,7 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
       onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong');
+      setError(err.response?.data?.message || t('common.somethingWentWrong'));
     } finally {
       setSaving(false);
     }
@@ -92,7 +94,7 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {payment ? 'Edit Payment' : 'Record Payment'}
+            {payment ? t('revenue.editPayment') : t('revenue.recordPayment')}
           </h2>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400">
             <X className="w-5 h-5" />
@@ -100,52 +102,52 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="label">Client *</label>
+            <label className="label">{t('revenue.client')} *</label>
             <select className="select" required value={form.clientId} onChange={(e) => set('clientId', e.target.value)}>
-              <option value="">Select client...</option>
+              <option value="">{t('revenue.selectClientPlaceholder')}</option>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Amount (MAD) *</label>
+              <label className="label">{t('revenue.amountLabel')}</label>
               <input className="input" type="number" required min="0" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder="0.00" />
             </div>
             <div>
-              <label className="label">Date *</label>
+              <label className="label">{t('revenue.dateLabel')}</label>
               <input className="input" type="date" required value={form.date} onChange={(e) => set('date', e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Method</label>
+              <label className="label">{t('revenue.methodLabel')}</label>
               <select className="select" value={form.method} onChange={(e) => set('method', e.target.value as PaymentMethod)}>
                 {METHODS.map((m) => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Status</label>
+              <label className="label">{t('revenue.statusLabel')}</label>
               <select className="select" value={form.status} onChange={(e) => set('status', e.target.value as PaymentStatus)}>
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="label">Invoice Number</label>
+            <label className="label">{t('revenue.invoiceNumber')}</label>
             <input className="input" value={form.invoiceNumber} onChange={(e) => set('invoiceNumber', e.target.value)} placeholder="INV-2025-001" />
           </div>
           <div>
-            <label className="label">Notes</label>
-            <textarea className="input resize-none" rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Optional notes..." />
+            <label className="label">{t('revenue.notes')}</label>
+            <textarea className="input resize-none" rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder={t('revenue.notesPlaceholder')} />
           </div>
 
           {/* PDF Invoice Upload */}
           <div>
-            <label className="label">Invoice PDF <span className="text-slate-400 font-normal">(optional · max 10MB)</span></label>
+            <label className="label">{t('revenue.invoicePdf')} <span className="text-slate-400 font-normal">{t('revenue.invoicePdfHint')}</span></label>
             {form.pdfUrl ? (
               <div className="flex items-center gap-3 mt-1 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
                 <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span className="text-sm text-emerald-700 dark:text-emerald-400 flex-1 truncate">PDF uploaded</span>
+                <span className="text-sm text-emerald-700 dark:text-emerald-400 flex-1 truncate">{t('revenue.pdfUploaded')}</span>
                 <button type="button" onClick={() => { setForm(f => ({ ...f, pdfUrl: '' })); if (fileRef.current) fileRef.current.value = ''; }} className="text-red-400 hover:text-red-600">
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -156,7 +158,7 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
                 onClick={() => fileRef.current?.click()}
                 className="mt-1 flex items-center gap-2 px-4 py-2.5 w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 hover:border-amber-400 hover:text-amber-600 transition-colors"
               >
-                <Upload className="w-4 h-4" /> Click to upload PDF invoice
+                <Upload className="w-4 h-4" /> {t('revenue.uploadPdf')}
               </button>
             )}
             <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handlePdfFile} />
@@ -164,9 +166,9 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
 
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="button" onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
             <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? 'Saving...' : payment ? 'Save Changes' : 'Record Payment'}
+              {saving ? t('common.saving') : payment ? t('revenue.saveChanges') : t('revenue.recordPayment')}
             </button>
           </div>
         </form>

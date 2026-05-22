@@ -9,54 +9,12 @@ import {
   ChevronRight,
   ExternalLink,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "@/lib/api";
 import { CrmOrder, OrderStatus, Client, User } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
 import OrderModal from "./OrderModal";
 import { useCrmCurrency } from "@/context/CrmCurrencyContext";
-
-const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
-  NEW: {
-    label: "New",
-    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  },
-  PENDING_CONFIRMATION: {
-    label: "Pending",
-    color:
-      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  },
-  CONFIRMED: {
-    label: "Confirmed",
-    color:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  },
-  NO_ANSWER: {
-    label: "No Answer",
-    color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
-  },
-  CANCELLED: {
-    label: "Cancelled",
-    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  },
-  REFUSED: {
-    label: "Refused",
-    color:
-      "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  },
-  SHIPPED: {
-    label: "Shipped",
-    color: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
-  },
-  DELIVERED: {
-    label: "Shipped in all platforme",
-    color:
-      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  },
-  RETURNED: {
-    label: "Returned",
-    color: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
-  },
-};
 
 const PAYMENT_CONFIG = {
   PAID: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -89,6 +47,7 @@ function monthOptions() {
 }
 
 export default function Orders() {
+  const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
   const [orders, setOrders] = useState<CrmOrder[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -105,6 +64,18 @@ export default function Orders() {
     undefined,
   );
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
+    NEW: { label: t('crm.newLabel') || 'New', color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+    PENDING_CONFIRMATION: { label: t('crm.pending'), color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+    CONFIRMED: { label: t('crm.confirmed'), color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+    NO_ANSWER: { label: t('crm.noAnswer') || 'No Answer', color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
+    CANCELLED: { label: t('crm.cancelled'), color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+    REFUSED: { label: t('crm.refused') || 'Refused', color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+    SHIPPED: { label: t('crm.shipped'), color: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" },
+    DELIVERED: { label: t('crm.shipAllPlatforms'), color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+    RETURNED: { label: t('crm.returned') || 'Returned', color: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400" },
+  };
 
   useEffect(() => {
     Promise.all([
@@ -166,15 +137,15 @@ export default function Orders() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Orders
+            {t('crm.orders')}
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">{total} total orders</p>
+          <p className="text-sm text-slate-500 mt-0.5">{t('crm.ordersTotal', { count: total })}</p>
         </div>
         <button
           onClick={() => setModalOrder(null)}
           className="btn-primary flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" /> New Order
+          <Plus className="w-4 h-4" /> {t('crm.newOrder')}
         </button>
       </div>
 
@@ -184,7 +155,7 @@ export default function Orders() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             className="input pl-9 w-full"
-            placeholder="Search orders…"
+            placeholder={t('crm.searchOrders')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -194,7 +165,7 @@ export default function Orders() {
           value={clientFilter}
           onChange={(e) => setClientFilter(e.target.value)}
         >
-          <option value="">All Clients</option>
+          <option value="">{t('crm.allClients')}</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -206,7 +177,7 @@ export default function Orders() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">All Statuses</option>
+          <option value="">{t('crm.allStatuses')}</option>
           {Object.entries(STATUS_CONFIG).map(([v, { label }]) => (
             <option key={v} value={v}>
               {label}
@@ -218,7 +189,7 @@ export default function Orders() {
           value={monthFilter}
           onChange={(e) => setMonthFilter(e.target.value)}
         >
-          <option value="">All Months</option>
+          <option value="">{t('crm.allMonths')}</option>
           {monthOptions().map((month) => (
             <option key={month.key} value={month.key}>
               {month.label}
@@ -237,19 +208,19 @@ export default function Orders() {
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 {[
-                  "Customer",
-                  "Product",
-                  "Amount",
-                  "Net Profit",
-                  "Status",
-                  "Payment",
-                  "Closer",
-                  "Source",
-                  "Date",
+                  t('crm.colCustomer'),
+                  t('crm.colProduct'),
+                  t('crm.colAmount'),
+                  t('crm.colNetProfit'),
+                  t('crm.colStatus'),
+                  t('crm.colPayment'),
+                  t('crm.colCloser'),
+                  t('crm.colSource'),
+                  t('crm.colDate'),
                   "",
-                ].map((h) => (
+                ].map((h, i) => (
                   <th
-                    key={h}
+                    key={i}
                     className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap"
                   >
                     {h}
@@ -271,7 +242,7 @@ export default function Orders() {
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="text-center py-16 text-slate-400">
-                    No orders found
+                    {t('crm.noOrdersFound')}
                   </td>
                 </tr>
               ) : (
@@ -402,7 +373,7 @@ export default function Orders() {
         {totalPages > 1 && (
           <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <p className="text-xs text-slate-500">
-              {total} orders · page {page} of {totalPages}
+              {t('crm.pageInfo', { total, page, pages: totalPages })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -444,21 +415,21 @@ export default function Orders() {
           />
           <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h3 className="font-semibold text-slate-900 dark:text-white">
-              Delete Order?
+              {t('crm.deleteOrder')}
             </h3>
-            <p className="text-sm text-slate-500">This cannot be undone.</p>
+            <p className="text-sm text-slate-500">{t('crm.deleteOrderConfirm')}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
                 className="btn-secondary flex-1 py-2 text-sm"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
                 className="flex-1 py-2 text-sm rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium"
               >
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           </div>

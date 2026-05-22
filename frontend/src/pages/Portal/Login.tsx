@@ -2,8 +2,11 @@ import { useState, FormEvent } from 'react';
 import { usePortalAuth } from '@/context/PortalAuthContext';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import AuthLeftPanel from '@/components/AuthLeftPanel';
+import logo from '@/assets/png.png';
+import { useTranslation } from 'react-i18next';
 
 export default function PortalLogin() {
+  const { t } = useTranslation();
   const { login } = usePortalAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +21,7 @@ export default function PortalLogin() {
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
+      setError(err.response?.data?.message || t('auth.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -27,21 +30,26 @@ export default function PortalLogin() {
   return (
     <div className="min-h-screen flex bg-[#060b18]">
       <AuthLeftPanel
-        eyebrow="Client portal"
-        title={<>Your campaign.<br /><span className="text-amber-400">Live & transparent.</span></>}
-        subtitle="Track your ad performance in real time, approve creative content, monitor project progress, and stay in sync with your agency."
+        eyebrow={t('auth.clientPortal')}
+        title={
+          <>
+            {t('auth.yourCampaign')}<br />
+            <span className="text-amber-400">{t('auth.liveTransparent')}</span>
+          </>
+        }
+        subtitle={t('auth.portalSubtitle')}
       />
 
       {/* Right login panel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#060b18]">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <span className="font-bold text-xl text-white">Stallion Client Portal</span>
+          <div className="lg:hidden flex items-center mb-8">
+            <img src={logo} alt={t('auth.stallionAlt')} className="h-32 w-auto object-contain" />
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
-            <p className="text-slate-500 text-sm">Sign in to your client dashboard</p>
+            <h2 className="text-2xl font-bold text-white mb-1">{t('auth.welcomeBack')}</h2>
+            <p className="text-slate-500 text-sm">{t('auth.signInToDashboard')}</p>
           </div>
 
           {error && (
@@ -54,7 +62,7 @@ export default function PortalLogin() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Email address
+                {t('auth.email')}
               </label>
               <input
                 type="email"
@@ -69,7 +77,7 @@ export default function PortalLogin() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -78,13 +86,14 @@ export default function PortalLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  placeholder="••••••••"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className="w-full bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-3 pr-11 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  aria-label={showPass ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -99,18 +108,17 @@ export default function PortalLogin() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
+                  {t('auth.signingIn')}
                 </span>
-              ) : 'Sign In'}
+              ) : t('auth.signIn')}
             </button>
           </form>
 
           <div className="mt-8 p-4 bg-slate-800/30 border border-slate-700/30 rounded-xl">
             <p className="text-xs text-slate-500 text-center">
-              Having trouble signing in? Contact your account manager at{' '}
+              {t('auth.troubleSigningIn')}{' '}
               <a href="mailto:advertisingstallion@gmail.com" className="text-amber-400 hover:text-amber-300 transition-colors">
-                advertisingstallion@gmail.com
-
+                {t('auth.contactManager')}
               </a>
             </p>
           </div>

@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { DASHBOARD_PATH } from '@/lib/authRoutes';
 import api from '@/lib/api';
-import { Zap, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import logo from '@/assets/png.png';
 import AuthLeftPanel from '@/components/AuthLeftPanel';
 import { AuthDivider, GoogleAuthButton } from '@/components/ClerkAuth';
 import { isClerkEnabled } from '@/lib/clerk';
@@ -13,6 +14,7 @@ import {
   type RegisterFormValues,
 } from '@/schemas/register';
 import type { Role } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 type SetupStatus = {
   registrationAvailable: boolean;
@@ -25,6 +27,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function Register() {
+  const { t } = useTranslation();
   const { register, user } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -66,7 +69,7 @@ export default function Register() {
     setFieldErrors({});
 
     if (!registrationAvailable) {
-      setError('Registration is not available. Please sign in with your existing account.');
+      setError(t('auth.registrationNotAvailable'));
       return;
     }
 
@@ -104,7 +107,7 @@ export default function Register() {
       }
       setError(
         axiosErr.response?.data?.message ||
-          'Registration failed. Please try again.',
+          t('auth.registrationFailed'),
       );
     } finally {
       setLoading(false);
@@ -121,40 +124,35 @@ export default function Register() {
       <AuthLeftPanel
         title={
           <>
-            Set up your <span className="text-amber-400">admin account</span>
+            {t('auth.setupAdminTitle')} <span className="text-amber-400">{t('auth.adminAccount')}</span>
           </>
         }
-        subtitle="Full access to revenue dashboards, CRM, leads, and team tools — all in one place."
+        subtitle={t('auth.adminSubtitle')}
       />
 
       <div className="relative z-20 flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-[#0a0f1e]">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white">
-              Stallion Advertising
-            </span>
+          <div className="lg:hidden flex items-center mb-8">
+            <img src={logo} alt={t('auth.stallionAlt')} className="h-32 w-auto object-contain" />
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-            {createsSuperAdmin ? 'Create admin account' : 'Create your account'}
+            {createsSuperAdmin ? t('auth.createAdminAccount') : t('auth.createYourAccount')}
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mb-8">
             {createsSuperAdmin
-              ? 'Use your own email and password to set up the platform'
-              : 'Sign up with your email and password to join the team'}
+              ? t('auth.setupAdminDesc')
+              : t('auth.signUpDesc')}
           </p>
 
           {setupStatus && !registrationAvailable && (
             <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-300 text-sm">
-              Registration is currently unavailable.{' '}
+              {t('auth.registrationUnavailable')}{' '}
               <Link
                 to="/login"
                 className="font-medium underline hover:no-underline pointer-events-auto"
               >
-                Sign in instead
+                {t('auth.signInInstead')}
               </Link>
             </div>
           )}
@@ -169,7 +167,7 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
               <label className="label" htmlFor="register-name">
-                Full name
+                {t('auth.fullName')}
               </label>
               <input
                 id="register-name"
@@ -180,7 +178,7 @@ export default function Register() {
                   clearFieldError('name');
                 }}
                 className={inputErrorClass('name')}
-                placeholder="Your name"
+                placeholder={t('auth.namePlaceholder')}
                 autoComplete="name"
               />
               <FieldError message={fieldErrors.name} />
@@ -188,7 +186,7 @@ export default function Register() {
 
             <div>
               <label className="label" htmlFor="register-email">
-                Email address
+                {t('auth.email')}
               </label>
               <input
                 id="register-email"
@@ -207,7 +205,7 @@ export default function Register() {
 
             <div>
               <label className="label" htmlFor="register-password">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -219,14 +217,14 @@ export default function Register() {
                     clearFieldError('password');
                   }}
                   className={`${inputErrorClass('password')} pr-10`}
-                  placeholder="At least 8 characters"
+                  placeholder={t('auth.atLeast8Chars')}
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  aria-label={showPass ? 'Hide password' : 'Show password'}
+                  aria-label={showPass ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   {showPass ? (
                     <EyeOff className="w-4 h-4" />
@@ -240,7 +238,7 @@ export default function Register() {
 
             <div>
               <label className="label" htmlFor="register-confirm-password">
-                Confirm password
+                {t('auth.confirmPassword')}
               </label>
               <input
                 id="register-confirm-password"
@@ -251,7 +249,7 @@ export default function Register() {
                   clearFieldError('confirmPassword');
                 }}
                 className={inputErrorClass('confirmPassword')}
-                placeholder="Repeat your password"
+                placeholder={t('auth.repeatPassword')}
                 autoComplete="new-password"
               />
               <FieldError message={fieldErrors.confirmPassword} />
@@ -272,21 +270,21 @@ export default function Register() {
               {loading ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating account...
+                  {t('auth.creatingAccount')}
                 </>
               ) : (
-                'Create account & sign in'
+                t('auth.createAccount')
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            Already have an account?{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <Link
               to="/login"
               className="text-amber-600 hover:text-amber-500 font-medium pointer-events-auto"
             >
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </p>
         </div>

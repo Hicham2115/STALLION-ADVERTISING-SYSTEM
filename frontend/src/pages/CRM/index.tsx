@@ -7,6 +7,7 @@ import {
   Award,
   UserCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -21,35 +22,31 @@ import ClosersSettings from "./ClosersSettings.tsx";
 import Commissions from "./Commissions";
 import Customers from "./Customers";
 
-const TABS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, hidden: false },
-  { id: "orders", label: "Orders", icon: ShoppingCart, hidden: false },
-  { id: "closers", label: "Closers", icon: Users, hidden: false },
-  {
-    id: "closers-settings",
-    label: "Closers Settings",
-    icon: UserCircle,
-    hidden: false,
-  },
-  { id: "commissions", label: "Commissions", icon: Award, hidden: false },
-  { id: "customers", label: "Customers", icon: UserCircle, hidden: true },
-  { id: "analytics", label: "Analytics", icon: BarChart3, hidden: true },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+type TabId = "dashboard" | "orders" | "closers" | "closers-settings" | "commissions" | "customers" | "analytics";
 const CURRENCIES: CrmCurrency[] = ["MAD", "USD", "EUR"];
 
 function CRMContent() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabId>("dashboard");
   const { currency, setCurrency } = useCrmCurrency();
   const { isAdmin } = useAuth();
 
+  const TABS = [
+    { id: "dashboard" as TabId, label: t('crm.dashboard'), icon: LayoutDashboard, hidden: false },
+    { id: "orders" as TabId, label: t('crm.orders'), icon: ShoppingCart, hidden: false },
+    { id: "closers" as TabId, label: t('crm.closers'), icon: Users, hidden: false },
+    { id: "closers-settings" as TabId, label: t('crm.closersSettings'), icon: UserCircle, hidden: false },
+    { id: "commissions" as TabId, label: t('crm.commissions'), icon: Award, hidden: false },
+    { id: "customers" as TabId, label: t('crm.customers'), icon: UserCircle, hidden: true },
+    { id: "analytics" as TabId, label: t('crm.analyticsTitle'), icon: BarChart3, hidden: true },
+  ];
+
   const visibleTabs = useMemo(
     () =>
       TABS.filter(
-        (t) => !t.hidden && (t.id === "closers-settings" ? isAdmin : true),
+        (tb) => !tb.hidden && (tb.id === "closers-settings" ? isAdmin : true),
       ),
-    [isAdmin],
+    [isAdmin, t],
   );
 
   useEffect(() => {
@@ -102,7 +99,7 @@ function CRMContent() {
       {/* Tab content */}
       <div className="p-4 md:p-6">
         {tab === "dashboard" && (
-          <CrmDashboard onNavigate={(t) => setTab(t as TabId)} />
+          <CrmDashboard onNavigate={(tb) => setTab(tb as TabId)} />
         )}
         {tab === "orders" && <Orders />}
         {tab === "closers" && <Closers />}
@@ -110,7 +107,7 @@ function CRMContent() {
         {tab === "commissions" && <Commissions />}
         {tab === "customers" && <Customers />}
         {tab === "analytics" && (
-          <CrmDashboard onNavigate={(t) => setTab(t as TabId)} analyticsMode />
+          <CrmDashboard onNavigate={(tb) => setTab(tb as TabId)} analyticsMode />
         )}
       </div>
     </div>

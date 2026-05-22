@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, FolderOpen, Edit2, DollarSign, CheckSquare, Users, Plus, Trash2, Receipt } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Client, ClientCost, User } from '@/types';
 import { formatCurrency, formatDate, getServiceLabel, getStatusColor, cn } from '@/lib/utils';
@@ -10,6 +11,7 @@ import DateSelector from '@/components/DateSelector';
 type Tab = 'overview' | 'costs' | 'closers';
 
 export default function ClientDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ export default function ClientDetail() {
       <div className="w-6 h-6 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
-  if (!client) return <div className="text-center py-12 text-slate-400">Client not found</div>;
+  if (!client) return <div className="text-center py-12 text-slate-400">{t('clients.detail.notFound')}</div>;
 
   const payments = (client as any).payments || [];
   const tasks = (client as any).tasks || [];
@@ -109,11 +111,24 @@ export default function ClientDetail() {
 
   const assignableUsers = allUsers.filter(u => !closers.some(c => c.id === u.id));
 
+  const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
+    { key: 'overview', label: t('clients.detail.tabs.overview'), icon: DollarSign },
+    { key: 'costs', label: t('clients.detail.tabs.costs'), icon: Receipt },
+    { key: 'closers', label: t('clients.detail.tabs.closers'), icon: Users },
+  ];
+
+  const INFO_ITEMS = [
+    { label: t('clients.detail.monthlyFee'), value: formatCurrency(client.monthlyFee) },
+    { label: t('clients.detail.billing'), value: client.billingFrequency },
+    { label: t('clients.detail.contact'), value: client.contactPerson },
+    { label: t('common.email'), value: client.email },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/clients" className="btn-ghost">
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /> {t('clients.detail.back')}
         </Link>
       </div>
 
@@ -124,18 +139,18 @@ export default function ClientDetail() {
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{client.name}</h1>
               <span className={cn('badge', getStatusColor(client.status))}>
-                {client.status === 'ONE_TIME' ? 'One-Time' : client.status}
+                {client.status === 'ONE_TIME' ? t('clients.oneTime') : client.status}
               </span>
             </div>
             <div className="flex flex-wrap gap-4 mt-3 text-sm text-slate-500 dark:text-slate-400">
               <span>{getServiceLabel(client.service)}</span>
               <span>·</span>
-              <span>Since {formatDate(client.startDate)}</span>
+              <span>{t('clients.detail.since')} {formatDate(client.startDate)}</span>
               {client.website && (
                 <>
                   <span>·</span>
                   <a href={client.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-amber-500 hover:text-amber-600">
-                    <ExternalLink className="w-3.5 h-3.5" /> Website
+                    <ExternalLink className="w-3.5 h-3.5" /> {t('clients.detail.website')}
                   </a>
                 </>
               )}
@@ -143,24 +158,19 @@ export default function ClientDetail() {
                 <>
                   <span>·</span>
                   <a href={client.googleDriveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-amber-500 hover:text-amber-600">
-                    <FolderOpen className="w-3.5 h-3.5" /> Drive
+                    <FolderOpen className="w-3.5 h-3.5" /> {t('clients.detail.drive')}
                   </a>
                 </>
               )}
             </div>
           </div>
           <button onClick={() => setEditing(true)} className="btn-secondary shrink-0">
-            <Edit2 className="w-4 h-4" /> Edit
+            <Edit2 className="w-4 h-4" /> {t('common.edit')}
           </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-          {[
-            { label: 'Monthly Fee', value: formatCurrency(client.monthlyFee) },
-            { label: 'Billing', value: client.billingFrequency },
-            { label: 'Contact', value: client.contactPerson },
-            { label: 'Email', value: client.email },
-          ].map(({ label, value }) => (
+          {INFO_ITEMS.map(({ label, value }) => (
             <div key={label}>
               <div className="text-xs text-slate-400 font-medium">{label}</div>
               <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate">{value}</div>
@@ -170,7 +180,7 @@ export default function ClientDetail() {
 
         {client.notes && (
           <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-            <div className="text-xs text-slate-400 font-medium mb-1">Notes</div>
+            <div className="text-xs text-slate-400 font-medium mb-1">{t('common.notes')}</div>
             <p className="text-sm text-slate-700 dark:text-slate-300">{client.notes}</p>
           </div>
         )}
@@ -178,11 +188,7 @@ export default function ClientDetail() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
-        {([
-          { key: 'overview', label: 'Overview', icon: DollarSign },
-          { key: 'costs', label: 'Costs', icon: Receipt },
-          { key: 'closers', label: 'Assigned Closers', icon: Users },
-        ] as { key: Tab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
+        {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -207,9 +213,9 @@ export default function ClientDetail() {
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-500" /> Payments
+                  <DollarSign className="w-4 h-4 text-emerald-500" /> {t('clients.detail.payments')}
                 </h2>
-                <Link to="/revenue" className="text-xs text-amber-500">View all</Link>
+                <Link to="/revenue" className="text-xs text-amber-500">{t('clients.detail.viewAll')}</Link>
               </div>
               <div className="space-y-2">
                 {payments.slice(0, 6).map((p: any) => (
@@ -221,7 +227,7 @@ export default function ClientDetail() {
                     <span className={cn('badge text-xs', getStatusColor(p.status))}>{p.status}</span>
                   </div>
                 ))}
-                {payments.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">No payments yet</p>}
+                {payments.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">{t('clients.detail.noPayments')}</p>}
               </div>
             </div>
 
@@ -229,9 +235,9 @@ export default function ClientDetail() {
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <CheckSquare className="w-4 h-4 text-blue-500" /> Tasks
+                  <CheckSquare className="w-4 h-4 text-blue-500" /> {t('clients.detail.tasks')}
                 </h2>
-                <Link to="/tasks" className="text-xs text-amber-500">View all</Link>
+                <Link to="/tasks" className="text-xs text-amber-500">{t('clients.detail.viewAll')}</Link>
               </div>
               <div className="space-y-2">
                 {tasks.slice(0, 5).map((t: any) => (
@@ -243,7 +249,7 @@ export default function ClientDetail() {
                     <span className={cn('badge text-xs', getStatusColor(t.status))}>{t.status.replace('_', ' ')}</span>
                   </div>
                 ))}
-                {tasks.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">No tasks yet</p>}
+                {tasks.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">{t('clients.detail.noTasks')}</p>}
               </div>
             </div>
           </div>
@@ -251,7 +257,7 @@ export default function ClientDetail() {
           {/* Activity Log */}
           {logs.length > 0 && (
             <div className="card p-5">
-              <h2 className="font-semibold text-slate-900 dark:text-white mb-4">Activity History</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-white mb-4">{t('clients.detail.activityHistory')}</h2>
               <div className="space-y-3">
                 {logs.map((log: any) => (
                   <div key={log.id} className="flex items-start gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -275,29 +281,29 @@ export default function ClientDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-amber-500" /> Client Costs
+                  <Receipt className="w-4 h-4 text-amber-500" /> {t('clients.detail.clientCosts')}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Add costs for this client from the admin account.
+                  {t('clients.detail.clientCostsDesc')}
                 </p>
               </div>
               <div className="text-sm font-bold text-slate-900 dark:text-white">
-                Total {formatCurrency(totalCosts, client.preferredCurrency)}
+                {t('clients.detail.total')} {formatCurrency(totalCosts, client.preferredCurrency)}
               </div>
             </div>
 
             <div className="grid sm:grid-cols-[1fr_160px_190px_auto] gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Cost Name</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('clients.detail.costName')}</label>
                 <input
                   className="input"
-                  placeholder="e.g. Ads, Tools, Freelancer"
+                  placeholder={t('clients.detail.costNamePlaceholder')}
                   value={costForm.name}
                   onChange={e => setCostForm(f => ({ ...f, name: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Amount</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.amount')}</label>
                 <input
                   className="input"
                   type="number"
@@ -310,7 +316,7 @@ export default function ClientDetail() {
               </div>
               <div>
                 <DateSelector
-                  label="Date"
+                  label={t('common.date')}
                   value={costForm.date}
                   onChange={date => setCostForm(f => ({ ...f, date }))}
                 />
@@ -324,7 +330,7 @@ export default function ClientDetail() {
                   {costLoading
                     ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     : <Plus className="w-4 h-4" />}
-                  Add
+                  {t('common.add')}
                 </button>
               </div>
             </div>
@@ -333,14 +339,14 @@ export default function ClientDetail() {
           <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Saved Costs ({costs.length})
+                {t('clients.detail.savedCosts')} ({costs.length})
               </h3>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {costs.length === 0 ? (
                 <div className="px-5 py-10 text-center text-slate-400">
                   <Receipt className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No costs yet</p>
+                  <p className="text-sm">{t('clients.detail.noCosts')}</p>
                 </div>
               ) : (
                 costs.map(cost => (
@@ -356,7 +362,7 @@ export default function ClientDetail() {
                       <button
                         onClick={() => deleteCost(cost.id)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        aria-label="Delete cost"
+                        aria-label={t('clients.detail.deleteCost')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -374,10 +380,10 @@ export default function ClientDetail() {
         <div className="card p-5 space-y-5">
           <div>
             <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-amber-500" /> Assigned Closers
+              <Users className="w-4 h-4 text-amber-500" /> {t('clients.detail.assignedClosers')}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              These team members will appear in the closer dropdown when creating orders for this client.
+              {t('clients.detail.assignedClosersDesc')}
             </p>
           </div>
 
@@ -388,7 +394,7 @@ export default function ClientDetail() {
               value={selectedUserId}
               onChange={e => setSelectedUserId(e.target.value)}
             >
-              <option value="">Select team member to assign…</option>
+              <option value="">{t('clients.detail.selectTeamMember')}</option>
               {assignableUsers.map(u => (
                 <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
               ))}
@@ -401,7 +407,7 @@ export default function ClientDetail() {
               {assigning
                 ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 : <Plus className="w-4 h-4" />}
-              Assign
+              {t('clients.detail.assign')}
             </button>
           </div>
 
@@ -415,8 +421,8 @@ export default function ClientDetail() {
           ) : closers.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No closers assigned yet</p>
-              <p className="text-xs mt-1">Assign team members above to filter the closer dropdown in orders</p>
+              <p className="text-sm">{t('clients.detail.noClosers')}</p>
+              <p className="text-xs mt-1">{t('clients.detail.noClosersHint')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -428,7 +434,7 @@ export default function ClientDetail() {
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">{closer.name}</div>
-                      <div className="text-xs text-slate-400">{closer.role} · Assigned {formatDate(closer.assignedAt)}</div>
+                      <div className="text-xs text-slate-400">{closer.role} · {t('clients.detail.assigned')} {formatDate(closer.assignedAt)}</div>
                     </div>
                   </div>
                   <button

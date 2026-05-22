@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   RefreshCw,
@@ -145,6 +146,7 @@ function monthOptions() {
 }
 
 export default function ClientCrm() {
+  const { t } = useTranslation();
   const { fmt } = usePortalCurrency();
   const [stats, setStats] = useState<Stats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -194,100 +196,27 @@ export default function ClientCrm() {
 
   const kpis = stats
     ? [
-        {
-          label: "Total Orders",
-          value: stats.totalOrders.toString(),
-          icon: ShoppingCart,
-          color: "text-blue-400",
-          bg: "bg-blue-500/10",
-        },
-        {
-          label: "Total Revenue",
-          value: fmt(stats.totalRevenue),
-          icon: DollarSign,
-          color: "text-amber-400",
-          bg: "bg-amber-500/10",
-        },
-        {
-          label: "Net Profit",
-          value: fmt(stats.totalProfit),
-          icon: TrendingUp,
-          color: stats.totalProfit >= 0 ? "text-emerald-400" : "text-red-400",
-          bg: stats.totalProfit >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
-        },
-        {
-          label: "Profit Margin",
-          value: `${stats.profitMargin}%`,
-          icon: Percent,
-          color:
-            stats.profitMargin >= 20 ? "text-emerald-400" : "text-amber-400",
-          bg: "bg-purple-500/10",
-        },
-        {
-          label: "Avg Order Value",
-          value: fmt(stats.avgOrderValue),
-          icon: BarChart2,
-          color: "text-purple-400",
-          bg: "bg-purple-500/10",
-        },
-        {
-          label: "Conv. Rate",
-          value: `${stats.conversionRate}%`,
-          icon: ArrowUpRight,
-          color: "text-indigo-400",
-          bg: "bg-indigo-500/10",
-        },
-        {
-          label: "Ad Spend ROAS",
-          value: stats.roas > 0 ? `${stats.roas}x` : "—",
-          icon: TrendingUp,
-          color: "text-cyan-400",
-          bg: "bg-cyan-500/10",
-        },
-        {
-          label: "COD Pending",
-          value: fmt(stats.codPending),
-          icon: AlertTriangle,
-          color: "text-orange-400",
-          bg: "bg-orange-500/10",
-        },
-        {
-          label: "Confirmed",
-          value: stats.confirmed.toString(),
-          icon: PackageCheck,
-          color: "text-emerald-400",
-          bg: "bg-emerald-500/10",
-        },
-        {
-          label: "Shipped",
-          value: stats.delivered.toString(),
-          icon: PackageCheck,
-          color: "text-blue-400",
-          bg: "bg-blue-500/10",
-        },
-        {
-          label: "Cancelled",
-          value: stats.cancelled.toString(),
-          icon: XCircle,
-          color: "text-red-400",
-          bg: "bg-red-500/10",
-        },
-        {
-          label: "Return Rate",
-          value: `${stats.returnRate}%`,
-          icon: Package,
-          color: "text-orange-400",
-          bg: "bg-orange-500/10",
-        },
+        { label: t('portal.totalOrders'), value: stats.totalOrders.toString(), icon: ShoppingCart, color: "text-blue-400", bg: "bg-blue-500/10" },
+        { label: t('portal.totalRevenue'), value: fmt(stats.totalRevenue), icon: DollarSign, color: "text-amber-400", bg: "bg-amber-500/10" },
+        { label: t('portal.netProfit'), value: fmt(stats.totalProfit), icon: TrendingUp, color: stats.totalProfit >= 0 ? "text-emerald-400" : "text-red-400", bg: stats.totalProfit >= 0 ? "bg-emerald-500/10" : "bg-red-500/10" },
+        { label: t('portal.profitMargin'), value: `${stats.profitMargin}%`, icon: Percent, color: stats.profitMargin >= 20 ? "text-emerald-400" : "text-amber-400", bg: "bg-purple-500/10" },
+        { label: t('portal.avgOrderValue'), value: fmt(stats.avgOrderValue), icon: BarChart2, color: "text-purple-400", bg: "bg-purple-500/10" },
+        { label: t('portal.convRate'), value: `${stats.conversionRate}%`, icon: ArrowUpRight, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+        { label: t('portal.adSpendRoas'), value: stats.roas > 0 ? `${stats.roas}x` : "—", icon: TrendingUp, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+        { label: t('portal.codPending'), value: fmt(stats.codPending), icon: AlertTriangle, color: "text-orange-400", bg: "bg-orange-500/10" },
+        { label: t('portal.confirmedOrders'), value: stats.confirmed.toString(), icon: PackageCheck, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+        { label: t('portal.shippedCount'), value: stats.delivered.toString(), icon: PackageCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
+        { label: t('portal.cancelledCount'), value: stats.cancelled.toString(), icon: XCircle, color: "text-red-400", bg: "bg-red-500/10" },
+        { label: t('portal.returnRate'), value: `${stats.returnRate}%`, icon: Package, color: "text-orange-400", bg: "bg-orange-500/10" },
       ]
     : [];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Order Dashboard</h1>
+        <h1 className="text-2xl font-bold text-white">{t('portal.orderDashboard')}</h1>
         <p className="text-sm text-slate-400 mt-0.5">
-          Your orders, revenue and performance overview
+          {t('portal.orderDashboardDesc')}
         </p>
       </div>
 
@@ -331,7 +260,7 @@ export default function ClientCrm() {
           {/* Revenue & Profit trend */}
           <div className="lg:col-span-2 bg-[#0d1528] border border-slate-700/40 rounded-xl p-5">
             <h2 className="text-sm font-semibold text-white mb-4">
-              Revenue & Profit — Last 6 Months
+              {t('portal.revenueAndProfit')}
             </h2>
             {stats.monthlyTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
@@ -392,7 +321,7 @@ export default function ClientCrm() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
-                Not enough data
+                {t('portal.notEnoughData')}
               </div>
             )}
           </div>
@@ -400,7 +329,7 @@ export default function ClientCrm() {
           {/* Status breakdown pie */}
           <div className="bg-[#0d1528] border border-slate-700/40 rounded-xl p-5">
             <h2 className="text-sm font-semibold text-white mb-4">
-              Orders by Status
+              {t('portal.ordersByStatus')}
             </h2>
             {stats.byStatus.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
@@ -436,7 +365,7 @@ export default function ClientCrm() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
-                No data
+                {t('portal.noData')}
               </div>
             )}
           </div>
@@ -449,7 +378,7 @@ export default function ClientCrm() {
           {/* Orders by Source */}
           <div className="bg-[#0d1528] border border-slate-700/40 rounded-xl p-5">
             <h2 className="text-sm font-semibold text-white mb-4">
-              Orders by Source
+              {t('portal.ordersBySource')}
             </h2>
             {stats.bySource.length > 0 ? (
               <ResponsiveContainer width="100%" height={180}>
@@ -486,7 +415,7 @@ export default function ClientCrm() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[180px] flex items-center justify-center text-slate-500 text-sm">
-                No data
+                {t('portal.noData')}
               </div>
             )}
           </div>
@@ -494,7 +423,7 @@ export default function ClientCrm() {
           {/* Top Products */}
           <div className="bg-[#0d1528] border border-slate-700/40 rounded-xl p-5">
             <h2 className="text-sm font-semibold text-white mb-4">
-              Top Products by Revenue
+              {t('portal.topProductsByRevenue')}
             </h2>
             {stats.topProducts.length > 0 ? (
               <div className="space-y-3">
@@ -521,7 +450,7 @@ export default function ClientCrm() {
                         />
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        {p.count} unit{p.count !== 1 ? "s" : ""} sold
+                        {t('portal.unitsSold', { count: p.count })}
                       </div>
                     </div>
                   </div>
@@ -529,7 +458,7 @@ export default function ClientCrm() {
               </div>
             ) : (
               <div className="flex items-center justify-center h-[140px] text-slate-500 text-sm">
-                No data
+                {t('portal.noData')}
               </div>
             )}
           </div>
@@ -540,7 +469,7 @@ export default function ClientCrm() {
       {stats && stats.monthlyTrend.length > 1 && (
         <div className="bg-[#0d1528] border border-slate-700/40 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-white mb-4">
-            Monthly Order Count
+            {t('portal.monthlyOrderCount')}
           </h2>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={stats.monthlyTrend}>
@@ -575,7 +504,7 @@ export default function ClientCrm() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               className="w-full bg-slate-800/60 border border-slate-700/40 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
-              placeholder="Search by customer, product, phone…"
+              placeholder={t('portal.searchOrders')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -591,7 +520,7 @@ export default function ClientCrm() {
               setPage(1);
             }}
           >
-            <option value="">All Statuses</option>
+            <option value="">{t('portal.allStatuses')}</option>
             {(
               [
                 "NEW",
@@ -617,7 +546,7 @@ export default function ClientCrm() {
               setPage(1);
             }}
           >
-            <option value="">All Months</option>
+            <option value="">{t('portal.allMonthsFilter')}</option>
             {monthOptions().map((month) => (
               <option key={month.key} value={month.key}>
                 {month.label}
@@ -637,15 +566,15 @@ export default function ClientCrm() {
             <thead className="bg-slate-800/30 border-b border-slate-700/40">
               <tr>
                 {[
-                  "Customer",
-                  "Product",
-                  "Revenue",
-                  "Profit",
-                  "Status",
-                  "Payment",
-                  "Source",
-                  "Agent",
-                  "Date",
+                  t('crm.colCustomer'),
+                  t('crm.colProduct'),
+                  t('portal.colRevenue'),
+                  t('crm.colNetProfit'),
+                  t('common.status'),
+                  t('portal.colPayment'),
+                  t('portal.colSource'),
+                  t('portal.colAgent'),
+                  t('common.date'),
                 ].map((h) => (
                   <th
                     key={h}
@@ -671,7 +600,7 @@ export default function ClientCrm() {
                 <tr>
                   <td colSpan={9} className="text-center py-16 text-slate-500">
                     <ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-20" />
-                    No orders found
+                    {t('portal.noOrdersFound')}
                   </td>
                 </tr>
               ) : (
@@ -755,24 +684,24 @@ export default function ClientCrm() {
 
         {pages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700/40">
-            <span className="text-xs text-slate-500">{total} orders total</span>
+            <span className="text-xs text-slate-500">{t('portal.ordersTotal', { count: total })}</span>
             <div className="flex items-center gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
                 className="px-3 py-1.5 text-xs rounded-lg border border-slate-700/40 text-slate-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Prev
+                {t('portal.prevPage')}
               </button>
               <span className="text-xs text-slate-400">
-                Page {page} of {pages}
+                {t('portal.pageInfo', { page, pages })}
               </span>
               <button
                 disabled={page >= pages}
                 onClick={() => setPage((p) => p + 1)}
                 className="px-3 py-1.5 text-xs rounded-lg border border-slate-700/40 text-slate-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('portal.nextPage')}
               </button>
             </div>
           </div>

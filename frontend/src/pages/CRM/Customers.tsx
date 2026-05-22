@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, User, MapPin, Phone, TrendingUp, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { CrmCustomer, Client } from '@/types';
 import { cn } from '@/lib/utils';
 import { useCrmCurrency } from '@/context/CrmCurrencyContext';
 
 export default function Customers() {
+  const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
   const [customers, setCustomers] = useState<CrmCustomer[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -61,11 +63,11 @@ export default function Customers() {
     <div className="space-y-5 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Customer Database</h2>
-          <p className="text-sm text-slate-500 mt-0.5">{customers.length} customers</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('crm.customerDatabase')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('crm.customersCount', { count: customers.length })}</p>
         </div>
         <button onClick={() => setShowForm(v => !v)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Add Customer
+          <Plus className="w-4 h-4" /> {t('crm.addCustomer')}
         </button>
       </div>
 
@@ -73,66 +75,66 @@ export default function Customers() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4">
           <div className="text-2xl font-bold text-slate-900 dark:text-white">{customers.length}</div>
-          <div className="text-xs text-slate-500 mt-0.5">Total Customers</div>
+          <div className="text-xs text-slate-500 mt-0.5">{t('crm.totalCustomers')}</div>
         </div>
         <div className="card p-4">
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
             {fmt(customers.reduce((s, c) => s + c.totalSpend, 0))}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">Total Customer Spend</div>
+          <div className="text-xs text-slate-500 mt-0.5">{t('crm.totalCustomerSpend')}</div>
         </div>
         <div className="card p-4">
           <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {customers.filter(c => c.orderCount > 1).length}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">Repeat Customers</div>
+          <div className="text-xs text-slate-500 mt-0.5">{t('crm.repeatCustomers')}</div>
         </div>
         <div className="card p-4">
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {customers.length > 0 ? fmt(customers.reduce((s, c) => s + c.totalSpend, 0) / customers.length) : '0 MAD'}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">Avg Lifetime Value</div>
+          <div className="text-xs text-slate-500 mt-0.5">{t('crm.avgLifetimeValue')}</div>
         </div>
       </div>
 
       {/* Add form */}
       {showForm && (
         <div className="card p-5 border-2 border-amber-400/30">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">New Customer</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">{t('crm.newCustomer')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Client *</label>
+              <label className="label">{t('crm.allClients').replace('All ', '')} *</label>
               <select className="select mt-1" value={form.clientId} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))}>
-                <option value="">Select client…</option>
+                <option value="">{t('crm.allClients')}</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Name *</label>
+              <label className="label">{t('common.name')} *</label>
               <input className="input mt-1" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Customer name" />
             </div>
             <div>
-              <label className="label">Phone</label>
+              <label className="label">{t('crm.phone')}</label>
               <input className="input mt-1" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+212…" />
             </div>
             <div>
-              <label className="label">City</label>
+              <label className="label">{t('crm.city')}</label>
               <input className="input mt-1" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Casablanca" />
             </div>
             <div>
-              <label className="label">Address</label>
+              <label className="label">{t('crm.address')}</label>
               <input className="input mt-1" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Full address" />
             </div>
             <div>
-              <label className="label">Notes</label>
+              <label className="label">{t('crm.notes')}</label>
               <input className="input mt-1" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" />
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <button onClick={() => setShowForm(false)} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="btn-secondary px-4 py-2 text-sm">{t('common.cancel')}</button>
             <button onClick={addCustomer} disabled={saving || !form.clientId || !form.name} className="btn-primary px-6 py-2 text-sm flex items-center gap-2">
               {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {saving ? 'Saving…' : 'Add Customer'}
+              {saving ? t('common.saving') : t('crm.addCustomer')}
             </button>
           </div>
         </div>
@@ -142,7 +144,7 @@ export default function Customers() {
         {/* Top spenders */}
         <div className="card p-5">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-amber-500" /> Top Spenders
+            <TrendingUp className="w-4 h-4 text-amber-500" /> {t('crm.topSpenders')}
           </h3>
           <div className="space-y-3">
             {topSpenders.map((c, i) => (
@@ -160,14 +162,14 @@ export default function Customers() {
                 <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{fmt(c.totalSpend)}</div>
               </div>
             ))}
-            {topSpenders.length === 0 && <p className="text-xs text-slate-400 text-center py-4">No data yet</p>}
+            {topSpenders.length === 0 && <p className="text-xs text-slate-400 text-center py-4">{t('crm.noDataYet')}</p>}
           </div>
         </div>
 
         {/* Top cities */}
         <div className="card p-5">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-blue-500" /> Top Cities
+            <MapPin className="w-4 h-4 text-blue-500" /> {t('crm.topCities')}
           </h3>
           <div className="space-y-2">
             {cityList.map(([city, count]) => (
@@ -181,18 +183,18 @@ export default function Customers() {
                 </div>
               </div>
             ))}
-            {cityList.length === 0 && <p className="text-xs text-slate-400 text-center py-4">No data yet</p>}
+            {cityList.length === 0 && <p className="text-xs text-slate-400 text-center py-4">{t('crm.noDataYet')}</p>}
           </div>
         </div>
 
         {/* Repeat vs. new */}
         <div className="card p-5">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Customer Segments</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{t('crm.customerSegments')}</h3>
           <div className="space-y-3">
             {[
-              { label: 'New Customers', count: customers.filter(c => c.orderCount === 1).length, color: 'bg-blue-500' },
-              { label: 'Repeat Customers', count: customers.filter(c => c.orderCount > 1).length, color: 'bg-amber-500' },
-              { label: 'VIP (5+ orders)', count: customers.filter(c => c.orderCount >= 5).length, color: 'bg-emerald-500' },
+              { label: t('crm.newCustomers'), count: customers.filter(c => c.orderCount === 1).length, color: 'bg-blue-500' },
+              { label: t('crm.repeatCustomersLabel'), count: customers.filter(c => c.orderCount > 1).length, color: 'bg-amber-500' },
+              { label: t('crm.vipCustomers'), count: customers.filter(c => c.orderCount >= 5).length, color: 'bg-emerald-500' },
             ].map(({ label, count, color }) => (
               <div key={label} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -210,10 +212,10 @@ export default function Customers() {
       <div className="card p-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input className="input pl-9 w-full" placeholder="Search customers…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="input pl-9 w-full" placeholder={t('crm.searchCustomers')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="select w-full sm:w-48" value={clientFilter} onChange={e => setClientFilter(e.target.value)}>
-          <option value="">All Clients</option>
+          <option value="">{t('crm.allClients')}</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <button onClick={load} className="btn-secondary p-2.5">
@@ -226,7 +228,7 @@ export default function Customers() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <tr>
-                {['Customer', 'Contact', 'Location', 'Orders', 'Total Spend', 'Status'].map(h => (
+                {[t('crm.colCustomer'), t('crm.colContact'), t('crm.colLocation'), t('crm.orders'), t('crm.colTotalSpend'), t('common.status')].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -241,7 +243,7 @@ export default function Customers() {
               ) : customers.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-16 text-slate-400">
                   <User className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  No customers found
+                  {t('crm.noCustomersFound')}
                 </td></tr>
               ) : customers.map(c => (
                 <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
@@ -263,7 +265,7 @@ export default function Customers() {
                   <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">{fmt(c.totalSpend)}</td>
                   <td className="px-4 py-3">
                     <span className={cn('badge text-xs', c.orderCount > 1 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-500')}>
-                      {c.orderCount > 1 ? 'Repeat' : 'New'}
+                      {c.orderCount > 1 ? t('crm.repeatLabel') : t('crm.newLabel')}
                     </span>
                   </td>
                 </tr>

@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, Save, Clock, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { AdminAvailability, BlockedDate } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = ['Africa/Casablanca', 'Europe/Paris', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai'];
 
 type DaySlot = { enabled: boolean; startTime: string; endTime: string };
@@ -13,7 +13,13 @@ type DaySlot = { enabled: boolean; startTime: string; endTime: string };
 const DEFAULT_SLOTS: DaySlot[] = DAYS.map(() => ({ enabled: false, startTime: '09:00', endTime: '17:00' }));
 
 export default function AvailabilitySettings() {
+  const { t } = useTranslation();
   const { user } = useAuth();
+
+  const DAYS = [
+    t('meetings.daySunday'), t('meetings.dayMonday'), t('meetings.dayTuesday'),
+    t('meetings.dayWednesday'), t('meetings.dayThursday'), t('meetings.dayFriday'), t('meetings.daySaturday'),
+  ];
 
   const [admins, setAdmins] = useState<{ id: string; name: string; role: string }[]>([]);
   // Initialize immediately from the logged-in user so Save works before /users loads
@@ -67,7 +73,7 @@ export default function AvailabilitySettings() {
       setTimezone(tz);
       setBlocked(blockedRes.data);
     } catch {
-      setError('Failed to load availability');
+      setError(t('meetings.failedLoad'));
     }
   }, []);
 
@@ -77,7 +83,7 @@ export default function AvailabilitySettings() {
 
   const handleSave = async () => {
     const adminId = selectedAdminId || user?.id;
-    if (!adminId) { setError('No admin selected'); return; }
+    if (!adminId) { setError(t('meetings.noAdminSelected')); return; }
     setSaving(true);
     setError('');
     try {
@@ -88,7 +94,7 @@ export default function AvailabilitySettings() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
-      setError('Failed to save. Please try again.');
+      setError(t('meetings.failedSave'));
     } finally {
       setSaving(false);
     }
@@ -107,7 +113,7 @@ export default function AvailabilitySettings() {
       setNewBlockDate('');
       setNewBlockReason('');
     } catch {
-      setError('Failed to add blocked date');
+      setError(t('meetings.failedAddBlocked'));
     }
   };
 
@@ -116,7 +122,7 @@ export default function AvailabilitySettings() {
       await api.delete(`/meetings/blocked-dates/${id}`);
       setBlocked(b => b.filter(x => x.id !== id));
     } catch {
-      setError('Failed to remove blocked date');
+      setError(t('meetings.failedRemoveBlocked'));
     }
   };
 
@@ -131,7 +137,7 @@ export default function AvailabilitySettings() {
             <User className="w-4.5 h-4.5 text-amber-500" />
           </div>
           <div className="flex-1">
-            <label className="label mb-1">Managing availability for</label>
+            <label className="label mb-1">{t('meetings.managingFor')}</label>
             <select
               className="select w-full sm:w-80"
               value={selectedAdminId}
@@ -139,7 +145,7 @@ export default function AvailabilitySettings() {
             >
               {admins.map(a => (
                 <option key={a.id} value={a.id}>
-                  {a.name}{a.id === user?.id ? ' (You)' : ''} — {a.role.replace('_', ' ')}
+                  {a.name}{a.id === user?.id ? ` ${t('meetings.you')}` : ''} — {a.role.replace('_', ' ')}
                 </option>
               ))}
             </select>
@@ -157,9 +163,9 @@ export default function AvailabilitySettings() {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white">Weekly Availability</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('meetings.weeklyAvailability')}</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {selectedAdmin ? `Set available hours for ${selectedAdmin.name}` : 'Set available hours'}
+              {selectedAdmin ? t('meetings.setAvailableHoursFor', { name: selectedAdmin.name }) : t('meetings.setAvailableHours')}
             </p>
           </div>
           <button
@@ -171,12 +177,12 @@ export default function AvailabilitySettings() {
             )}
           >
             <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
+            {saving ? t('meetings.saving') : saved ? t('meetings.saved') : t('common.save')}
           </button>
         </div>
 
         <div className="mb-4">
-          <label className="label">Timezone</label>
+          <label className="label">{t('meetings.timezone')}</label>
           <select className="select w-72" value={timezone} onChange={e => setTimezone(e.target.value)}>
             {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
           </select>
@@ -227,7 +233,7 @@ export default function AvailabilitySettings() {
                   />
                 </div>
               ) : (
-                <span className="text-sm text-slate-400">Unavailable</span>
+                <span className="text-sm text-slate-400">{t('meetings.unavailable')}</span>
               )}
             </div>
           ))}
@@ -236,9 +242,9 @@ export default function AvailabilitySettings() {
 
       {/* Blocked dates */}
       <div className="card p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Blocked Dates</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{t('meetings.blockedDates')}</h3>
         <p className="text-xs text-slate-500 mb-4">
-          {selectedAdmin ? `Days when ${selectedAdmin.name} is unavailable` : 'Days with no availability'}
+          {selectedAdmin ? t('meetings.blockedDatesDescFor', { name: selectedAdmin.name }) : t('meetings.blockedDatesDesc')}
         </p>
         <div className="flex flex-wrap gap-3 mb-4">
           <input
@@ -249,12 +255,12 @@ export default function AvailabilitySettings() {
           />
           <input
             className="input flex-1 min-w-48"
-            placeholder="Reason (e.g. Vacation, Holiday)"
+            placeholder={t('meetings.reasonPlaceholder')}
             value={newBlockReason}
             onChange={e => setNewBlockReason(e.target.value)}
           />
           <button onClick={addBlockedDate} disabled={!newBlockDate || !selectedAdminId} className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Block Date
+            <Plus className="w-4 h-4" /> {t('meetings.blockDate')}
           </button>
         </div>
 
@@ -273,7 +279,7 @@ export default function AvailabilitySettings() {
             </div>
           ))}
           {blocked.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-6">No blocked dates</p>
+            <p className="text-sm text-slate-400 text-center py-6">{t('meetings.noBlockedDates')}</p>
           )}
         </div>
       </div>

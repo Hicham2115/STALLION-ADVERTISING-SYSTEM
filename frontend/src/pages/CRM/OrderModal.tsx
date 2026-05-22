@@ -1,5 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { CrmOrder, Client, User, OrderStatus, OrderPaymentStatus, OrderSource } from '@/types';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ const defaultForm = {
 };
 
 export default function OrderModal({ order, clients, users, onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -65,7 +67,7 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.clientId || !form.customerName || !form.productName || !form.orderAmount) {
-      setError('Client, customer name, product, and amount are required'); return;
+      setError(t('crm.clientRequired')); return;
     }
     setSaving(true); setError('');
     try {
@@ -85,7 +87,7 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
       }
       onSaved(); onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save order');
+      setError(err.response?.data?.message || t('crm.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -100,7 +102,7 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
       <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {order ? 'Edit Order' : 'New Order'}
+            {order ? t('crm.editOrder') : t('crm.newOrder')}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
             <X className="w-5 h-5" />
@@ -111,19 +113,19 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           {/* Client & Closer */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Client *</label>
+              <label className="label">{t('clients.title').replace('s', '')} *</label>
               <select className="select mt-1" value={form.clientId} onChange={e => set('clientId', e.target.value)} required>
-                <option value="">Select client…</option>
+                <option value="">{t('crm.allClients').replace('All ', 'Select ') + '…'}</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="label">
-                Closer / Agent
-                {hasAssigned && <span className="ml-1 text-[10px] text-amber-500 font-normal">(assigned only)</span>}
+                {t('crm.closerAgent')}
+                {hasAssigned && <span className="ml-1 text-[10px] text-amber-500 font-normal">({t('crm.assignedOnly')})</span>}
               </label>
               <select className="select mt-1" value={form.closerId} onChange={e => set('closerId', e.target.value)}>
-                <option value="">Unassigned</option>
+                <option value="">{t('crm.unassigned')}</option>
                 {availableClosers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
@@ -132,15 +134,15 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           {/* Customer info */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Customer Name *</label>
+              <label className="label">{t('crm.customerName')}</label>
               <input className="input mt-1" value={form.customerName} onChange={e => set('customerName', e.target.value)} placeholder="Mohamed Alami" required />
             </div>
             <div>
-              <label className="label">Phone</label>
+              <label className="label">{t('crm.phone')}</label>
               <input className="input mt-1" value={form.customerPhone} onChange={e => set('customerPhone', e.target.value)} placeholder="+212 6…" />
             </div>
             <div>
-              <label className="label">City</label>
+              <label className="label">{t('crm.city')}</label>
               <input className="input mt-1" value={form.customerCity} onChange={e => set('customerCity', e.target.value)} placeholder="Casablanca" />
             </div>
           </div>
@@ -148,11 +150,11 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           {/* Product */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Product Name *</label>
+              <label className="label">{t('crm.productName')}</label>
               <input className="input mt-1" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Product name" required />
             </div>
             <div>
-              <label className="label">Quantity</label>
+              <label className="label">{t('crm.quantity')}</label>
               <input className="input mt-1" type="number" min="1" value={form.quantity} onChange={e => set('quantity', e.target.value)} />
             </div>
           </div>
@@ -160,45 +162,45 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           {/* Financials */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="label">Order Amount *</label>
+              <label className="label">{t('crm.orderAmount')}</label>
               <input className="input mt-1" type="number" step="0.01" value={form.orderAmount} onChange={e => set('orderAmount', e.target.value)} placeholder="0" required />
             </div>
             <div>
-              <label className="label">Product Cost</label>
+              <label className="label">{t('crm.productCost')}</label>
               <input className="input mt-1" type="number" step="0.01" value={form.productCost} onChange={e => set('productCost', e.target.value)} placeholder="0" />
             </div>
             <div>
-              <label className="label">Shipping Cost</label>
+              <label className="label">{t('crm.shippingCost')}</label>
               <input className="input mt-1" type="number" step="0.01" value={form.shippingCost} onChange={e => set('shippingCost', e.target.value)} placeholder="0" />
             </div>
             <div>
-              <label className="label">Ad Cost</label>
+              <label className="label">{t('crm.adCost')}</label>
               <input className="input mt-1" type="number" step="0.01" value={form.adCost} onChange={e => set('adCost', e.target.value)} placeholder="0" />
             </div>
           </div>
 
           {/* Net profit preview */}
           <div className={cn('px-4 py-3 rounded-xl text-sm font-semibold', netProfit >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/10 text-red-600')}>
-            Estimated Net Profit: {netProfit.toFixed(2)} MAD
-            <span className="text-xs font-normal ml-2 opacity-70">(before commission)</span>
+            {t('crm.estimatedNetProfit', { value: netProfit.toFixed(2) })}
+            <span className="text-xs font-normal ml-2 opacity-70">{t('crm.beforeCommission')}</span>
           </div>
 
           {/* Status & Source */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Order Status</label>
+              <label className="label">{t('crm.orderStatus')}</label>
               <select className="select mt-1" value={form.status} onChange={e => set('status', e.target.value as OrderStatus)}>
                 {STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Payment Status</label>
+              <label className="label">{t('crm.paymentStatus')}</label>
               <select className="select mt-1" value={form.paymentStatus} onChange={e => set('paymentStatus', e.target.value as OrderPaymentStatus)}>
                 {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Source</label>
+              <label className="label">{t('crm.source')}</label>
               <select className="select mt-1" value={form.source} onChange={e => set('source', e.target.value as OrderSource)}>
                 {SOURCES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
               </select>
@@ -208,12 +210,12 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           {/* Notes */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Notes</label>
-              <textarea className="input mt-1 resize-none" rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Internal notes…" />
+              <label className="label">{t('crm.notes')}</label>
+              <textarea className="input mt-1 resize-none" rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder={t('crm.internalNotes')} />
             </div>
             <div>
-              <label className="label">Closer Notes</label>
-              <textarea className="input mt-1 resize-none" rows={2} value={form.closerNotes} onChange={e => set('closerNotes', e.target.value)} placeholder="Agent notes…" />
+              <label className="label">{t('crm.closerNotes')}</label>
+              <textarea className="input mt-1 resize-none" rows={2} value={form.closerNotes} onChange={e => set('closerNotes', e.target.value)} placeholder={t('crm.agentNotes')} />
             </div>
           </div>
 
@@ -221,10 +223,10 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
         </form>
 
         <div className="flex gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <button type="button" onClick={onClose} className="btn-secondary flex-1 py-2 text-sm">Cancel</button>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1 py-2 text-sm">{t('common.cancel')}</button>
           <button onClick={handleSubmit as any} disabled={saving} className="btn-primary flex-1 py-2 text-sm flex items-center justify-center gap-2">
             {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {saving ? 'Saving…' : order ? 'Save Changes' : 'Create Order'}
+            {saving ? t('common.saving') : order ? t('crm.saveChanges') : t('crm.createOrder')}
           </button>
         </div>
       </div>

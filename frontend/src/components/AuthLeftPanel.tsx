@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Zap } from 'lucide-react';
+import logo from '@/assets/png.png';
+import { useTranslation } from 'react-i18next';
 
 const DASHBOARD_PREVIEW = '/images/dashboard-preview.png';
 
@@ -10,10 +11,12 @@ type AuthLeftPanelProps = {
 };
 
 export default function AuthLeftPanel({
-  eyebrow = 'Agency management platform',
+  eyebrow,
   title,
   subtitle,
 }: AuthLeftPanelProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
@@ -44,19 +47,13 @@ export default function AuthLeftPanel({
       />
 
       <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full min-h-0">
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl shadow-amber-500/20">
-            <Zap className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-white">Stallion</div>
-            <div className="text-amber-400 font-medium">Advertising</div>
-          </div>
+        <div className="flex items-center shrink-0">
+          <img src={logo} alt={t('auth.stallionAlt')} className="h-36 w-auto object-contain" />
         </div>
 
         <div className="flex-1 flex flex-col justify-center py-6 min-h-0">
           <p className="text-amber-400/80 text-xs font-semibold tracking-widest uppercase mb-3">
-            {eyebrow}
+            {eyebrow ?? t('auth.agencyPlatform')}
           </p>
           <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-3 max-w-md">
             {title}
@@ -76,7 +73,7 @@ export default function AuthLeftPanel({
                 <div className="relative aspect-[16/10] bg-slate-950 overflow-hidden">
                   <img
                     src={DASHBOARD_PREVIEW}
-                    alt="Stallion CEO Dashboard preview"
+                    alt={t('auth.dashboardPreviewAlt')}
                     className="w-full h-full object-cover object-top"
                     loading="eager"
                   />
@@ -85,12 +82,12 @@ export default function AuthLeftPanel({
               </div>
             </div>
             <div className="absolute -bottom-3 -right-3 px-3 py-1.5 rounded-lg bg-amber-500/90 text-white text-xs font-semibold shadow-lg shadow-amber-500/30">
-              Live dashboard
+              {t('auth.liveDashboard')}
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-slate-600 shrink-0">© 2025 Stallion Advertising. All rights reserved.</p>
+        <p className="text-xs text-slate-600 shrink-0">{t('auth.copyright')}</p>
       </div>
     </div>
   );

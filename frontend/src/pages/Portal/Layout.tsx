@@ -15,7 +15,10 @@ import {
   CalendarClock,
   ShoppingCart,
   Receipt,
+  Globe,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { cn as cnUtil } from "@/lib/utils";
 import SidebarBrand from "@/components/SidebarBrand";
 import { cn } from "@/lib/utils";
 import { usePortalAuth, portalApi } from "@/context/PortalAuthContext";
@@ -27,20 +30,31 @@ import { ClientNotification, Currency } from "@/types";
 
 const CURRENCIES: Currency[] = ["MAD", "USD", "EUR"];
 
-const navItems = [
-  { to: "/portal", icon: LayoutDashboard, label: "Dashboard", exact: true },
-  { to: "/portal/analytics", icon: BarChart2, label: "Analytics" },
-  { to: "/portal/costs", icon: Receipt, label: "Costs" },
-  { to: "/portal/orders", icon: ShoppingCart, label: "My Orders" },
-  { to: "/portal/content", icon: Image, label: "Creative Delivery" },
-  { to: "/portal/updates", icon: GitBranch, label: "Project Updates" },
-  { to: "/portal/invoices", icon: FileText, label: "Invoices" },
-  { to: "/portal/meetings", icon: CalendarClock, label: "Book a Meeting" },
+// navItems built inside component to support live language switching
+
+const PORTAL_LANGUAGES = [
+  { code: 'en', label: 'EN', full: 'English' },
+  { code: 'fr', label: 'FR', full: 'Français' },
+  { code: 'ar', label: 'AR', full: 'العربية' },
 ];
 
 function PortalLayoutContent() {
   const { user, logout } = usePortalAuth();
   const { currency, setCurrency } = usePortalCurrency();
+  const { t, i18n } = useTranslation();
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  const navItems = [
+    { to: "/portal", icon: LayoutDashboard, label: t('portal.dashboard'), exact: true },
+    { to: "/portal/analytics", icon: BarChart2, label: t('portal.kpis') },
+    { to: "/portal/costs", icon: Receipt, label: t('portal.costs') },
+    { to: "/portal/orders", icon: ShoppingCart, label: t('portal.orders') },
+    { to: "/portal/content", icon: Image, label: t('portal.content') },
+    { to: "/portal/updates", icon: GitBranch, label: t('portal.updates') },
+    { to: "/portal/invoices", icon: FileText, label: t('portal.invoices') },
+    { to: "/portal/meetings", icon: CalendarClock, label: t('meetings.schedule') },
+  ];
   const navigate = useNavigate();
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
@@ -63,6 +77,14 @@ function PortalLayoutContent() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    }
+    if (langOpen) document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [langOpen]);
 
   const handleLogout = () => {
     logout();
@@ -141,7 +163,7 @@ function PortalLayoutContent() {
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out
+            {t('portal.signOut')}
           </button>
         </div>
       </aside>
@@ -171,6 +193,36 @@ function PortalLayoutContent() {
           </div>
 
           <div className="flex items-center gap-3 ml-auto">
+            {/* Language switcher */}
+            <div className="relative" ref={langRef}>
+              <button
+                onClick={() => setLangOpen((o) => !o)}
+                className="flex items-center gap-1.5 w-9 h-9 justify-center rounded-xl bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-white transition-all"
+                title={t('common.language')}
+              >
+                <Globe className="w-4 h-4" />
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 top-11 w-36 bg-[#0d1528] border border-slate-700/50 rounded-xl shadow-2xl z-[60] overflow-hidden py-1">
+                  {PORTAL_LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => { i18n.changeLanguage(lang.code); setLangOpen(false); }}
+                      className={cnUtil(
+                        'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left',
+                        i18n.language === lang.code
+                          ? 'bg-amber-500/10 text-amber-400 font-semibold'
+                          : 'text-slate-300 hover:bg-slate-800/50'
+                      )}
+                    >
+                      <span className="text-xs font-bold w-5 text-center">{lang.label}</span>
+                      <span>{lang.full}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Currency toggle */}
             <div className="hidden sm:flex items-center gap-0.5 bg-slate-800/60 border border-slate-700/40 rounded-lg p-0.5">
               {CURRENCIES.map((c) => (
@@ -290,7 +342,7 @@ function PortalLayoutContent() {
                     className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all"
                   >
                     <User className="w-4 h-4" />
-                    My Profile
+                    {t('portal.profile')}
                   </NavLink>
                   <div className="border-t border-slate-700/50" />
                   <button
@@ -298,7 +350,7 @@ function PortalLayoutContent() {
                     className="flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-all w-full"
                   >
                     <LogOut className="w-4 h-4" />
-                    Sign Out
+                    {t('portal.signOut')}
                   </button>
                 </div>
               )}

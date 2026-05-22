@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Download, CheckCircle, Clock } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -9,6 +10,7 @@ import { formatCurrency, formatDate, getCategoryLabel, cn } from '@/lib/utils';
 import ExpenseModal from './ExpenseModal';
 
 export default function Expenses() {
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export default function Expenses() {
   const total = totalFixed + totalVariable;
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this expense?')) return;
+    if (!confirm(t('expenses.confirmDelete'))) return;
     await api.delete(`/expenses/${id}`);
     fetchAll();
   };
@@ -65,36 +67,36 @@ export default function Expenses() {
     <div className="max-w-7xl mx-auto space-y-5">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Expenses Tracker</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Year {year}</p>
+          <h1 className="page-title">{t('expenses.tracker')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('expenses.year', { year })}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleExport} className="btn-secondary"><Download className="w-4 h-4" /> Export</button>
-          <button onClick={() => { setEditing(null); setModalOpen(true); }} className="btn-primary"><Plus className="w-4 h-4" /> Add Expense</button>
+          <button onClick={handleExport} className="btn-secondary"><Download className="w-4 h-4" /> {t('common.export')}</button>
+          <button onClick={() => { setEditing(null); setModalOpen(true); }} className="btn-primary"><Plus className="w-4 h-4" /> {t('expenses.addExpense')}</button>
         </div>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="card p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Expenses</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('expenses.totalExpenses')}</p>
           <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{formatCurrency(total)}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Fixed Costs</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('expenses.fixedCosts')}</p>
           <p className="text-2xl font-bold mt-1 text-blue-600">{formatCurrency(totalFixed)}</p>
         </div>
         <div className="card p-5">
           <div className="flex items-center gap-1.5 mb-1">
             <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Paid</p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('expenses.paid')}</p>
           </div>
           <p className="text-2xl font-bold text-emerald-600">{formatCurrency(totalPaid)}</p>
         </div>
         <div className="card p-5">
           <div className="flex items-center gap-1.5 mb-1">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Pending</p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('expenses.pending')}</p>
           </div>
           <p className="text-2xl font-bold text-amber-600">{formatCurrency(totalPending)}</p>
         </div>
@@ -104,7 +106,7 @@ export default function Expenses() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-900 dark:text-white">Monthly Breakdown</h2>
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t('expenses.monthlyBreakdown')}</h2>
             <select className="select w-24 text-xs" value={year} onChange={(e) => setYear(Number(e.target.value))}>
               {[2023, 2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
@@ -129,14 +131,14 @@ export default function Expenses() {
                 formatter={(v: number) => formatCurrency(v)}
               />
               <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-              <Area type="monotone" dataKey="fixed" stroke="#3b82f6" strokeWidth={2} fill="url(#fixed)" name="Fixed" />
-              <Area type="monotone" dataKey="variable" stroke="#8b5cf6" strokeWidth={2} fill="url(#variable)" name="Variable" />
+              <Area type="monotone" dataKey="fixed" stroke="#3b82f6" strokeWidth={2} fill="url(#fixed)" name={t('expenses.fixed')} />
+              <Area type="monotone" dataKey="variable" stroke="#8b5cf6" strokeWidth={2} fill="url(#variable)" name={t('expenses.variable')} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="card p-5">
-          <h2 className="font-semibold text-slate-900 dark:text-white mb-4">By Category</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-white mb-4">{t('expenses.byCategory')}</h2>
           <div className="space-y-2">
             {Object.entries(byCategory)
               .sort(([, a], [, b]) => b - a)
@@ -155,7 +157,7 @@ export default function Expenses() {
                 </div>
               ))}
             {Object.keys(byCategory).length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">No data</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t('common.noResults')}</p>
             )}
           </div>
         </div>
@@ -164,17 +166,17 @@ export default function Expenses() {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-900 dark:text-white">Expense Records</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-white">{t('expenses.records')}</h2>
           <div className="flex gap-2">
             <select className="select w-36 text-sm" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="">All Types</option>
-              <option value="FIXED">Fixed</option>
-              <option value="VARIABLE">Variable</option>
+              <option value="">{t('expenses.allTypes')}</option>
+              <option value="FIXED">{t('expenses.fixed')}</option>
+              <option value="VARIABLE">{t('expenses.variable')}</option>
             </select>
             <select className="select w-36 text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="PAID">Paid</option>
+              <option value="">{t('expenses.allStatuses')}</option>
+              <option value="PENDING">{t('expenses.pending')}</option>
+              <option value="PAID">{t('expenses.paid')}</option>
             </select>
           </div>
         </div>
@@ -185,7 +187,16 @@ export default function Expenses() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
-                  {['Name', 'Category', 'Type', 'Amount', 'Date', 'Status', 'Recurring', 'Actions'].map((h) => (
+                  {[
+                    t('common.name'),
+                    t('expenses.category'),
+                    t('expenses.type'),
+                    t('expenses.amount'),
+                    t('expenses.date'),
+                    t('common.status'),
+                    t('expenses.recurring'),
+                    t('common.actions'),
+                  ].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -199,7 +210,7 @@ export default function Expenses() {
                       <span className={cn('badge', exp.type === 'FIXED'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400')}>
-                        {exp.type === 'FIXED' ? 'Fixed' : 'Variable'}
+                        {exp.type === 'FIXED' ? t('expenses.fixed') : t('expenses.variable')}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{formatCurrency(exp.amount)}</td>
@@ -217,30 +228,30 @@ export default function Expenses() {
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                             : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                         )}
-                        title="Click to toggle status"
+                        title={t('expenses.toggleStatus')}
                       >
                         {exp.paymentStatus === 'PAID'
-                          ? <><CheckCircle className="w-3 h-3" /> Paid</>
-                          : <><Clock className="w-3 h-3" /> Pending</>}
+                          ? <><CheckCircle className="w-3 h-3" /> {t('expenses.paid')}</>
+                          : <><Clock className="w-3 h-3" /> {t('expenses.pending')}</>}
                       </button>
                     </td>
                     <td className="px-4 py-3">
                       <span className={cn('badge', exp.recurring
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                         : 'bg-slate-100 text-slate-500 dark:bg-slate-800')}>
-                        {exp.recurring ? 'Yes' : 'No'}
+                        {exp.recurring ? t('common.yes') : t('common.no')}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button onClick={() => { setEditing(exp); setModalOpen(true); }} className="text-xs text-blue-500 hover:underline">Edit</button>
-                        <button onClick={() => handleDelete(exp.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                        <button onClick={() => { setEditing(exp); setModalOpen(true); }} className="text-xs text-blue-500 hover:underline">{t('common.edit')}</button>
+                        <button onClick={() => handleDelete(exp.id)} className="text-xs text-red-500 hover:underline">{t('common.delete')}</button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {expenses.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-10 text-slate-400">No expenses found</td></tr>
+                  <tr><td colSpan={8} className="text-center py-10 text-slate-400">{t('expenses.noExpenses')}</td></tr>
                 )}
               </tbody>
             </table>

@@ -2,12 +2,15 @@ import { useState, FormEvent, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { DASHBOARD_PATH } from '@/lib/authRoutes';
-import { Zap, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import logo from '@/assets/png.png';
 import AuthLeftPanel from '@/components/AuthLeftPanel';
 import { AuthDivider, GoogleAuthButton } from '@/components/ClerkAuth';
 import { isClerkEnabled } from '@/lib/clerk';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
+  const { t } = useTranslation();
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -29,7 +32,7 @@ export default function Login() {
       navigate(DASHBOARD_PATH, { replace: true });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError(axiosErr.response?.data?.message || t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -40,25 +43,22 @@ export default function Login() {
       <AuthLeftPanel
         title={
           <>
-            Your agency.<br />
-            <span className="text-amber-400">Fully in control.</span>
+            {t('auth.yourAgency')}<br />
+            <span className="text-amber-400">{t('auth.fullyInControl')}</span>
           </>
         }
-        subtitle="Manage clients, track revenue, nurture leads, and coordinate your team — all in one powerful platform."
+        subtitle={t('auth.agencySubtitle')}
       />
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-[#0a0f1e]">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white">Stallion Advertising</span>
+          <div className="lg:hidden flex items-center mb-8">
+            <img src={logo} alt={t('auth.stallionAlt')} className="h-32 w-auto object-contain" />
           </div>
 
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sign in</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-8">Access your agency dashboard</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{t('auth.signIn')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-8">{t('auth.accessDashboard')}</p>
 
           {isClerkEnabled && (
             <>
@@ -69,32 +69,33 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Email address</label>
+              <label className="label">{t('auth.email')}</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder="you@stallion.com"
+                placeholder={t('auth.emailPlaceholder')}
                 required
               />
             </div>
 
             <div>
-              <label className="label">Password</label>
+              <label className="label">{t('auth.password')}</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder={t('auth.passwordPlaceholder')}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label={showPass ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -116,18 +117,18 @@ export default function Login() {
               {loading ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in...
+                  {t('auth.signingIn')}
                 </>
               ) : (
-                'Sign in'
+                t('auth.signIn')
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            Need to create an admin account?{' '}
+            {t('auth.needAccount')}{' '}
             <Link to="/" className="text-amber-600 hover:text-amber-500 font-medium">
-              Register here
+              {t('auth.registerHere')}
             </Link>
           </p>
         </div>

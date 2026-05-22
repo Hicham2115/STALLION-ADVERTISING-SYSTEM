@@ -28,6 +28,7 @@ interface ChatContextValue {
   toggleReaction: (messageId: string, emoji: string) => void;
   editMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
+  createChannel: (name: string, description: string, type: 'PUBLIC' | 'PRIVATE', memberIds: string[]) => Promise<void>;
   addMember: (channelId: string, userId: string) => Promise<void>;
   removeMember: (channelId: string, userId: string) => Promise<void>;
   loadChannelMessages: (channelId: string, before?: string) => Promise<void>;
@@ -244,6 +245,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     socketRef.current?.emit('message:delete', { messageId });
   }, []);
 
+  const createChannel = useCallback(async (
+    name: string,
+    description: string,
+    type: 'PUBLIC' | 'PRIVATE',
+    memberIds: string[],
+  ) => {
+    const res = await fetch(`${API}/api/chat/channels`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description, type, memberIds }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: 'Failed to create channel' }));
+      throw new Error(err.message || 'Failed to create channel');
+    }
+    const created = await res.json();
+    setChannels((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+  }, [authHeader]);
+
   const addMember = useCallback(async (channelId: string, userId: string) => {
     const res = await fetch(`${API}/api/chat/channels/${channelId}/members`, {
       method: 'POST',
@@ -281,6 +301,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       toggleReaction,
       editMessage,
       deleteMessage,
+      createChannel,
       addMember,
       removeMember,
       loadChannelMessages,

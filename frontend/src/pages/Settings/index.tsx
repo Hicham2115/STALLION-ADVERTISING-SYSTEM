@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, X, Layers } from 'lucide-react';
 import api from '@/lib/api';
 import { CompanyService } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function ServicesSettings() {
+  const { t } = useTranslation();
   const [services, setServices] = useState<CompanyService[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,7 +41,7 @@ export default function ServicesSettings() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { setError('Name is required'); return; }
+    if (!form.name.trim()) { setError(t('settings.nameRequired')); return; }
     setSaving(true);
     setError('');
     try {
@@ -51,7 +53,7 @@ export default function ServicesSettings() {
       setModalOpen(false);
       fetch();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong');
+      setError(err.response?.data?.message || t('settings.somethingWrong'));
     } finally {
       setSaving(false);
     }
@@ -70,7 +72,7 @@ export default function ServicesSettings() {
       setDeleteTarget(null);
       fetch();
     } catch (err: any) {
-      setDeleteError(err.response?.data?.message || 'Cannot delete this service');
+      setDeleteError(err.response?.data?.message || t('settings.cannotDelete'));
     }
   };
 
@@ -78,11 +80,11 @@ export default function ServicesSettings() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Services</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage the services your agency offers to clients</p>
+          <h1 className="page-title">{t('settings.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('settings.subtitle')}</p>
         </div>
         <button onClick={openAdd} className="btn-primary">
-          <Plus className="w-4 h-4" /> Add Service
+          <Plus className="w-4 h-4" /> {t('settings.addService')}
         </button>
       </div>
 
@@ -95,14 +97,14 @@ export default function ServicesSettings() {
           {services.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
               <Layers className="w-10 h-10 mb-3 opacity-40" />
-              <p className="font-medium">No services yet</p>
-              <p className="text-sm mt-1">Add a service to get started</p>
+              <p className="font-medium">{t('settings.noServices')}</p>
+              <p className="text-sm mt-1">{t('settings.noServicesHint')}</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
-                  {['Service Name', 'Slug / Key', 'Description', 'Status', 'Actions'].map((h) => (
+                  {[t('settings.tableServiceName'), t('settings.tableSlug'), t('settings.tableDescription'), t('settings.tableStatus'), t('settings.tableActions')].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -121,7 +123,7 @@ export default function ServicesSettings() {
                         className={cn('flex items-center gap-1.5 text-xs font-medium transition-colors', s.active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400')}
                       >
                         {s.active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                        {s.active ? 'Active' : 'Inactive'}
+                        {s.active ? t('settings.statusActive') : t('settings.statusInactive')}
                       </button>
                     </td>
                     <td className="px-4 py-3">
@@ -147,44 +149,44 @@ export default function ServicesSettings() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{editing ? 'Edit Service' : 'Add Service'}</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{editing ? t('settings.editService') : t('settings.addService')}</h2>
               <button onClick={() => setModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="label">Service Name *</label>
+                <label className="label">{t('settings.serviceNameLabel')}</label>
                 <input
                   className="input"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Email Marketing"
+                  placeholder={t('settings.serviceNamePlaceholder')}
                   autoFocus
                 />
                 {!editing && form.name && (
                   <p className="text-xs text-slate-400 mt-1">
-                    Slug: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">
+                    {t('settings.slugPreview')} <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">
                       {form.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '')}
                     </code>
                   </p>
                 )}
               </div>
               <div>
-                <label className="label">Description</label>
+                <label className="label">{t('settings.descriptionLabel')}</label>
                 <textarea
                   className="input resize-none"
                   rows={2}
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Optional short description..."
+                  placeholder={t('settings.descriptionPlaceholder')}
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <div className="flex justify-end gap-3 pt-1">
-                <button onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
+                <button onClick={() => setModalOpen(false)} className="btn-secondary">{t('common.cancel')}</button>
                 <button onClick={handleSave} disabled={saving} className="btn-primary">
-                  {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Service'}
+                  {saving ? t('settings.saving') : editing ? t('settings.saveChanges') : t('settings.addService')}
                 </button>
               </div>
             </div>
@@ -201,16 +203,16 @@ export default function ServicesSettings() {
                 <Trash2 className="w-5 h-5 text-red-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">Delete Service</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">{t('settings.deleteService')}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Delete <span className="font-medium text-slate-700 dark:text-slate-300">"{deleteTarget.name}"</span>? This cannot be undone.
+                  {t('settings.deleteServiceConfirm', { name: deleteTarget.name })}
                 </p>
               </div>
             </div>
             {deleteError && <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{deleteError}</p>}
             <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">Cancel</button>
-              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors">Delete</button>
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{t('common.cancel')}</button>
+              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors">{t('common.delete')}</button>
             </div>
           </div>
         </div>

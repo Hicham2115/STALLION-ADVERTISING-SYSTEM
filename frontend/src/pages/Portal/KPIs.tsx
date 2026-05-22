@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AreaChart,
   Area,
@@ -24,12 +25,6 @@ import { usePortalCurrency } from "@/context/PortalCurrencyContext";
 import { KpiData } from "@/types";
 import { cn } from "@/lib/utils";
 
-const PRESETS = [
-  { value: "today", label: "Today" },
-  { value: "last_7d", label: "7 Days" },
-  { value: "last_30d", label: "30 Days" },
-  { value: "last_90d", label: "90 Days" },
-];
 
 function KpiCard({
   icon: Icon,
@@ -87,8 +82,16 @@ const CustomTooltip = ({ active, payload, label, fmtMoney }: any) => {
 };
 
 export default function KPIsPage() {
+  const { t } = useTranslation();
   const { fmt } = usePortalCurrency();
   const [datePreset, setDatePreset] = useState("last_7d");
+
+  const PRESETS = [
+    { value: "today", label: t('portal.today') },
+    { value: "last_7d", label: t('portal.last7d') },
+    { value: "last_30d", label: t('portal.last30d') },
+    { value: "last_90d", label: t('portal.last90d') },
+  ];
   const [data, setData] = useState<KpiData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -109,9 +112,9 @@ export default function KPIsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Campaign Analytics</h1>
+          <h1 className="text-xl font-bold text-white">{t('portal.campaignAnalytics')}</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Meta Ads performance metrics
+            {t('portal.metaAdsPerformance')}
           </p>
         </div>
         <div className="flex items-center bg-[#0d1528] border border-slate-800/60 rounded-xl p-1 gap-1">
@@ -138,11 +141,10 @@ export default function KPIsPage() {
           <AlertCircle className="w-4.5 h-4.5 text-blue-400 flex-shrink-0" />
           <div>
             <div className="text-sm font-semibold text-blue-400">
-              Sample Data
+              {t('portal.sampleData')}
             </div>
             <div className="text-xs text-slate-400 mt-0.5">
-              Connect your Meta Ads account to see real campaign data. Contact
-              your account manager to set this up.
+              {t('portal.sampleDataDesc')}
             </div>
           </div>
         </div>
@@ -158,26 +160,26 @@ export default function KPIsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               icon={DollarSign}
-              label="Total Spend"
+              label={t('portal.totalSpend')}
               value={fmt(s?.spend ?? 0)}
               color="bg-red-500/10 text-red-400"
             />
             <KpiCard
               icon={Users}
-              label="Total Reach"
+              label={t('portal.totalReach')}
               value={fmtK(s?.reach ?? 0)}
               color="bg-blue-500/10 text-blue-400"
             />
             <KpiCard
               icon={Target}
-              label="Leads"
+              label={t('portal.kpiLeads')}
               value={`${s?.leads ?? 0}`}
               sub={`${fmt(s?.costPerLead ?? 0)} CPL`}
               color="bg-green-500/10 text-green-400"
             />
             <KpiCard
               icon={TrendingUp}
-              label="ROAS"
+              label={t('portal.kpiRoas')}
               value={`${(s?.roas ?? 0).toFixed(2)}x`}
               color="bg-amber-500/10 text-amber-400"
             />
@@ -186,25 +188,25 @@ export default function KPIsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               icon={BarChart2}
-              label="Impressions"
+              label={t('portal.impressions')}
               value={fmtK(s?.impressions ?? 0)}
               color="bg-purple-500/10 text-purple-400"
             />
             <KpiCard
               icon={Zap}
-              label="CTR"
+              label={t('portal.ctr')}
               value={`${(s?.ctr ?? 0).toFixed(2)}%`}
               color="bg-cyan-500/10 text-cyan-400"
             />
             <KpiCard
               icon={DollarSign}
-              label="CPM"
+              label={t('portal.cpm')}
               value={fmt(s?.cpm ?? 0)}
               color="bg-slate-500/10 text-slate-400"
             />
             <KpiCard
               icon={Target}
-              label="Purchases"
+              label={t('portal.purchases')}
               value={`${s?.purchases ?? 0}`}
               sub={`${(s?.conversionRate ?? 0).toFixed(1)}% conv.`}
               color="bg-orange-500/10 text-orange-400"
@@ -214,7 +216,7 @@ export default function KPIsPage() {
           {/* Spend chart */}
           <div className="bg-[#0d1528]/80 border border-slate-800/60 rounded-2xl p-5">
             <h3 className="text-sm font-semibold text-white mb-5">
-              Daily Ad Spend
+              {t('portal.dailyAdSpend')}
             </h3>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart
@@ -253,7 +255,7 @@ export default function KPIsPage() {
           {/* Purchases conversion chart */}
           <div className="bg-[#0d1528]/80 border border-slate-800/60 rounded-2xl p-5">
             <div className="flex items-center justify-between gap-3 mb-5">
-              <h3 className="text-sm font-semibold text-white">Results</h3>
+              <h3 className="text-sm font-semibold text-white">{t('portal.resultsChart')}</h3>
               <div className="text-xs text-slate-400 whitespace-nowrap">
                 {s?.purchases ?? 0} · {(s?.conversionRate ?? 0).toFixed(1)}% conv.
               </div>

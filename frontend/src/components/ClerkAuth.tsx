@@ -25,11 +25,14 @@ type OAuthCapable = {
 export function ClerkAuthSync() {
   const navigate = useNavigate();
   const { isSignedIn, getToken, signOut } = useClerkAuth();
-  const { user, loginWithClerk } = useAuth();
+  const { user, isLoading, loginWithClerk } = useAuth();
   const syncingRef = useRef(false);
 
   useEffect(() => {
-    if (!isSignedIn || user || syncingRef.current) return;
+    // Wait until AuthContext finishes loading its own session (fetchMe).
+    // Without this guard, a returning user whose localStorage token is valid
+    // would trigger an unnecessary /auth/clerk exchange on every page load.
+    if (isLoading || !isSignedIn || user || syncingRef.current) return;
 
     syncingRef.current = true;
     (async () => {
@@ -52,7 +55,7 @@ export function ClerkAuthSync() {
         syncingRef.current = false;
       }
     })();
-  }, [isSignedIn, user, getToken, signOut, loginWithClerk, navigate]);
+  }, [isLoading, isSignedIn, user, getToken, signOut, loginWithClerk, navigate]);
 
   return null;
 }
@@ -146,25 +149,15 @@ export function GoogleAuthButton({ mode, disabled }: GoogleAuthButtonProps) {
 }
 
 export function SsoCallbackPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      navigate(DASHBOARD_PATH, { replace: true });
-    }
-  }, [user, navigate]);
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-[#0a0f1e]">
       <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
       <p className="text-slate-500 dark:text-slate-400 text-sm">
         Completing Google sign-in...
       </p>
-      <AuthenticateWithRedirectCallback 
-        fallbackRedirectUrl={DASHBOARD_PATH}
-        forceRedirectUrl={DASHBOARD_PATH}
-      />
+      {/* Clerk processes the OAuth callback and redirects to redirectUrlComplete.
+          ClerkAuthSync (always mounted) then exchanges the Clerk token for the app JWT. */}
+      <AuthenticateWithRedirectCallback />
     </div>
   );
 }
