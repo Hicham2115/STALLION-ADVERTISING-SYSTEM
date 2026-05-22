@@ -10,7 +10,7 @@ const TIMEZONES = ['Africa/Casablanca', 'Europe/Paris', 'Europe/London', 'Americ
 
 type DaySlot = { enabled: boolean; startTime: string; endTime: string };
 
-const DEFAULT_SLOTS: DaySlot[] = DAYS.map(() => ({ enabled: false, startTime: '09:00', endTime: '17:00' }));
+const DEFAULT_SLOTS: DaySlot[] = Array(7).fill(null).map(() => ({ enabled: false, startTime: '09:00', endTime: '17:00' }));
 
 export default function AvailabilitySettings() {
   const { t } = useTranslation();

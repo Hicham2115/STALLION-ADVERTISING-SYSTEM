@@ -694,7 +694,7 @@ export default function ClientPortalDetail() {
                             navigator.clipboard.writeText(
                               data.portalUser!.email,
                             );
-                            showToast("Email copied!");
+                            showToast(t("portalAdmin.emailCopied"));
                           }}
                           className="text-slate-600 hover:text-slate-400 transition-colors"
                         >
@@ -1480,45 +1480,45 @@ export default function ClientPortalDetail() {
 
       {/* Notifications */}
       {activeTab === "Notifications" && (
-        <Section title="Send Notification to Client">
+        <Section title={t("portalAdmin.sendNotificationTitle")}>
           {!data.portalUser ? (
             <div className="flex items-center gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
               <AlertCircle className="w-4 h-4 text-amber-400" />
               <p className="text-xs text-amber-300">
-                This client needs a portal account to receive notifications.
+                {t("portalAdmin.noPortalForNotifications")}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
                 <InputField
-                  label="Title"
-                  placeholder="Notification title"
+                  label={t("portalAdmin.titleLabel")}
+                  placeholder={t("portalAdmin.notificationTitlePlaceholder")}
                   value={notifyForm.title}
                   onChange={(e) =>
                     setNotifyForm((f) => ({ ...f, title: e.target.value }))
                   }
                 />
                 <SelectField
-                  label="Type"
+                  label={t("portalAdmin.typeLabel")}
                   value={notifyForm.type}
                   onChange={(e) =>
                     setNotifyForm((f) => ({ ...f, type: e.target.value }))
                   }
                 >
-                  <option value="info">Info</option>
-                  <option value="success">Success</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
+                  <option value="info">{t("portalAdmin.typeInfo")}</option>
+                  <option value="success">{t("portalAdmin.typeSuccess")}</option>
+                  <option value="warning">{t("portalAdmin.typeWarning")}</option>
+                  <option value="error">{t("portalAdmin.typeError")}</option>
                 </SelectField>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Message
+                  {t("portalAdmin.messageLabel")}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Notification message..."
+                  placeholder={t("portalAdmin.messagePlaceholder")}
                   value={notifyForm.message}
                   onChange={(e) =>
                     setNotifyForm((f) => ({ ...f, message: e.target.value }))
@@ -1527,8 +1527,8 @@ export default function ClientPortalDetail() {
                 />
               </div>
               <InputField
-                label="Link (optional)"
-                placeholder="/portal/updates"
+                label={t("portalAdmin.linkOptional")}
+                placeholder={t("portalAdmin.linkPlaceholder")}
                 value={notifyForm.link}
                 onChange={(e) =>
                   setNotifyForm((f) => ({ ...f, link: e.target.value }))
@@ -1542,7 +1542,7 @@ export default function ClientPortalDetail() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
               >
                 <Bell className="w-4 h-4" />
-                {notifyLoading ? "Sending..." : "Send Notification"}
+                {notifyLoading ? t("portalAdmin.sending") : t("portalAdmin.sendNotificationBtn")}
               </button>
             </div>
           )}

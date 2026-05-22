@@ -18,16 +18,6 @@ interface AvailableSlotGroup {
 }
 
 
-function StatusBadge({ status }: { status: MeetingStatus }) {
-  const cfg = STATUS_CONFIG[status];
-  const Icon = cfg.icon;
-  return (
-    <span className={cn('flex items-center gap-1 text-xs font-medium', cfg.cls)}>
-      <Icon className="w-3.5 h-3.5" /> {cfg.label}
-    </span>
-  );
-}
-
 export default function PortalMeetings() {
   const { t } = useTranslation();
 
@@ -38,6 +28,16 @@ export default function PortalMeetings() {
     CANCELLED:   { label: t('portal.statusCancelled'),   icon: XCircle,      cls: 'text-red-400' },
     RESCHEDULED: { label: t('portal.statusRescheduled'), icon: RotateCcw,    cls: 'text-amber-400' },
   };
+
+  function StatusBadge({ status }: { status: MeetingStatus }) {
+    const cfg = STATUS_CONFIG[status];
+    const Icon = cfg.icon;
+    return (
+      <span className={cn('flex items-center gap-1 text-xs font-medium', cfg.cls)}>
+        <Icon className="w-3.5 h-3.5" /> {cfg.label}
+      </span>
+    );
+  }
 
   const [activeTab, setActiveTab] = useState<'book' | 'my'>('book');
   const [step, setStep] = useState<Step>(1);
