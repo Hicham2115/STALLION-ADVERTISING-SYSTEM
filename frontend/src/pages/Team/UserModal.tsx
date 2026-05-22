@@ -261,11 +261,6 @@ export default function UserModal({ user, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {!isEdit && (
-            <p className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2">
-              {t('team.defaultPwd')} <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">Stallion@123</span>
-            </p>
-          )}
         </form>
 
         {/* Footer */}
