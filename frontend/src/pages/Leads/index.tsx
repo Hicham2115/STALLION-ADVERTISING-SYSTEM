@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, LayoutGrid, List, AlertCircle, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
+import { useConfirm } from '@/context/ToastContext';
 import { Lead, LeadStage, User } from '@/types';
 import { formatCurrency, formatDate, getStatusColor, isOverdue, cn } from '@/lib/utils';
 import LeadModal from './LeadModal';
@@ -11,6 +12,7 @@ const STAGES: LeadStage[] = ['NEW', 'WARMED', 'CLOSED_WON', 'CLOSED_LOST'];
 
 export default function Leads() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
 
   const STAGE_CONFIG: Record<LeadStage, { label: string; color: string; border: string }> = {
     NEW: { label: t('leads.new'), color: 'bg-blue-50 dark:bg-blue-900/10', border: 'border-blue-200 dark:border-blue-800' },
@@ -48,7 +50,7 @@ export default function Leads() {
   };
 
   const deleteLead = async (leadId: string) => {
-    if (!window.confirm(t('leads.confirmDelete'))) return;
+    if (!await confirm({ title: 'Delete Lead', message: t('leads.confirmDelete'), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/leads/${leadId}`);
     setLeads((prev) => prev.filter((l) => l.id !== leadId));
   };

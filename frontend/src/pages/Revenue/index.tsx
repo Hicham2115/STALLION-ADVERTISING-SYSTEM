@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Download, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useConfirm } from '@/context/ToastContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Tooltip as PieTooltip,
@@ -15,6 +16,7 @@ const PIE_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#06b
 
 export default function Revenue() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [byService, setByService] = useState<any[]>([]);
@@ -66,7 +68,7 @@ export default function Revenue() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('revenue.deleteConfirm'))) return;
+    if (!await confirm({ title: 'Delete Payment', message: t('revenue.deleteConfirm'), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/payments/${id}`);
     fetchAll();
   };

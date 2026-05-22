@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useConfirm } from '@/context/ToastContext';
 import {
   Plus, CalendarDays, List, Settings2, Layers3,
   Video, ChevronLeft, ChevronRight, Clock, CheckCircle2,
@@ -219,6 +220,7 @@ function CalendarView({ meetings }: { meetings: Meeting[] }) {
 
 export default function Meetings() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [tab, setTab] = useState<Tab>('upcoming');
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,7 +244,7 @@ export default function Meetings() {
   }, [tab, fetchMeetings]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('meetings.deleteConfirm'))) return;
+    if (!await confirm({ title: 'Delete Meeting', message: t('meetings.deleteConfirm'), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/meetings/${id}`);
     setMeetings(m => m.filter(x => x.id !== id));
   };

@@ -5,18 +5,18 @@ import {
   Camera, Building2, Clock, Calendar,
 } from 'lucide-react';
 import { usePortalAuth, portalApi } from '@/context/PortalAuthContext';
+import { useToast } from '@/context/ToastContext';
 import { cn, formatDate, formatRelativeTime, getInitials } from '@/lib/utils';
 
 type Tab = 'info' | 'security';
-type Toast = { message: string; type: 'success' | 'error' };
 
 export default function PortalProfile() {
   const { t } = useTranslation();
   const { user, updateUser } = usePortalAuth();
+  const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<Tab>('info');
-  const [toast, setToast] = useState<Toast | null>(null);
 
   const [info, setInfo] = useState({
     name: user?.name ?? '',
@@ -39,16 +39,11 @@ export default function PortalProfile() {
     });
   }, [user?.id, user?.name, user?.email, user?.avatar]);
 
-  function showToast(message: string, type: 'success' | 'error' = 'success') {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  }
-
   function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      showToast(t('portal.imageUnder2MB'), 'error');
+      toast(t('portal.imageUnder2MB'), 'error');
       return;
     }
     const reader = new FileReader();
@@ -66,9 +61,9 @@ export default function PortalProfile() {
         avatar: info.avatar || undefined,
       });
       updateUser({ ...user!, ...data });
-      showToast(t('portal.profileUpdated'));
+      toast(t('portal.profileUpdated'));
     } catch {
-      showToast(t('portal.profileUpdateFailed'), 'error');
+      toast(t('portal.profileUpdateFailed'), 'error');
     } finally {
       setInfoSaving(false);
     }
@@ -94,10 +89,10 @@ export default function PortalProfile() {
         newPassword: pwd.next,
       });
       setPwd({ current: '', next: '', confirm: '' });
-      showToast(t('portal.passwordChangedSuccessfully'));
+      toast(t('portal.passwordChangedSuccessfully'));
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      showToast(msg || t('portal.passwordChangeFailed'), 'error');
+      toast(msg || t('portal.passwordChangeFailed'), 'error');
     } finally {
       setPwdSaving(false);
     }
@@ -113,15 +108,6 @@ export default function PortalProfile() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {toast && (
-        <div className={cn(
-          'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium',
-          toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white',
-        )}>
-          {toast.message}
-        </div>
-      )}
-
       <div>
         <h1 className="text-2xl font-bold text-white">{t('portal.myProfile')}</h1>
         <p className="text-sm text-slate-400 mt-0.5">{t('portal.myProfileDesc')}</p>

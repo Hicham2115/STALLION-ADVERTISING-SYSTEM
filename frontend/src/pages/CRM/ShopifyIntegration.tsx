@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, RefreshCw, CheckCircle, AlertCircle, Store } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { useConfirm } from '@/context/ToastContext';
 import { ShopifyConfig, Client } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +10,7 @@ interface SyncResult { message: string; created: number; updated: number; total:
 
 export default function ShopifyIntegration() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [configs, setConfigs] = useState<ShopifyConfig[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function ShopifyIntegration() {
   }
 
   async function deleteConfig(id: string) {
-    if (!window.confirm(t('crm.removeStoreConfirm'))) return;
+    if (!await confirm({ title: 'Remove Store', message: t('crm.removeStoreConfirm'), confirmLabel: 'Remove', danger: true })) return;
     await api.delete(`/crm/shopify/${id}`);
     setConfigs(c => c.filter(x => x.id !== id));
   }

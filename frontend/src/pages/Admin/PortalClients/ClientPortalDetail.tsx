@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useToast, useConfirm } from "@/context/ToastContext";
 import DateSelector from "@/components/DateSelector";
 import {
   Client,
@@ -168,6 +169,8 @@ export default function ClientPortalDetail() {
   const { t } = useTranslation();
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
@@ -245,11 +248,8 @@ export default function ClientPortalDetail() {
   const [costForm, setCostForm] = useState({ name: "", amount: "", date: "" });
   const [costLoading, setCostLoading] = useState(false);
 
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-
   const showToast = (msg: string, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
+    toast(msg, ok ? 'success' : 'error');
   };
 
   const fetchData = () => {
@@ -307,7 +307,7 @@ export default function ClientPortalDetail() {
   };
 
   const deleteAccount = async () => {
-    if (!confirm(t("portalAdmin.deleteAccountConfirm"))) return;
+    if (!await confirm({ title: 'Delete Account', message: t("portalAdmin.deleteAccountConfirm"), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/portal-admin/${clientId}/account`);
     showToast(t("portalAdmin.accountDeleted"));
     fetchData();
@@ -479,7 +479,7 @@ export default function ClientPortalDetail() {
   };
 
   const deleteShopify = async (id: string) => {
-    if (!confirm(t("crm.removeStoreConfirm"))) return;
+    if (!await confirm({ title: 'Remove Store', message: t("crm.removeStoreConfirm"), confirmLabel: 'Remove', danger: true })) return;
     await api.delete(`/portal-admin/shopify/${id}`);
     setShopifyConfigs((configs) =>
       configs.filter((config) => config.id !== id),
@@ -573,25 +573,6 @@ export default function ClientPortalDetail() {
 
   return (
     <div className="space-y-5 max-w-4xl">
-      {/* Toast */}
-      {toast && (
-        <div
-          className={cn(
-            "fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-xl text-sm font-medium",
-            toast.ok
-              ? "bg-green-500/10 border-green-500/20 text-green-400"
-              : "bg-red-500/10 border-red-500/20 text-red-400",
-          )}
-        >
-          {toast.ok ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <XCircle className="w-4 h-4" />
-          )}
-          {toast.msg}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center gap-4">
         <button

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit, CheckCircle, DollarSign, Award } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { useConfirm } from '@/context/ToastContext';
 import { CommissionRule, CloserCommissionRecord, Client, User } from '@/types';
 import { cn, formatDate } from '@/lib/utils';
 import { useCrmCurrency } from '@/context/CrmCurrencyContext';
 
 export default function Commissions() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const { fmt } = useCrmCurrency();
   const [tab, setTab] = useState<'rules' | 'records'>('rules');
   const [rules, setRules] = useState<CommissionRule[]>([]);
@@ -67,7 +69,7 @@ export default function Commissions() {
   }
 
   async function deleteRule(id: string) {
-    if (!window.confirm(t('crm.deleteRuleConfirm'))) return;
+    if (!await confirm({ title: 'Delete Rule', message: t('crm.deleteRuleConfirm'), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/crm/commission-rules/${id}`);
     setRules(r => r.filter(x => x.id !== id));
   }

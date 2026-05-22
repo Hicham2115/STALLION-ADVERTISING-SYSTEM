@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { useConfirm } from '@/context/ToastContext';
 import { MeetingType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,7 @@ type FormState = { name: string; duration: number; description: string; color: s
 
 export default function MeetingTypesManager() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [types, setTypes] = useState<MeetingType[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<MeetingType | null>(null);
@@ -46,7 +48,7 @@ export default function MeetingTypesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('meetings.deleteTypeConfirm'))) return;
+    if (!await confirm({ title: 'Delete Meeting Type', message: t('meetings.deleteTypeConfirm'), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/meetings/types/${id}`);
     setTypes(t => t.filter(x => x.id !== id));
   };

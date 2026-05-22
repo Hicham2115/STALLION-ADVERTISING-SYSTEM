@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, ExternalLink, Archive, RotateCcw, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
+import { useConfirm } from '@/context/ToastContext';
 import { Client, CompanyService, ClientStatus } from '@/types';
 import { formatCurrency, formatDate, getServiceLabel, getStatusColor, cn } from '@/lib/utils';
 import ClientModal from './ClientModal';
 
 export default function Clients() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
 
   const STATUS_OPTIONS: { value: ClientStatus; label: string }[] = [
     { value: 'ACTIVE', label: t('clients.active') },
@@ -65,7 +67,7 @@ export default function Clients() {
   useEffect(() => { fetchClients(); }, [search, status, service, showArchived]);
 
   const handleArchive = async (id: string) => {
-    if (!confirm(t('clients.archiveConfirm'))) return;
+    if (!await confirm({ title: 'Archive Client', message: t('clients.archiveConfirm'), confirmLabel: 'Archive', danger: true })) return;
     await api.delete(`/clients/${id}`);
     fetchClients();
   };

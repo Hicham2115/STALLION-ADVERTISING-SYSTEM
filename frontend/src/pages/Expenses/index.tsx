@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Download, CheckCircle, Clock } from 'lucide-react';
+import { useConfirm } from '@/context/ToastContext';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -11,6 +12,7 @@ import ExpenseModal from './ExpenseModal';
 
 export default function Expenses() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,7 @@ export default function Expenses() {
   const total = totalFixed + totalVariable;
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('expenses.confirmDelete'))) return;
+    if (!await confirm({ title: 'Delete Expense', message: t('expenses.confirmDelete'), confirmLabel: 'Delete', danger: true })) return;
     await api.delete(`/expenses/${id}`);
     fetchAll();
   };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useConfirm } from '@/context/ToastContext';
 import {
   CalendarDays, Clock, ChevronLeft, ChevronRight, Video,
   CheckCircle2, XCircle, RotateCcw, CheckSquare, ArrowLeft,
@@ -20,6 +21,7 @@ interface AvailableSlotGroup {
 
 export default function PortalMeetings() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
 
   const STATUS_CONFIG: Record<MeetingStatus, { label: string; icon: React.ElementType; cls: string }> = {
     SCHEDULED:   { label: t('portal.statusScheduled'),   icon: Clock,        cls: 'text-blue-400' },
@@ -123,7 +125,7 @@ export default function PortalMeetings() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm(t('portal.cancelConfirm'))) return;
+    if (!await confirm({ title: 'Cancel Meeting', message: t('portal.cancelConfirm'), confirmLabel: 'Cancel Meeting', danger: true })) return;
     setCancelling(id);
     await portalApi.put(`/meetings/${id}/cancel`, { cancelReason: 'Cancelled by client' });
     setCancelling('');
