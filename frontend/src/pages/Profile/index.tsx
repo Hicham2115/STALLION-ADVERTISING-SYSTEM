@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { cn, formatDate, formatRelativeTime, getInitials } from '@/lib/utils';
 import { Role } from '@/types';
 
@@ -19,11 +20,12 @@ const ROLE_COLORS: Record<Role, string> = {
 };
 
 type Tab = 'info' | 'security';
-type Toast = { message: string; type: 'success' | 'error' };
+
 
 export default function Profile() {
   const { t } = useTranslation();
   const { user, updateUser, isClerkUser } = useAuth();
+  const { toast } = useToast();
 
   const ROLE_LABELS: Record<Role, string> = {
     SUPER_ADMIN: t('team.superAdmin'),
@@ -34,7 +36,6 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<Tab>('info');
-  const [toast, setToast] = useState<Toast | null>(null);
 
   // Info form
   const [info, setInfo] = useState({
@@ -62,15 +63,10 @@ export default function Profile() {
     });
   }, [user?.id, user?.name, user?.email, user?.phone, user?.avatar]);
 
-  function showToast(message: string, type: 'success' | 'error' = 'success') {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  }
-
   function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { showToast(t('profile.imageTooLarge'), 'error'); return; }
+    if (file.size > 2 * 1024 * 1024) { toast(t('profile.imageTooLarge'), 'error'); return; }
     const reader = new FileReader();
     reader.onload = () => setInfo(f => ({ ...f, avatar: reader.result as string }));
     reader.readAsDataURL(file);
@@ -96,9 +92,9 @@ export default function Profile() {
         avatar: info.avatar || undefined,
       });
       updateUser({ ...user!, ...data });
-      showToast(t('profile.profileUpdated'));
+      toast(t('profile.profileUpdated'));
     } catch {
-      showToast(t('profile.failedUpdate'), 'error');
+      toast(t('profile.failedUpdate'), 'error');
     } finally {
       setInfoSaving(false);
     }
@@ -124,10 +120,10 @@ export default function Profile() {
         newPassword: pwd.next,
       });
       setPwd({ current: '', next: '', confirm: '' });
-      showToast(t('profile.passwordChanged'));
+      toast(t('profile.passwordChanged'));
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      showToast(msg || t('profile.failedPassword'), 'error');
+      toast(msg || t('profile.failedPassword'), 'error');
     } finally {
       setPwdSaving(false);
     }
@@ -151,16 +147,6 @@ export default function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 w-full">
-
-      {/* Toast */}
-      {toast && (
-        <div className={cn(
-          'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-in slide-in-from-bottom-2',
-          toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white',
-        )}>
-          {toast.message}
-        </div>
-      )}
 
       {/* Header */}
       <div>

@@ -188,6 +188,7 @@ export interface User {
   phone?: string;
   active: boolean;
   suspended: boolean;
+  isCloser: boolean;
   lastLogin?: string;
   createdAt: string;
 }

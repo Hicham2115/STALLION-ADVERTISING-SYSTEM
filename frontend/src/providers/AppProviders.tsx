@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PortalAuthProvider } from '@/context/PortalAuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
+import { ToastProvider } from '@/context/ToastContext';
 import { clerkPublishableKey, isClerkEnabled } from '@/lib/clerk';
 
 /** Clears the app JWT when the user signs out from the Clerk account menu. */
@@ -38,11 +39,13 @@ function AuthProviderWithClerk({ children }: { children: React.ReactNode }) {
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   const inner = (
     <ThemeProvider>
-      {isClerkEnabled ? (
-        <AuthProviderWithClerk>{children}</AuthProviderWithClerk>
-      ) : (
-        <AuthProvider>{children}</AuthProvider>
-      )}
+      <ToastProvider>
+        {isClerkEnabled ? (
+          <AuthProviderWithClerk>{children}</AuthProviderWithClerk>
+        ) : (
+          <AuthProvider>{children}</AuthProvider>
+        )}
+      </ToastProvider>
     </ThemeProvider>
   );
 
