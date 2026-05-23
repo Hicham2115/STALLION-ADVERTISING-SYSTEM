@@ -23,9 +23,11 @@ function isManagerOrAbove(role: string) {
 router.get('/', h(async (req: AuthRequest, res: Response) => {
   const { status, priority, assignedToId, clientId, search } = req.query;
   const elevated = isManagerOrAbove(req.user!.role);
+  const agencyId = req.user!.agencyId ?? null;
 
   const tasks = await prisma.task.findMany({
     where: {
+      agencyId,
       ...(!elevated && { assignedToId: req.user!.userId }),
       ...(status && { status: status as never }),
       ...(priority && { priority: priority as never }),
@@ -48,9 +50,10 @@ router.get('/', h(async (req: AuthRequest, res: Response) => {
 }));
 
 // GET /api/tasks/workload
-router.get('/workload', h(async (_req: AuthRequest, res: Response) => {
+router.get('/workload', h(async (req: AuthRequest, res: Response) => {
+  const agencyId = req.user!.agencyId ?? null;
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: { active: true, agencyId },
     select: { id: true, name: true, avatar: true },
   });
   const workload = await Promise.all(
@@ -83,7 +86,7 @@ router.get('/:id', h(async (req: AuthRequest, res: Response) => {
 router.post('/', h(async (req: AuthRequest, res: Response) => {
   const { dueDate, ...rest } = req.body;
   const task = await prisma.task.create({
-    data: { ...rest, dueDate: toDateOrNull(dueDate) },
+    data: { ...rest, dueDate: toDateOrNull(dueDate), agencyId: req.user!.agencyId ?? null },
     include: {
       assignedTo: { select: { id: true, name: true } },
       client: { select: { id: true, name: true } },

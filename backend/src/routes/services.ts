@@ -9,9 +9,11 @@ const h = (fn: (req: AuthRequest, res: Response, next: NextFunction) => Promise<
   (req: AuthRequest, res: Response, next: NextFunction) =>
     fn(req, res, next).catch(next);
 
-// GET /api/services — all services (any authenticated user, for dropdowns)
-router.get('/', h(async (_req: AuthRequest, res: Response) => {
+// GET /api/services — all services for this agency (for dropdowns)
+router.get('/', h(async (req: AuthRequest, res: Response) => {
+  const agencyId = req.user!.agencyId ?? null;
   const services = await prisma.companyService.findMany({
+    where: { agencyId },
     orderBy: [{ order: 'asc' }, { name: 'asc' }],
   });
   res.json(services);
@@ -24,19 +26,21 @@ router.post('/', requireAdmin, h(async (req: AuthRequest, res: Response) => {
     res.status(400).json({ message: 'Service name is required' });
     return;
   }
+  const agencyId = req.user!.agencyId ?? null;
   const slug = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const existing = await prisma.companyService.findUnique({ where: { slug } });
+  const existing = await prisma.companyService.findUnique({ where: { agencyId_slug: { agencyId: agencyId!, slug } } });
   if (existing) {
     res.status(409).json({ message: 'A service with a similar name already exists' });
     return;
   }
-  const maxOrder = await prisma.companyService.aggregate({ _max: { order: true } });
+  const maxOrder = await prisma.companyService.aggregate({ _max: { order: true }, where: { agencyId } });
   const service = await prisma.companyService.create({
     data: {
       name: name.trim(),
       slug,
       description: description?.trim() || null,
       order: (maxOrder._max.order ?? 0) + 1,
+      agencyId,
     },
   });
   res.status(201).json(service);

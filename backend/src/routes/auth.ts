@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { verifyToken } from '@clerk/backend';
-import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { signToken } from '../lib/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -20,6 +19,7 @@ const USER_PUBLIC_SELECT = {
   avatar: true,
   phone: true,
   suspended: true,
+  agencyId: true,
 } as const;
 
 const USER_ME_SELECT = {
@@ -29,32 +29,14 @@ const USER_ME_SELECT = {
   createdAt: true,
 } as const;
 
-async function getRegistrationRole(): Promise<Role | null> {
-  const superAdminCount = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
-  if (superAdminCount === 0) return 'SUPER_ADMIN';
-  return 'ADMIN';
-}
-
-// GET /api/auth/setup-status — whether admin self-registration is open
+// GET /api/auth/setup-status — registration is always open (each creates a new agency)
 router.get('/setup-status', async (_req: Request, res: Response): Promise<void> => {
-  const role = await getRegistrationRole();
-  res.json({
-    registrationAvailable: role !== null,
-    createsRole: role,
-  });
+  res.json({ registrationAvailable: true, createsRole: 'SUPER_ADMIN' });
 });
 
-// POST /api/auth/register — bootstrap super-admin, then allow additional admin accounts
+// POST /api/auth/register — creates a new isolated agency workspace for each registration
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
-    const role = await getRegistrationRole();
-    if (!role) {
-      res.status(403).json({
-        message: 'Registration is not available. Sign in with your account or ask an administrator to invite you.',
-      });
-      return;
-    }
-
     const parsed = registerBodySchema.safeParse(req.body);
     if (!parsed.success) {
       const fieldErrors = formatZodErrors(parsed.error);
@@ -71,26 +53,19 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
+
+    // Each registration creates its own isolated agency workspace
+    const agency = await prisma.agency.create({ data: { name: `${name}'s Agency` } });
+
     const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashed,
-        role,
-      },
+      data: { name, email, password: hashed, role: 'SUPER_ADMIN', agencyId: agency.id },
       select: USER_PUBLIC_SELECT,
     });
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    });
+    await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } });
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role });
-    const fresh = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: USER_ME_SELECT,
-    });
+    const token = signToken({ userId: user.id, email: user.email, role: user.role, agencyId: agency.id });
+    const fresh = await prisma.user.findUnique({ where: { id: user.id }, select: USER_ME_SELECT });
     res.status(201).json({ token, user: fresh! });
   } catch (err) {
     console.error('[register error]', err);
@@ -178,23 +153,18 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      const role = await getRegistrationRole();
-      if (!role) {
-        res.status(403).json({
-          message: 'Registration is not available. Ask an administrator to invite you.',
-        });
-        return;
-      }
-
       const hashed = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+      // Each Clerk sign-up also creates a new isolated agency
+      const agency = await prisma.agency.create({ data: { name: `${displayName}'s Agency` } });
       user = await prisma.user.create({
         data: {
           clerkId: clerkUserId,
           name: displayName,
           email: normalizedEmail,
           password: hashed,
-          role,
+          role: 'SUPER_ADMIN',
           avatar,
+          agencyId: agency.id,
         },
         select: USER_PUBLIC_SELECT,
       }) as any;
@@ -222,7 +192,7 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
       }) as any;
     }
 
-    const token = signToken({ userId: user!.id, email: user!.email, role: user!.role });
+    const token = signToken({ userId: user!.id, email: user!.email, role: user!.role, agencyId: (user as any).agencyId ?? undefined });
     res.json({ token, user });
   } catch (err) {
     console.error('[clerk auth error]', err);
@@ -301,7 +271,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       data: { lastLogin: new Date() },
     });
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role });
+    const token = signToken({ userId: user.id, email: user.email, role: user.role, agencyId: user.agencyId ?? undefined });
     const fresh = await prisma.user.findUnique({
       where: { id: user.id },
       select: USER_ME_SELECT,

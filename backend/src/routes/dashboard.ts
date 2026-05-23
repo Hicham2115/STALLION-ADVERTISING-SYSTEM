@@ -10,6 +10,7 @@ router.use(authenticate);
 router.get('/stats', async (req: AuthRequest, res: Response): Promise<void> => {
   const currency = (req.query.currency as Currency) || 'MAD';
   const fx = (amount: number) => convert(amount, 'MAD', currency);
+  const agencyId = req.user!.agencyId ?? null;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -27,27 +28,28 @@ router.get('/stats', async (req: AuthRequest, res: Response): Promise<void> => {
     overduePayments,
     recentActivity,
   ] = await Promise.all([
-    prisma.client.count({ where: { status: 'ACTIVE', archived: false } }),
-    prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS', 'REVIEW'] } } }),
-    prisma.lead.count({ where: { stage: { in: ['NEW', 'WARMED'] } } }),
+    prisma.client.count({ where: { agencyId, status: 'ACTIVE', archived: false } }),
+    prisma.task.count({ where: { agencyId, status: { in: ['TODO', 'IN_PROGRESS', 'REVIEW'] } } }),
+    prisma.lead.count({ where: { agencyId, stage: { in: ['NEW', 'WARMED'] } } }),
     prisma.payment.aggregate({
-      where: { date: { gte: startOfMonth }, status: 'PAID' },
+      where: { client: { agencyId }, date: { gte: startOfMonth }, status: 'PAID' },
       _sum: { amount: true },
     }),
     prisma.payment.aggregate({
-      where: { date: { gte: startOfLastMonth, lte: endOfLastMonth }, status: 'PAID' },
+      where: { client: { agencyId }, date: { gte: startOfLastMonth, lte: endOfLastMonth }, status: 'PAID' },
       _sum: { amount: true },
     }),
     prisma.payment.aggregate({
-      where: { date: { gte: startOfYear }, status: 'PAID' },
+      where: { client: { agencyId }, date: { gte: startOfYear }, status: 'PAID' },
       _sum: { amount: true },
     }),
     prisma.expense.aggregate({
-      where: { date: { gte: startOfMonth } },
+      where: { agencyId, date: { gte: startOfMonth } },
       _sum: { amount: true },
     }),
-    prisma.payment.count({ where: { status: 'OVERDUE' } }),
+    prisma.payment.count({ where: { client: { agencyId }, status: 'OVERDUE' } }),
     prisma.activityLog.findMany({
+      where: { OR: [{ user: { agencyId } }, { client: { agencyId } }] },
       orderBy: { createdAt: 'desc' },
       take: 10,
       include: {
@@ -76,28 +78,25 @@ router.get('/stats', async (req: AuthRequest, res: Response): Promise<void> => {
     completedTasksRecent,
     totalTasksRecent,
   ] = await Promise.all([
-    prisma.lead.count({ where: { stage: 'CLOSED_WON' } }),
-    prisma.lead.count(),
-    // MRR from active client contracts
+    prisma.lead.count({ where: { agencyId, stage: 'CLOSED_WON' } }),
+    prisma.lead.count({ where: { agencyId } }),
     prisma.client.aggregate({
-      where: { status: 'ACTIVE', archived: false },
+      where: { agencyId, status: 'ACTIVE', archived: false },
       _sum: { monthlyFee: true },
     }),
-    prisma.client.count({ where: { status: 'CANCELLED', archived: false } }),
-    prisma.client.count({ where: { status: 'PAUSED', archived: false } }),
-    // Ad spend this month (for ROAS)
+    prisma.client.count({ where: { agencyId, status: 'CANCELLED', archived: false } }),
+    prisma.client.count({ where: { agencyId, status: 'PAUSED', archived: false } }),
     prisma.expense.aggregate({
-      where: { date: { gte: startOfMonth }, category: 'ADS_SPEND' },
+      where: { agencyId, date: { gte: startOfMonth }, category: 'ADS_SPEND' },
       _sum: { amount: true },
     }),
-    prisma.payment.count({ where: { status: { in: ['PENDING', 'OVERDUE'] } } }),
+    prisma.payment.count({ where: { client: { agencyId }, status: { in: ['PENDING', 'OVERDUE'] } } }),
     prisma.payment.aggregate({
-      where: { status: { in: ['PENDING', 'OVERDUE'] } },
+      where: { client: { agencyId }, status: { in: ['PENDING', 'OVERDUE'] } },
       _sum: { amount: true },
     }),
-    // Tasks completed in last 30 days
-    prisma.task.count({ where: { status: 'COMPLETED', updatedAt: { gte: thirtyDaysAgo } } }),
-    prisma.task.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.task.count({ where: { agencyId, status: 'COMPLETED', updatedAt: { gte: thirtyDaysAgo } } }),
+    prisma.task.count({ where: { agencyId, createdAt: { gte: thirtyDaysAgo } } }),
   ]);
 
   const conversionRate = totalLeads > 0 ? (closedWon / totalLeads) * 100 : 0;
@@ -138,14 +137,15 @@ router.get('/revenue-chart', async (req: AuthRequest, res: Response): Promise<vo
   const year = parseInt(req.query.year as string) || new Date().getFullYear();
   const currency = (req.query.currency as Currency) || 'MAD';
   const fx = (amount: number) => convert(amount, 'MAD', currency);
+  const agencyId = req.user!.agencyId ?? null;
 
   const [payments, expenses] = await Promise.all([
     prisma.payment.findMany({
-      where: { date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) }, status: 'PAID' },
+      where: { client: { agencyId }, date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) }, status: 'PAID' },
       select: { amount: true, date: true },
     }),
     prisma.expense.findMany({
-      where: { date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
+      where: { agencyId, date: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
       select: { amount: true, date: true },
     }),
   ]);
@@ -173,11 +173,12 @@ router.get('/revenue-chart', async (req: AuthRequest, res: Response): Promise<vo
 });
 
 // GET /api/dashboard/top-clients
-router.get('/top-clients', async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/top-clients', async (req: AuthRequest, res: Response): Promise<void> => {
   const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+  const agencyId = req.user!.agencyId ?? null;
   const payments = await prisma.payment.groupBy({
     by: ['clientId'],
-    where: { date: { gte: startOfYear }, status: 'PAID' },
+    where: { client: { agencyId }, date: { gte: startOfYear }, status: 'PAID' },
     _sum: { amount: true },
     orderBy: { _sum: { amount: 'desc' } },
     take: 5,
@@ -197,8 +198,10 @@ router.get('/top-clients', async (_req: AuthRequest, res: Response): Promise<voi
 });
 
 // GET /api/dashboard/notifications — recent activity log entries for the notification bell
-router.get('/notifications', async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/notifications', async (req: AuthRequest, res: Response): Promise<void> => {
+  const agencyId = req.user!.agencyId ?? null;
   const logs = await prisma.activityLog.findMany({
+    where: { OR: [{ user: { agencyId } }, { client: { agencyId } }] },
     orderBy: { createdAt: 'desc' },
     take: 20,
     include: {

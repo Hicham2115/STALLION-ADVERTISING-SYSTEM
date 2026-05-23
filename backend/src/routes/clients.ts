@@ -34,8 +34,10 @@ function parseCostInput(body: { name?: string; amount?: unknown; date?: unknown 
 // GET /api/clients
 router.get('/', h(async (req: AuthRequest, res: Response) => {
   const { search, status, service, archived } = req.query;
+  const agencyId = req.user!.agencyId ?? null;
   const clients = await prisma.client.findMany({
     where: {
+      agencyId,
       archived: archived === 'true',
       ...(status && { status: status as never }),
       ...(service && { service: service as never }),
@@ -124,6 +126,7 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
       googleDriveLink: rest.googleDriveLink || null,
       notes: rest.notes || null,
       phone: rest.phone || null,
+      agencyId: req.user!.agencyId ?? null,
     },
   });
 

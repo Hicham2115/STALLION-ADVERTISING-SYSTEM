@@ -21,7 +21,8 @@ function toDate(val: unknown): Date {
 // GET /api/payments
 router.get('/', h(async (req: AuthRequest, res: Response) => {
   const { year, month, clientId, status } = req.query;
-  const where: Record<string, unknown> = {};
+  const agencyId = req.user!.agencyId ?? null;
+  const where: Record<string, unknown> = { client: { agencyId } };
   if (clientId) where.clientId = clientId;
   if (status) where.status = status;
   if (year || month) {
@@ -44,8 +45,9 @@ router.get('/', h(async (req: AuthRequest, res: Response) => {
 // GET /api/payments/summary
 router.get('/summary', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
+  const agencyId = req.user!.agencyId ?? null;
   const payments = await prisma.payment.findMany({
-    where: { date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) }, status: 'PAID' },
+    where: { client: { agencyId }, date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) }, status: 'PAID' },
     select: { amount: true, date: true },
   });
   const monthly = Array.from({ length: 12 }, (_, i) => ({
@@ -59,8 +61,9 @@ router.get('/summary', h(async (req: AuthRequest, res: Response) => {
 // GET /api/payments/by-service
 router.get('/by-service', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
+  const agencyId = req.user!.agencyId ?? null;
   const payments = await prisma.payment.findMany({
-    where: { date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) }, status: 'PAID' },
+    where: { client: { agencyId }, date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) }, status: 'PAID' },
     include: { client: { select: { service: true } } },
   });
   const byService: Record<string, number> = {};

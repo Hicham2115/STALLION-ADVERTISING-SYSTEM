@@ -14,8 +14,10 @@ const MSG_INCLUDE = {
 // GET /api/chat/channels
 router.get('/channels', async (req: AuthRequest, res: Response): Promise<void> => {
   const userId = req.user!.userId;
+  const agencyId = req.user!.agencyId ?? null;
   const channels = await prisma.channel.findMany({
     where: {
+      agencyId,
       OR: [
         { type: 'PUBLIC' },
         { members: { some: { userId } } },
@@ -35,8 +37,9 @@ router.post('/channels', requireRole('MANAGER'), async (req: AuthRequest, res: R
   const { name, description, type = 'PUBLIC', memberIds = [] } = req.body;
   if (!name?.trim()) { res.status(400).json({ message: 'name required' }); return; }
 
+  const agencyId = req.user!.agencyId ?? null;
   const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  const existing = await prisma.channel.findUnique({ where: { slug } });
+  const existing = await prisma.channel.findFirst({ where: { agencyId, slug } });
   if (existing) { res.status(409).json({ message: `Channel "${slug}" already exists` }); return; }
 
   const channel = await prisma.channel.create({
@@ -45,6 +48,7 @@ router.post('/channels', requireRole('MANAGER'), async (req: AuthRequest, res: R
       slug,
       description: description?.trim() || null,
       type,
+      agencyId,
       ...(memberIds.length > 0 ? {
         members: { create: (memberIds as string[]).map((userId) => ({ userId })) },
       } : {}),

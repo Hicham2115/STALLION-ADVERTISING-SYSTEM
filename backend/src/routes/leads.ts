@@ -18,8 +18,10 @@ function toDateOrNull(val: unknown): Date | null {
 // GET /api/leads
 router.get('/', h(async (req: AuthRequest, res: Response) => {
   const { stage, assignedToId, search } = req.query;
+  const agencyId = req.user!.agencyId ?? null;
   const leads = await prisma.lead.findMany({
     where: {
+      agencyId,
       ...(stage && { stage: stage as never }),
       ...(assignedToId && { assignedToId: assignedToId as string }),
       ...(search && {
@@ -40,11 +42,12 @@ router.get('/', h(async (req: AuthRequest, res: Response) => {
 }));
 
 // GET /api/leads/stats
-router.get('/stats', h(async (_req: AuthRequest, res: Response) => {
+router.get('/stats', h(async (req: AuthRequest, res: Response) => {
+  const agencyId = req.user!.agencyId ?? null;
   const [total, byStage, bySource] = await Promise.all([
-    prisma.lead.count(),
-    prisma.lead.groupBy({ by: ['stage'], _count: { id: true }, _sum: { expectedValue: true } }),
-    prisma.lead.groupBy({ by: ['source'], _count: { id: true } }),
+    prisma.lead.count({ where: { agencyId } }),
+    prisma.lead.groupBy({ by: ['stage'], where: { agencyId }, _count: { id: true }, _sum: { expectedValue: true } }),
+    prisma.lead.groupBy({ by: ['source'], where: { agencyId }, _count: { id: true } }),
   ]);
   res.json({ total, byStage, bySource });
 }));
@@ -70,6 +73,7 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
       ...rest,
       expectedValue: expectedValue ? Number(expectedValue) : null,
       followUpDate: toDateOrNull(followUpDate),
+      agencyId: req.user!.agencyId ?? null,
     },
     include: { assignedTo: { select: { id: true, name: true } } },
   });

@@ -20,7 +20,7 @@ function toDate(val: unknown): Date {
 // GET /api/expenses
 router.get('/', h(async (req: AuthRequest, res: Response) => {
   const { year, month, type, category, paymentStatus } = req.query;
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { agencyId: req.user!.agencyId ?? null };
   if (type) where.type = type;
   if (category) where.category = category;
   if (paymentStatus) where.paymentStatus = paymentStatus;
@@ -40,8 +40,9 @@ router.get('/', h(async (req: AuthRequest, res: Response) => {
 // GET /api/expenses/summary
 router.get('/summary', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
+  const agencyId = req.user!.agencyId ?? null;
   const expenses = await prisma.expense.findMany({
-    where: { date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
+    where: { agencyId, date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
     select: { amount: true, date: true, type: true },
   });
   const monthly = Array.from({ length: 12 }, (_, i) => ({
@@ -69,6 +70,7 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
       method: method || null,
       notes: notes || null,
       paymentStatus: paymentStatus || 'PENDING',
+      agencyId: req.user!.agencyId ?? null,
     },
   });
   res.status(201).json(expense);
@@ -96,8 +98,9 @@ router.delete('/:id', h(async (req: AuthRequest, res: Response) => {
 // GET /api/expenses/export
 router.get('/export', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
+  const agencyId = req.user!.agencyId ?? null;
   const expenses = await prisma.expense.findMany({
-    where: { date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
+    where: { agencyId, date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
     orderBy: { date: 'desc' },
   });
   const rows = expenses.map((e) => ({

@@ -22,6 +22,7 @@ const USER_SELECT = {
   isCloser: true,
   lastLogin: true,
   createdAt: true,
+  agencyId: true,
 } as const;
 
 // GET /api/users — list with search, filters, pagination
@@ -31,7 +32,8 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
   const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
   const skip = (pageNum - 1) * limitNum;
 
-  const where: Record<string, unknown> = {};
+  const agencyId = req.user!.agencyId;
+  const where: Record<string, unknown> = { agencyId: agencyId ?? null };
 
   if (search) {
     where.OR = [
@@ -111,7 +113,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response): Promise<
 
   const hashed = await bcrypt.hash(password || 'Stallion@123', 10);
   const user = await prisma.user.create({
-    data: { name, email, password: hashed, role: targetRole, phone, avatar },
+    data: { name, email, password: hashed, role: targetRole, phone, avatar, agencyId: req.user!.agencyId ?? null },
     select: USER_SELECT,
   });
 
