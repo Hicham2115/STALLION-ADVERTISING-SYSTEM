@@ -145,16 +145,8 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      if (mode === 'sign-in') {
-        res.status(404).json({
-          message:
-            'No account found for this email. Please sign up first or ask an administrator to invite you.',
-        });
-        return;
-      }
-
+      // Always create the account for Google OAuth users — they've already proven identity via Google
       const hashed = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
-      // Each Clerk sign-up also creates a new isolated agency
       const agency = await prisma.agency.create({ data: { name: `${displayName}'s Agency` } });
       user = await prisma.user.create({
         data: {
