@@ -40,7 +40,7 @@ router.get('/', h(async (req: AuthRequest, res: Response) => {
       agencyId,
       archived: archived === 'true',
       ...(status && { status: status as never }),
-      ...(service && { service: service as never }),
+      ...(service && { services: { has: service as string } }),
       ...(search && {
         OR: [
           { name: { contains: search as string, mode: 'insensitive' } },

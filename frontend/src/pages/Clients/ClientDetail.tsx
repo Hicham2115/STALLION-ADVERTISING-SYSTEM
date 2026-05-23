@@ -143,7 +143,7 @@ export default function ClientDetail() {
               </span>
             </div>
             <div className="flex flex-wrap gap-4 mt-3 text-sm text-slate-500 dark:text-slate-400">
-              <span>{getServiceLabel(client.service)}</span>
+              <span>{client.services?.map(getServiceLabel).join(', ')}</span>
               <span>·</span>
               <span>{t('clients.detail.since')} {formatDate(client.startDate)}</span>
               {client.website && (

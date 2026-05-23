@@ -65,7 +65,7 @@ router.delete('/:id', requireAdmin, h(async (req: AuthRequest, res: Response) =>
   const service = await prisma.companyService.findUnique({ where: { id: req.params.id } });
   if (!service) { res.status(404).json({ message: 'Service not found' }); return; }
 
-  const clientCount = await prisma.client.count({ where: { service: service.slug } });
+  const clientCount = await prisma.client.count({ where: { services: { has: service.slug } } });
   if (clientCount > 0) {
     res.status(409).json({ message: `Cannot delete: ${clientCount} client(s) use this service` });
     return;

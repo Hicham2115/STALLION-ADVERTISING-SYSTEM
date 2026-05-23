@@ -96,7 +96,7 @@ export default function PortalDashboardPage() {
             {t('portal.welcomeBack')} <span className="text-amber-400">{user?.name}</span>
           </h1>
           <p className="text-slate-400 text-sm">
-            {data?.client?.name} — {data?.client?.service} &nbsp;·&nbsp; {t('portal.accountStatus')}:&nbsp;
+            {data?.client?.name} — {data?.client?.services?.join(', ')} &nbsp;·&nbsp; {t('portal.accountStatus')}:&nbsp;
             <span className={cn(
               'font-semibold',
               data?.client?.status === 'ACTIVE' ? 'text-green-400' : 'text-amber-400',

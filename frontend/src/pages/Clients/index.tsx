@@ -155,7 +155,7 @@ export default function Clients() {
                         </a>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{getServiceLabel(client.service)}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{client.services?.map(getServiceLabel).join(', ')}</td>
                     <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{formatCurrency(client.monthlyFee)}{t('clients.perMonth')}</td>
                     <td className="px-4 py-3">
                       <span className={cn('badge', getStatusColor(client.status))}>{STATUS_LABELS[client.status] ?? client.status}</span>

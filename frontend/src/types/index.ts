@@ -214,7 +214,7 @@ export interface CompanyService {
 export interface Client {
   id: string;
   name: string;
-  service: string;
+  services: string[];
   monthlyFee: number;
   billingFrequency: BillingFrequency;
   status: ClientStatus;
@@ -237,7 +237,7 @@ export interface Client {
 export interface Payment {
   id: string;
   clientId: string;
-  client?: Pick<Client, "id" | "name" | "service">;
+  client?: Pick<Client, "id" | "name" | "services">;
   amount: number;
   date: string;
   method: PaymentMethod;
@@ -490,7 +490,7 @@ export type ProjectPhase =
 export interface PortalClient {
   id: string;
   name: string;
-  service: string;
+  services: string[];
   monthlyFee: number;
   status: ClientStatus;
   startDate: string;

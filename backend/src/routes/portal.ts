@@ -52,7 +52,7 @@ router.post("/login", async (req, res): Promise<void> => {
           select: {
             id: true,
             name: true,
-            service: true,
+            services: true,
             monthlyFee: true,
             status: true,
             startDate: true,
@@ -117,7 +117,7 @@ router.get(
             select: {
               id: true,
               name: true,
-              service: true,
+              services: true,
               monthlyFee: true,
               status: true,
               startDate: true,
@@ -154,7 +154,7 @@ router.put(
           select: {
             id: true,
             name: true,
-            service: true,
+            services: true,
             monthlyFee: true,
             status: true,
             startDate: true,

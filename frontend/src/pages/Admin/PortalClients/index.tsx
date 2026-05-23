@@ -85,7 +85,7 @@ export default function PortalClientsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-white truncate">{client.name}</div>
-                    <div className="text-xs text-slate-500 truncate">{client.service} · {client.email}</div>
+                    <div className="text-xs text-slate-500 truncate">{client.services?.join(', ')} · {client.email}</div>
                   </div>
                 </div>
 

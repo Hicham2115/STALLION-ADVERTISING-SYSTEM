@@ -240,7 +240,7 @@ model User {
 model Client {
   id                String           @id @default(cuid())
   name              String
-  service           String
+  services          String[]
   monthlyFee        Float
   billingFrequency  BillingFrequency @default(MONTHLY)
   status            ClientStatus     @default(ACTIVE)

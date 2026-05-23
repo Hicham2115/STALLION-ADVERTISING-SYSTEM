@@ -36,7 +36,7 @@ router.get('/', h(async (req: AuthRequest, res: Response) => {
   }
   const payments = await prisma.payment.findMany({
     where,
-    include: { client: { select: { id: true, name: true, service: true } } },
+    include: { client: { select: { id: true, name: true, services: true } } },
     orderBy: { date: 'desc' },
   });
   res.json(payments);
@@ -64,11 +64,12 @@ router.get('/by-service', h(async (req: AuthRequest, res: Response) => {
   const agencyId = req.user!.agencyId ?? null;
   const payments = await prisma.payment.findMany({
     where: { client: { agencyId }, date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) }, status: 'PAID' },
-    include: { client: { select: { service: true } } },
+    include: { client: { select: { services: true } } },
   });
   const byService: Record<string, number> = {};
   payments.forEach((p) => {
-    byService[p.client.service] = (byService[p.client.service] || 0) + p.amount;
+    const svcs = p.client.services.length > 0 ? p.client.services : ['Unknown'];
+    svcs.forEach((svc) => { byService[svc] = (byService[svc] || 0) + p.amount; });
   });
   res.json(Object.entries(byService).map(([service, amount]) => ({ service, amount })));
 }));
@@ -128,12 +129,12 @@ router.get('/export', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
   const payments = await prisma.payment.findMany({
     where: { date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
-    include: { client: { select: { name: true, service: true } } },
+    include: { client: { select: { name: true, services: true } } },
     orderBy: { date: 'desc' },
   });
   const rows = payments.map((p) => ({
     'Client': p.client.name,
-    'Service': p.client.service,
+    'Service': p.client.services.join(', '),
     'Amount (MAD)': p.amount,
     'Date': new Date(p.date).toLocaleDateString(),
     'Method': p.method,

@@ -22,13 +22,12 @@ const PortalCurrencyContext = createContext<PortalCurrencyContextValue | null>(n
 
 interface Props {
   children: React.ReactNode;
-  defaultCurrency?: string;
 }
 
-export function PortalCurrencyProvider({ children, defaultCurrency }: Props) {
+export function PortalCurrencyProvider({ children }: Props) {
   const [currency, setCurrencyState] = useState<Currency>(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Currency | null;
-    return stored || (defaultCurrency as Currency) || 'USD';
+    return stored || 'USD';
   });
   const [rates, setRates] = useState<Record<string, Record<string, number>>>(FALLBACK);
 
@@ -37,12 +36,6 @@ export function PortalCurrencyProvider({ children, defaultCurrency }: Props) {
       .then(({ data }) => { if (data && Object.keys(data).length > 0) setRates(data); })
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (defaultCurrency && !localStorage.getItem(STORAGE_KEY)) {
-      setCurrencyState(defaultCurrency as Currency);
-    }
-  }, [defaultCurrency]);
 
   const setCurrency = useCallback((c: Currency) => {
     localStorage.setItem(STORAGE_KEY, c);

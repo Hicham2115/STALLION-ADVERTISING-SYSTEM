@@ -584,7 +584,7 @@ export default function ClientPortalDetail() {
         <div>
           <h1 className="text-xl font-bold text-white">{data.client.name}</h1>
           <p className="text-sm text-slate-500">
-            {data.client.service} · {t("portalAdmin.portalManagement")}
+            {data.client.services?.join(', ')} · {t("portalAdmin.portalManagement")}
           </p>
         </div>
       </div>

@@ -188,7 +188,7 @@ router.get('/top-clients', async (req: AuthRequest, res: Response): Promise<void
     payments.map(async (p) => {
       const client = await prisma.client.findUnique({
         where: { id: p.clientId },
-        select: { id: true, name: true, service: true, status: true },
+        select: { id: true, name: true, services: true, status: true },
       });
       return { ...client, revenue: p._sum.amount };
     })

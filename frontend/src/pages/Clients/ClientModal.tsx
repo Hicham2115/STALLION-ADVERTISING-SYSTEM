@@ -1,5 +1,5 @@
-import { useEffect, useState, FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useState, useRef, FormEvent } from 'react';
+import { X, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Client, CompanyService, ClientStatus, BillingFrequency } from '@/types';
@@ -14,11 +14,78 @@ interface Props {
 }
 
 const defaultForm = {
-  name: '', service: '', monthlyFee: '',
+  name: '', services: [] as string[], monthlyFee: '',
   billingFrequency: 'MONTHLY' as BillingFrequency, status: 'ACTIVE' as ClientStatus,
   startDate: new Date().toISOString().split('T')[0], website: '', googleDriveLink: '',
   notes: '', contactPerson: '', email: '', phone: '',
 };
+
+function MultiServiceSelect({
+  availableServices,
+  selected,
+  onToggle,
+}: {
+  availableServices: CompanyService[];
+  selected: string[];
+  onToggle: (slug: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  const label =
+    selected.length === 0
+      ? 'Select service...'
+      : availableServices
+          .filter((s) => selected.includes(s.slug))
+          .map((s) => s.name)
+          .join(', ');
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="select w-full flex items-center justify-between text-left"
+      >
+        <span className={selected.length === 0 ? 'text-slate-400' : ''}>{label}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden">
+          {availableServices.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-slate-400">No services available</div>
+          ) : (
+            availableServices.map((s) => {
+              const isSelected = selected.includes(s.slug);
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => onToggle(s.slug)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
+                >
+                  <span className={isSelected ? 'font-medium text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}>
+                    {s.name}
+                  </span>
+                  {isSelected && <Check className="w-4 h-4 text-amber-500 shrink-0" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ClientModal({ open, onClose, client, onSaved }: Props) {
   const { t } = useTranslation();
@@ -38,13 +105,13 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
   };
 
   const [form, setForm] = useState(defaultForm);
-  const [services, setServices] = useState<CompanyService[]>([]);
+  const [availableServices, setAvailableServices] = useState<CompanyService[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     api.get<CompanyService[]>('/services').then((r) => {
-      setServices(r.data.filter((s) => s.active));
+      setAvailableServices(r.data.filter((s) => s.active));
     });
   }, []);
 
@@ -52,7 +119,7 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
     if (client) {
       setForm({
         name: client.name,
-        service: client.service,
+        services: client.services ?? [],
         monthlyFee: String(client.monthlyFee),
         billingFrequency: client.billingFrequency,
         status: client.status,
@@ -70,18 +137,26 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
     setError('');
   }, [client, open]);
 
-  useEffect(() => {
-    if (!client && services.length > 0 && !form.service) {
-      setForm((f) => ({ ...f, service: services[0].slug }));
-    }
-  }, [services, client]);
-
   if (!open) return null;
 
-  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const toggleService = (slug: string) => {
+    setForm((f) => ({
+      ...f,
+      services: f.services.includes(slug)
+        ? f.services.filter((s) => s !== slug)
+        : [...f.services, slug],
+    }));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (form.services.length === 0) {
+      setError('Please select at least one service');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -124,10 +199,11 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
             </div>
             <div>
               <label className="label">{t('clients.modal.serviceLabel')}</label>
-              <select className="select" required value={form.service} onChange={(e) => set('service', e.target.value)}>
-                <option value="">{t('clients.modal.servicePlaceholder')}</option>
-                {services.map((s) => <option key={s.id} value={s.slug}>{s.name}</option>)}
-              </select>
+              <MultiServiceSelect
+                availableServices={availableServices}
+                selected={form.services}
+                onToggle={toggleService}
+              />
             </div>
             <div>
               <label className="label">{t('clients.modal.statusLabel')}</label>

@@ -14,7 +14,7 @@ import { formatCurrency, formatRelativeTime, getInitials, getServiceLabel, cn } 
 import { useCurrency } from '@/context/CurrencyContext';
 import { useTranslation } from 'react-i18next';
 
-interface TopClient { id: string; name: string; service: string; status: string; revenue: number }
+interface TopClient { id: string; name: string; services: string[]; status: string; revenue: number }
 
 function KpiCard({
   label, value, sub, icon: Icon, color, iconBg, trend, trendLabel, link,
@@ -354,7 +354,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-slate-900 dark:text-white truncate">{client.name}</div>
-                  <div className="text-xs text-slate-400">{getServiceLabel(client.service)}</div>
+                  <div className="text-xs text-slate-400">{client.services.map(getServiceLabel).join(', ')}</div>
                 </div>
                 <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
                   {fc(client.revenue || 0)}

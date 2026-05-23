@@ -128,7 +128,7 @@ function PortalLayoutContent() {
               {user?.client?.name}
             </div>
             <div className="text-xs text-slate-500 truncate mt-0.5">
-              {user?.client?.service}
+              {user?.client?.services?.join(', ')}
             </div>
           </div>
         </div>
@@ -381,11 +381,8 @@ function PortalLayoutContent() {
 }
 
 export default function PortalLayout() {
-  const { user } = usePortalAuth();
-  const defaultCurrency = (user?.client as any)?.preferredCurrency;
-
   return (
-    <PortalCurrencyProvider defaultCurrency={defaultCurrency}>
+    <PortalCurrencyProvider>
       <PortalLayoutContent />
     </PortalCurrencyProvider>
   );

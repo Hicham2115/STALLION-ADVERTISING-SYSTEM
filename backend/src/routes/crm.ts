@@ -1034,16 +1034,16 @@ router.get(
     if (userLevel >= ROLE_LEVELS["MANAGER"]) {
       const clients = await prisma.client.findMany({
         where: { archived: false },
-        select: { id: true, name: true, service: true, status: true },
+        select: { id: true, name: true, services: true, status: true },
         orderBy: { name: "asc" },
       });
       res.json(clients);
       return;
     }
     const clients = await prisma.$queryRaw<
-      { id: string; name: string; service: string; status: string }[]
+      { id: string; name: string; services: string[]; status: string }[]
     >`
-    SELECT c.id, c.name, c.service, c.status
+    SELECT c.id, c.name, c.services, c.status
     FROM client_closers cc
     JOIN clients c ON c.id = cc."clientId"
     WHERE cc."userId" = ${req.user!.userId}
