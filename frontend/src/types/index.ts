@@ -602,6 +602,7 @@ export interface KpiDailyEntry {
 export interface KpiData {
   isMock: boolean;
   datePreset: string;
+  adAccountCurrency: string;
   summary: KpiSummary;
   daily: KpiDailyEntry[];
 }

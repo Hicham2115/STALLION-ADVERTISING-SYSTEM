@@ -83,7 +83,7 @@ const CustomTooltip = ({ active, payload, label, fmtMoney }: any) => {
 
 export default function KPIsPage() {
   const { t } = useTranslation();
-  const { fmt } = usePortalCurrency();
+  const { fmt, setCurrency } = usePortalCurrency();
   const [datePreset, setDatePreset] = useState("last_7d");
 
   const PRESETS = [
@@ -99,11 +99,21 @@ export default function KPIsPage() {
     setLoading(true);
     portalApi
       .get<KpiData>(`/kpis?datePreset=${datePreset}`)
-      .then(({ data: d }) => setData(d))
+      .then(({ data: d }) => {
+        setData(d);
+        // On first load, set display currency to match the ad account currency if supported
+        const supported = ['MAD', 'USD', 'EUR'];
+        if (d.adAccountCurrency && supported.includes(d.adAccountCurrency) && !localStorage.getItem('stallion_portal_currency')) {
+          setCurrency(d.adAccountCurrency as any);
+        }
+      })
       .finally(() => setLoading(false));
   }, [datePreset]);
 
   const s = data?.summary;
+  // Monetary values from Meta come in the ad account's native currency
+  const adCurrency = (data?.adAccountCurrency as any) || 'USD';
+  const fmtMoney = (n: number) => fmt(n, adCurrency);
   const fmtK = (n: number) =>
     n >= 1000 ? `${(n / 1000).toFixed(1)}K` : n.toString();
 
@@ -161,7 +171,7 @@ export default function KPIsPage() {
             <KpiCard
               icon={DollarSign}
               label={t('portal.totalSpend')}
-              value={fmt(s?.spend ?? 0)}
+              value={fmtMoney(s?.spend ?? 0)}
               color="bg-red-500/10 text-red-400"
             />
             <KpiCard
@@ -174,7 +184,7 @@ export default function KPIsPage() {
               icon={Target}
               label={t('portal.kpiLeads')}
               value={`${s?.leads ?? 0}`}
-              sub={`${fmt(s?.costPerLead ?? 0)} CPL`}
+              sub={`${fmtMoney(s?.costPerLead ?? 0)} CPL`}
               color="bg-green-500/10 text-green-400"
             />
             <KpiCard
@@ -201,7 +211,7 @@ export default function KPIsPage() {
             <KpiCard
               icon={DollarSign}
               label={t('portal.cpm')}
-              value={fmt(s?.cpm ?? 0)}
+              value={fmtMoney(s?.cpm ?? 0)}
               color="bg-slate-500/10 text-slate-400"
             />
             <KpiCard
@@ -237,9 +247,9 @@ export default function KPIsPage() {
                 />
                 <YAxis
                   tick={{ fill: "#64748b", fontSize: 11 }}
-                  tickFormatter={(v) => fmt(Number(v))}
+                  tickFormatter={(v) => fmtMoney(Number(v))}
                 />
-                <Tooltip content={<CustomTooltip fmtMoney={fmt} />} />
+                <Tooltip content={<CustomTooltip fmtMoney={fmtMoney} />} />
                 <Area
                   type="monotone"
                   dataKey="spend"

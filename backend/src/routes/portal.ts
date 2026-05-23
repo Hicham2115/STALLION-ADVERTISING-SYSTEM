@@ -895,6 +895,12 @@ router.get(
 
     if (config?.metaToken && config?.metaAdAccountId) {
       try {
+        // Fetch ad account currency first
+        const acctUrl = `https://graph.facebook.com/v19.0/act_${config.metaAdAccountId}?fields=currency&access_token=${config.metaToken}`;
+        const acctRes = await fetch(acctUrl);
+        const acctData: any = await acctRes.json();
+        const adAccountCurrency: string = acctData?.currency || 'USD';
+
         const fields =
           "spend,reach,impressions,cpm,cpc,ctr,actions,action_values";
         const url = `https://graph.facebook.com/v19.0/act_${config.metaAdAccountId}/insights?fields=${fields}&date_preset=${datePreset}&level=account&access_token=${config.metaToken}`;
@@ -952,6 +958,7 @@ router.get(
         res.json({
           isMock: false,
           datePreset,
+          adAccountCurrency,
           summary: {
             spend,
             reach: parseInt(d.reach || 0),
@@ -1008,6 +1015,7 @@ router.get(
     res.json({
       isMock: false,
       datePreset,
+      adAccountCurrency: 'MAD',
       summary: {
         spend: parseFloat(totalSpend.toFixed(2)),
         reach: totalReach,

@@ -28,7 +28,7 @@ interface Props {
 export function PortalCurrencyProvider({ children, defaultCurrency }: Props) {
   const [currency, setCurrencyState] = useState<Currency>(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Currency | null;
-    return stored || (defaultCurrency as Currency) || 'MAD';
+    return stored || (defaultCurrency as Currency) || 'USD';
   });
   const [rates, setRates] = useState<Record<string, Record<string, number>>>(FALLBACK);
 
