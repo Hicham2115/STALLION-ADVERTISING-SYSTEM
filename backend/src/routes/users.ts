@@ -311,21 +311,37 @@ router.put('/:id/toggle-closer', requireRole('MANAGER'), async (req: AuthRequest
   res.json(result[0]);
 });
 
-// DELETE /api/users/:id — SUPER_ADMIN only (hard deactivate)
+// DELETE /api/users/:id — SUPER_ADMIN only (hard delete)
 router.delete('/:id', requireRole('SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
-  if (req.user!.userId === req.params.id) {
+  const { id } = req.params;
+
+  if (req.user!.userId === id) {
     res.status(400).json({ message: 'Cannot delete yourself' });
     return;
   }
 
-  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  const target = await prisma.user.findUnique({ where: { id } });
   if (!target) {
     res.status(404).json({ message: 'User not found' });
     return;
   }
 
-  await prisma.user.update({ where: { id: req.params.id }, data: { active: false } });
-  res.json({ message: 'User deleted' });
+  // Delete all related records first to satisfy FK constraints, then delete the user
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`DELETE FROM closer_commission_records WHERE "closerId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM client_closers WHERE "userId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM commission_rules WHERE "closerId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM message_reactions WHERE "userId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM channel_members WHERE "userId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM chat_messages WHERE "senderId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM activity_logs WHERE "userId" = ${id}`;
+    await tx.$executeRaw`UPDATE tasks SET "assignedToId" = NULL WHERE "assignedToId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM meetings WHERE "adminId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM admin_availability WHERE "adminId" = ${id}`;
+    await tx.$executeRaw`DELETE FROM users WHERE id = ${id}`;
+  });
+
+  res.json({ message: 'User permanently deleted' });
 });
 
 export default router;
