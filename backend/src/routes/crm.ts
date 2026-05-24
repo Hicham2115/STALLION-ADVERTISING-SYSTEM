@@ -541,6 +541,7 @@ router.get(
     const CLOSER_COMMISSION_SHARE = 0.25;
 
     const { teamOnly } = req.query;
+    const agencyId = req.user!.agencyId ?? null;
     const users =
       teamOnly === "true"
         ? await prisma.$queryRaw<
@@ -555,7 +556,7 @@ router.get(
             }[]
           >`
         SELECT id, name, email, avatar, phone, role, "isCloser" FROM users
-        WHERE active = true AND suspended = false AND "isCloser" = true ORDER BY name ASC`
+        WHERE active = true AND suspended = false AND "isCloser" = true AND "agencyId" = ${agencyId} ORDER BY name ASC`
         : await prisma.$queryRaw<
             {
               id: string;
@@ -568,7 +569,7 @@ router.get(
             }[]
           >`
         SELECT id, name, email, avatar, phone, role, "isCloser" FROM users
-        WHERE active = true AND suspended = false ORDER BY name ASC`;
+        WHERE active = true AND suspended = false AND "agencyId" = ${agencyId} ORDER BY name ASC`;
     const stats = await Promise.all(
       users.map(async (u) => {
         type CommissionRuleSummary = {
