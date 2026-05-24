@@ -1032,9 +1032,10 @@ router.get(
   "/my-clients",
   h(async (req, res) => {
     const userLevel = ROLE_LEVELS[req.user!.role] || 0;
+    const agencyId = req.user!.agencyId ?? null;
     if (userLevel >= ROLE_LEVELS["MANAGER"]) {
       const clients = await prisma.client.findMany({
-        where: { archived: false },
+        where: { archived: false, agencyId },
         select: { id: true, name: true, services: true, status: true },
         orderBy: { name: "asc" },
       });
