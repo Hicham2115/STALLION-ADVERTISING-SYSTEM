@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS "blocked_dates" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "blocked_dates_pkey" PRIMARY KEY ("id")
 );
-
+ 
 -- CreateTable: meetings
 CREATE TABLE IF NOT EXISTS "meetings" (
     "id" TEXT NOT NULL,
