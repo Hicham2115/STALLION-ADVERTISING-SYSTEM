@@ -11,7 +11,7 @@ export const registerFormSchema = z
       .string()
       .trim()
       .toLowerCase()
-      .email('Enter a valid email address')
+      .regex(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Enter a valid email address')
       .max(255, 'Email must be at most 255 characters'),
     password: z
       .string()

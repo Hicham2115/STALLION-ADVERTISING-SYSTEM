@@ -10,7 +10,7 @@ export const registerBodySchema = z.object({
     .string({ required_error: 'Email is required' })
     .trim()
     .toLowerCase()
-    .email('Invalid email address')
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Invalid email address')
     .max(255, 'Email must be at most 255 characters'),
   password: z
     .string({ required_error: 'Password is required' })
