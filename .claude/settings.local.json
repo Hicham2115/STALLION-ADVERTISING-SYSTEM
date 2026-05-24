@@ -19,5 +19,5 @@
       "Bash(curl --max-time 10 -s \"https://stallion-advertising-system-production.up.railway.app/api/auth/setup-status\")",
       "Bash(curl --max-time 60 -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\nTIME:%{time_total}' -X POST https://stallion-advertising-system-production.up.railway.app/api/auth/register -H 'Content-Type: application/json' -d '{\"name\":\"Test Admin\",\"email\":\"testadmin99@test.com\",\"password\":\"Test1234!\"}')"
     ]
-  }
+  } 
 }
