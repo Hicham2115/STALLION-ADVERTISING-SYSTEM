@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS "crm_orders" (
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "crm_orders_pkey" PRIMARY KEY ("id")
 );
-
+ 
 -- CreateTable: shopify_configs (safe)
 CREATE TABLE IF NOT EXISTS "shopify_configs" (
     "id" TEXT NOT NULL,
