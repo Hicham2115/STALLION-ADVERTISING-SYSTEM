@@ -200,8 +200,17 @@ router.get('/top-clients', async (req: AuthRequest, res: Response): Promise<void
 // GET /api/dashboard/notifications — recent activity log entries for the notification bell
 router.get('/notifications', async (req: AuthRequest, res: Response): Promise<void> => {
   const agencyId = req.user!.agencyId ?? null;
+  const { userId, role } = req.user!;
+
+  // Managers and above see all agency activity; team members see only their own
+  const isManagerOrAbove = role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'MANAGER';
+
+  const where = isManagerOrAbove
+    ? { OR: [{ user: { agencyId } }, { client: { agencyId } }] }
+    : { userId };
+
   const logs = await prisma.activityLog.findMany({
-    where: { OR: [{ user: { agencyId } }, { client: { agencyId } }] },
+    where,
     orderBy: { createdAt: 'desc' },
     take: 20,
     include: {
