@@ -147,9 +147,10 @@ router.get('/dm/:userId', async (req: AuthRequest, res: Response): Promise<void>
 });
 
 // GET /api/chat/users
-router.get('/users', async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
+  const agencyId = req.user!.agencyId ?? null;
   const users = await prisma.user.findMany({
-    where: { active: true, suspended: false },
+    where: { agencyId, active: true, suspended: false },
     select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
     orderBy: { name: 'asc' },
   });
