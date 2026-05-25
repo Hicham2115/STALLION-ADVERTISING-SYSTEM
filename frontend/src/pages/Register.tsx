@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { DASHBOARD_PATH } from '@/lib/authRoutes';
@@ -15,6 +15,7 @@ import {
 } from '@/schemas/register';
 import type { Role } from '@/types';
 import { useTranslation } from 'react-i18next';
+import AuthSuccessScreen from '@/components/AuthSuccessScreen';
 
 type SetupStatus = {
   registrationAvailable: boolean;
@@ -45,6 +46,7 @@ export default function Register() {
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     api
@@ -54,8 +56,12 @@ export default function Register() {
   }, []);
 
   useEffect(() => {
-    if (user) navigate(DASHBOARD_PATH, { replace: true });
-  }, [user, navigate]);
+    if (user && !showSuccess) navigate(DASHBOARD_PATH, { replace: true });
+  }, [user, navigate, showSuccess]);
+
+  const handleDone = useCallback(() => {
+    navigate(DASHBOARD_PATH, { replace: true });
+  }, [navigate]);
 
   const registrationAvailable = setupStatus?.registrationAvailable ?? false;
   const createsSuperAdmin = setupStatus?.createsRole === 'SUPER_ADMIN';
@@ -99,7 +105,7 @@ export default function Register() {
         validation.data.email,
         validation.data.password,
       );
-      navigate(DASHBOARD_PATH, { replace: true });
+      setShowSuccess(true);
     } catch (err: unknown) {
       const axiosErr = err as {
         response?: {
@@ -124,6 +130,10 @@ export default function Register() {
     fieldErrors[field]
       ? 'input border-red-500 dark:border-red-500 focus:ring-red-500/30'
       : 'input';
+
+  if (showSuccess) {
+    return <AuthSuccessScreen userName={user?.name ?? name} onDone={handleDone} isRegister />;
+  }
 
   return (
     <div className="min-h-screen flex">

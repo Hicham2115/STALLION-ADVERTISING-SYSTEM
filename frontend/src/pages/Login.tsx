@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { DASHBOARD_PATH } from '@/lib/authRoutes';
@@ -8,6 +8,7 @@ import AuthLeftPanel from '@/components/AuthLeftPanel';
 import { AuthDivider, GoogleAuthButton } from '@/components/ClerkAuth';
 import { isClerkEnabled } from '@/lib/clerk';
 import { useTranslation } from 'react-i18next';
+import AuthSuccessScreen from '@/components/AuthSuccessScreen';
 
 const LANGUAGES = [
   { code: 'en', label: 'EN', full: 'English' },
@@ -24,10 +25,15 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    if (user) navigate(DASHBOARD_PATH, { replace: true });
-  }, [user, navigate]);
+    if (user && !showSuccess) navigate(DASHBOARD_PATH, { replace: true });
+  }, [user, navigate, showSuccess]);
+
+  const handleDone = useCallback(() => {
+    navigate(DASHBOARD_PATH, { replace: true });
+  }, [navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,7 +41,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate(DASHBOARD_PATH, { replace: true });
+      setShowSuccess(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || t('auth.loginFailed'));
@@ -43,6 +49,10 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  if (showSuccess) {
+    return <AuthSuccessScreen userName={user?.name} onDone={handleDone} />;
+  }
 
   return (
     <div className="min-h-screen flex">
