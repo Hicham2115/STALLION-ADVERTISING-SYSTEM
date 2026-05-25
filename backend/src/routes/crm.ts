@@ -1272,7 +1272,7 @@ router.get(
       totalAdSpend -
       totalOrderCommissions;
     const confirmed = orders.filter(
-      (o: any) => o.status === "CONFIRMED" || o.status === "DELIVERED",
+      (o: any) => ["CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"].includes(o.status),
     ).length;
     const shipped = orders.filter(
       (o: any) => o.status === "SHIPPED" || o.status === "DELIVERED",
