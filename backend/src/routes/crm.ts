@@ -1264,8 +1264,11 @@ router.get(
     ).length;
     const returned = orders.filter((o: any) => o.status === "RETURNED").length;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const convertedOrders = orders.filter((o: any) =>
+      ["CONFIRMED", "SHIPPED", "DELIVERED"].includes(o.status),
+    ).length;
     const conversionRate =
-      totalOrders > 0 ? Math.round((confirmed / totalOrders) * 100) : 0;
+      totalOrders > 0 ? Math.round((convertedOrders / totalOrders) * 100) : 0;
 
     // Monthly breakdown
     const fmtMonth = new Intl.DateTimeFormat("en-US", { month: "short" });

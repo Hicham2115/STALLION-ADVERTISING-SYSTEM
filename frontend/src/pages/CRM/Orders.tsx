@@ -73,7 +73,7 @@ export default function Orders() {
     CANCELLED: { label: t('crm.cancelled'), color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
     REFUSED: { label: t('crm.refused') || 'Refused', color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
     SHIPPED: { label: t('crm.shipped'), color: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" },
-    DELIVERED: { label: t('crm.shipAllPlatforms'), color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+    DELIVERED: { label: t('crm.shipped'), color: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" },
     RETURNED: { label: t('crm.returned') || 'Returned', color: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400" },
   };
 
@@ -178,7 +178,7 @@ export default function Orders() {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="">{t('crm.allStatuses')}</option>
-          {Object.entries(STATUS_CONFIG).map(([v, { label }]) => (
+          {Object.entries(STATUS_CONFIG).filter(([v]) => v !== 'DELIVERED').map(([v, { label }]) => (
             <option key={v} value={v}>
               {label}
             </option>
@@ -307,7 +307,7 @@ export default function Orders() {
                             sc.color,
                           )}
                         >
-                          {Object.entries(STATUS_CONFIG).map(
+                          {Object.entries(STATUS_CONFIG).filter(([v]) => v !== 'DELIVERED').map(
                             ([v, { label }]) => (
                               <option key={v} value={v}>
                                 {label}

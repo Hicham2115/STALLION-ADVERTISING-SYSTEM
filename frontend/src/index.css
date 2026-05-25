@@ -26,6 +26,7 @@
     --input: 30 41 59;
     --muted: 30 41 59;
     --muted-foreground: 148 163 184;
+    color-scheme: dark;
   }
   * { @apply border-slate-200 dark:border-slate-700; }
   body { @apply bg-slate-50 dark:bg-[#0a0f1e] text-slate-900 dark:text-slate-100; }
