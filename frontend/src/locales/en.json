@@ -1376,7 +1376,7 @@
     "adSpendRoas": "Ad Spend ROAS",
     "codPending": "COD Pending",
     "confirmedOrders": "Confirmed",
-    "shippedCount": "Shipped",
+    "shippedCount": "Orders Shipped",
     "cancelledCount": "Cancelled",
     "returnRate": "Return Rate",
     "colPayment": "Payment",

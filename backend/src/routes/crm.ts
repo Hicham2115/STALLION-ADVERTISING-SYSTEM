@@ -1225,7 +1225,9 @@ router.get(
     ]);
 
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce(
+    const NON_REVENUE = ["CANCELLED", "REFUSED", "RETURNED"];
+    const revenueOrders = orders.filter((o: any) => !NON_REVENUE.includes(o.status));
+    const totalRevenue = revenueOrders.reduce(
       (s: number, o: any) => s + o.orderAmount,
       0,
     );
@@ -1244,15 +1246,15 @@ router.get(
           effectiveTo,
         )
       : linkedCostSpend || orderAdSpend;
-    const totalProductCost = orders.reduce(
+    const totalProductCost = revenueOrders.reduce(
       (s: number, o: any) => s + o.productCost,
       0,
     );
-    const totalShipping = orders.reduce(
+    const totalShipping = revenueOrders.reduce(
       (s: number, o: any) => s + o.shippingCost,
       0,
     );
-    const totalOrderCommissions = orders.reduce(
+    const totalOrderCommissions = revenueOrders.reduce(
       (s: number, o: any) => s + o.closerCommission,
       0,
     );
@@ -1275,7 +1277,7 @@ router.get(
       (o: any) => o.status === "CANCELLED" || o.status === "REFUSED",
     ).length;
     const returned = orders.filter((o: any) => o.status === "RETURNED").length;
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const avgOrderValue = revenueOrders.length > 0 ? totalRevenue / revenueOrders.length : 0;
     const convertedOrders = orders.filter((o: any) =>
       ["CONFIRMED", "SHIPPED", "DELIVERED"].includes(o.status),
     ).length;

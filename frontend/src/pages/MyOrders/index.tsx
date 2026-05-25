@@ -156,9 +156,7 @@ const LIST_STATUSES: OrderStatus[] = [
   "CONFIRMED",
   "NO_ANSWER",
   "CANCELLED",
-  "REFUSED",
   "SHIPPED",
-  "RETURNED",
 ];
 
 const defaultForm = {

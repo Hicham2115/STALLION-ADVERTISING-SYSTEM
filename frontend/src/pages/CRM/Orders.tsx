@@ -197,7 +197,7 @@ export default function Orders() {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="">{t('crm.allStatuses')}</option>
-          {Object.entries(STATUS_CONFIG).filter(([v]) => v !== 'DELIVERED').map(([v, { label }]) => (
+          {Object.entries(STATUS_CONFIG).filter(([v]) => !['DELIVERED', 'REFUSED', 'RETURNED'].includes(v)).map(([v, { label }]) => (
             <option key={v} value={v}>
               {label}
             </option>
@@ -337,7 +337,7 @@ export default function Orders() {
                             sc.color,
                           )}
                         >
-                          {Object.entries(STATUS_CONFIG).filter(([v]) => v !== 'DELIVERED').map(
+                          {Object.entries(STATUS_CONFIG).filter(([v]) => !['DELIVERED', 'REFUSED', 'RETURNED'].includes(v)).map(
                             ([v, { label }]) => (
                               <option key={v} value={v}>
                                 {label}

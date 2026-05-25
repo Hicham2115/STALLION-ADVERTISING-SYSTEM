@@ -7,12 +7,6 @@ import { getRatesCache } from "../lib/currency";
 
 const router = Router();
 
-// Wrap async route handlers so unhandled promise rejections return 500 instead of hanging
-const wrap = (fn: Function) => (req: any, res: any, next: any) =>
-  Promise.resolve(fn(req, res, next)).catch((err) => {
-    console.error(`[portal] unhandled error on ${req.method} ${req.path}:`, err?.message ?? err);
-    if (!res.headersSent) res.status(500).json({ message: "Internal server error" });
-  });
 
 function getPresetRange(datePreset: string) {
   const days =
@@ -747,6 +741,32 @@ router.get(
   },
 );
 
+router.put(
+  "/crm/orders/:id",
+  portalAuthenticate,
+  async (req: PortalRequest, res: Response): Promise<void> => {
+    const clientId = req.portalUser!.clientId;
+    const { id } = req.params;
+    const { status } = req.body;
+    const ALLOWED = ["NEW", "PENDING_CONFIRMATION", "CONFIRMED", "NO_ANSWER", "CANCELLED", "SHIPPED"];
+    if (!status || !ALLOWED.includes(status)) {
+      res.status(400).json({ message: "Invalid status" });
+      return;
+    }
+    const order = await (prisma as any).crmOrder.findUnique({ where: { id } });
+    if (!order || order.clientId !== clientId) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+    const updated = await (prisma as any).crmOrder.update({
+      where: { id },
+      data: { status },
+      include: { closer: { select: { id: true, name: true } } },
+    });
+    res.json(updated);
+  },
+);
+
 router.get(
   "/crm/stats",
   portalAuthenticate,
@@ -778,15 +798,17 @@ router.get(
     });
 
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce(
+    const NON_REVENUE = ["CANCELLED", "REFUSED", "RETURNED"];
+    const revenueOrders = orders.filter((o: any) => !NON_REVENUE.includes(o.status));
+    const totalRevenue = revenueOrders.reduce(
       (s: number, o: any) => s + o.orderAmount,
       0,
     );
-    const totalProfit = orders.reduce(
+    const totalProfit = revenueOrders.reduce(
       (s: number, o: any) => s + o.netProfit,
       0,
     );
-    const totalAdSpend = orders.reduce((s: number, o: any) => s + o.adCost, 0);
+    const totalAdSpend = revenueOrders.reduce((s: number, o: any) => s + o.adCost, 0);
     const confirmed = orders.filter(
       (o: any) => o.status === "CONFIRMED",
     ).length;

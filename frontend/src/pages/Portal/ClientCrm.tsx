@@ -11,7 +11,6 @@ import {
   BarChart2,
   Percent,
   Package,
-  AlertTriangle,
   ArrowUpRight,
 } from "lucide-react";
 import { portalApi } from "@/context/PortalAuthContext";
@@ -167,6 +166,11 @@ export default function ClientCrm() {
   const [monthFilter, setMonthFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const PORTAL_STATUSES: OrderStatus[] = [
+    "NEW", "PENDING_CONFIRMATION", "CONFIRMED", "NO_ANSWER", "CANCELLED", "SHIPPED",
+  ];
 
   useEffect(() => {
     setStatsLoading(true);
@@ -208,6 +212,18 @@ export default function ClientCrm() {
     loadOrders();
   }, [search, statusFilter, monthFilter, page]);
 
+  async function handleStatusChange(orderId: string, newStatus: OrderStatus) {
+    setUpdatingId(orderId);
+    try {
+      await portalApi.put(`/crm/orders/${orderId}`, { status: newStatus });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   const kpis = stats
     ? [
         { label: t('portal.totalOrders'), value: stats.totalOrders.toString(), icon: ShoppingCart, color: "text-blue-400", bg: "bg-blue-500/10" },
@@ -217,7 +233,6 @@ export default function ClientCrm() {
         { label: t('portal.avgOrderValue'), value: fmt(stats.avgOrderValue), icon: BarChart2, color: "text-purple-400", bg: "bg-purple-500/10" },
         { label: t('portal.convRate'), value: `${stats.conversionRate}%`, icon: ArrowUpRight, color: "text-indigo-400", bg: "bg-indigo-500/10" },
         { label: t('portal.adSpendRoas'), value: (() => { const r = metaRoas ?? stats.roas; return r > 0 ? `${r.toFixed(2)}x` : "—"; })(), icon: TrendingUp, color: "text-cyan-400", bg: "bg-cyan-500/10" },
-        { label: t('portal.codPending'), value: fmt(stats.codPending), icon: AlertTriangle, color: "text-orange-400", bg: "bg-orange-500/10" },
         { label: t('portal.confirmedOrders'), value: stats.confirmed.toString(), icon: PackageCheck, color: "text-emerald-400", bg: "bg-emerald-500/10" },
         { label: t('portal.shippedCount'), value: (stats.shipped + stats.delivered).toString(), icon: PackageCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
         { label: t('portal.cancelledCount'), value: stats.cancelled.toString(), icon: XCircle, color: "text-red-400", bg: "bg-red-500/10" },
@@ -666,15 +681,22 @@ export default function ClientCrm() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span
+                      <select
+                        value={o.status}
+                        disabled={updatingId === o.id}
+                        onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
                         className={cn(
-                          "px-2 py-0.5 rounded-full text-[11px] font-medium",
-                          STATUS_COLORS[o.status] ||
-                            "bg-slate-700 text-slate-300",
+                          "text-[11px] font-medium px-2 py-0.5 rounded-full border-0 cursor-pointer disabled:opacity-60",
+                          STATUS_COLORS[o.status] || "bg-slate-700 text-slate-300",
                         )}
                       >
-                        {o.status.replace(/_/g, " ")}
-                      </span>
+                        {PORTAL_STATUSES.map((s) => (
+                          <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                        ))}
+                        {!PORTAL_STATUSES.includes(o.status) && (
+                          <option value={o.status}>{o.status.replace(/_/g, " ")}</option>
+                        )}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400">
                       {o.source.replace(/_/g, " ")}
