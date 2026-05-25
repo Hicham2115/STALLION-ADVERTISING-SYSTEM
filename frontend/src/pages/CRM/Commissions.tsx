@@ -163,7 +163,7 @@ export default function Commissions() {
                   <label className="label">{t('crm.closerOptional')}</label>
                   <select className="select mt-1" value={form.closerId} onChange={e => setForm(f => ({ ...f, closerId: e.target.value }))}>
                     <option value="">{t('crm.allClosers')}</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    {users.filter(u => u.isCloser).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
                 <div>

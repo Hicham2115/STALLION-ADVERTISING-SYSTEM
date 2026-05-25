@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   RefreshCw,
   Award,
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "@/lib/api";
-import { Client, CloserStat, CommissionRule, CommissionType } from "@/types";
+import { CloserStat } from "@/types";
 import { cn, getInitials } from "@/lib/utils";
 import { useToast } from "@/context/ToastContext";
 import { useCrmCurrency } from "@/context/CrmCurrencyContext";
@@ -35,7 +35,6 @@ export default function Closers() {
   const { toast } = useToast();
   const [view, setView] = useState<"performance" | "team">("performance");
   const [closers, setClosers] = useState<CloserStat[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [teamSearch, setTeamSearch] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
@@ -45,13 +44,6 @@ export default function Closers() {
     closerName: string;
   }>(null);
   const [activating, setActivating] = useState(false);
-  const [activateError, setActivateError] = useState("");
-  const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(
-    new Set(),
-  );
-  const [commissionType, setCommissionType] =
-    useState<CommissionType>("FIXED_PER_ORDER");
-  const [commissionValue, setCommissionValue] = useState("");
 
   const loadClosers = async () => {
     setLoading(true);
@@ -65,25 +57,15 @@ export default function Closers() {
         ),
       );
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to load closers';
-      toast(msg, 'error');
+      const msg = err?.response?.data?.message || err?.message || "Failed to load closers";
+      toast(msg, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const loadClients = async () => {
-    try {
-      const res = await api.get<any>("/clients?limit=250");
-      setClients(Array.isArray(res.data) ? res.data : res.data.clients || []);
-    } catch {
-      setClients([]);
-    }
-  };
-
   useEffect(() => {
     loadClosers();
-    loadClients();
   }, []);
 
   async function toggleCloser(userId: string) {
@@ -96,85 +78,15 @@ export default function Closers() {
     }
   }
 
-  function openActivateModal(closer: { id: string; name: string }) {
-    setActivateError("");
-    setSelectedClientIds(new Set());
-    setCommissionType("FIXED_PER_ORDER");
-    setCommissionValue("");
-    setActivateModal({ closerId: closer.id, closerName: closer.name });
-  }
-
-  async function activateCloserWithCommission() {
+  async function activateCloser() {
     if (!activateModal) return;
-    if (selectedClientIds.size === 0) {
-      setActivateError("Please select at least one client.");
-      return;
-    }
-    if (!commissionValue || Number(commissionValue) <= 0) {
-      setActivateError(
-        commissionType === "FIXED_PER_ORDER"
-          ? "Please enter a fixed amount."
-          : "Please enter a percentage.",
-      );
-      return;
-    }
-
     setActivating(true);
-    setActivateError("");
-
     try {
       await api.put(`/users/${activateModal.closerId}/toggle-closer`);
-
-      const selectedClients = clients.filter((c) =>
-        selectedClientIds.has(c.id),
-      );
-      const valueNum = Number(commissionValue);
-
-      await Promise.all(
-        selectedClients.map(async (client) => {
-          try {
-            await api.post(`/clients/${client.id}/closers`, {
-              userId: activateModal.closerId,
-            });
-          } catch (err: any) {
-            if (err?.response?.status !== 409) throw err;
-          }
-
-          const { data: existing } = await api.get<CommissionRule[]>(
-            `/crm/commission-rules?clientId=${client.id}`,
-          );
-          const existingForCloser = existing.find(
-            (r) => r.closerId === activateModal.closerId,
-          );
-
-          const basePayload = {
-            clientId: client.id,
-            closerId: activateModal.closerId,
-            name: `${activateModal.closerName} · ${client.name}`,
-            type: commissionType,
-            fixedAmount: commissionType === "FIXED_PER_ORDER" ? valueNum : null,
-            percentage: commissionType === "PERCENTAGE" ? valueNum : null,
-            description: null,
-          };
-
-          if (existingForCloser) {
-            await api.put(`/crm/commission-rules/${existingForCloser.id}`, {
-              ...basePayload,
-              active: true,
-            });
-          } else {
-            await api.post(`/crm/commission-rules`, basePayload);
-          }
-        }),
-      );
-
       setActivateModal(null);
       await loadClosers();
     } catch (err: any) {
-      setActivateError(
-        err?.response?.data?.message || "Failed to activate closer.",
-      );
-      await loadClosers();
+      toast(err?.response?.data?.message || "Failed to activate closer.", "error");
     } finally {
       setActivating(false);
     }
@@ -183,7 +95,7 @@ export default function Closers() {
   const teamClosers = closers.filter((c) => c.isCloser);
   const chartData = teamClosers.slice(0, 10).map((c) => ({
     name: c.name.split(" ")[0],
-    confirmed: c.shippedFromConfirmedOrders ?? 0,
+    shipped: c.shippedOrders,
     earnings: c.totalEarnings,
     rate: c.conversionRate,
   }));
@@ -195,23 +107,18 @@ export default function Closers() {
       c.email.toLowerCase().includes(teamSearch.toLowerCase()),
   );
 
-  const clientList = useMemo(() => {
-    return [...clients].sort((a, b) => a.name.localeCompare(b.name));
-  }, [clients]);
-
   return (
     <div className="space-y-6 max-w-6xl">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            {t('crm.closers')}
+            {t("crm.closers")}
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            {t('crm.closersCount', { count: teamClosers.length })}
+            {t("crm.closersCount", { count: teamClosers.length })}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View toggle */}
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
             <button
               onClick={() => setView("performance")}
@@ -222,7 +129,7 @@ export default function Closers() {
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
               )}
             >
-              <Award className="w-3.5 h-3.5" /> {t('crm.performance')}
+              <Award className="w-3.5 h-3.5" /> {t("crm.performance")}
             </button>
             <button
               onClick={() => setView("team")}
@@ -233,7 +140,7 @@ export default function Closers() {
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
               )}
             >
-              <Users className="w-3.5 h-3.5" /> {t('crm.manageTeam')}
+              <Users className="w-3.5 h-3.5" /> {t("crm.manageTeam")}
             </button>
           </div>
           <button onClick={loadClosers} className="btn-secondary p-2.5">
@@ -306,17 +213,17 @@ export default function Closers() {
                         <div className="font-bold text-amber-600 dark:text-amber-400">
                           {c.shippedOrders}
                         </div>
-                        <div className="text-xs text-slate-500">{t('crm.shipped')}</div>
+                        <div className="text-xs text-slate-500">{t("crm.shipped")}</div>
                       </div>
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
                         <div className="font-bold text-emerald-600 dark:text-emerald-400">
                           {c.conversionRate}%
                         </div>
-                        <div className="text-xs text-slate-500">{t('crm.rate')}</div>
+                        <div className="text-xs text-slate-500">{t("crm.rate")}</div>
                       </div>
                     </div>
                     <div className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {fmt(c.totalEarnings)} {t('crm.earned')}
+                      {fmt(c.totalEarnings)} {t("crm.earned")}
                     </div>
                   </div>
                 ))}
@@ -327,33 +234,17 @@ export default function Closers() {
             {chartData.length > 0 && (
               <div className="card p-5">
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-                  {t('crm.shippedByCloser')}
+                  {t("crm.shippedByCloser")}
                 </h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={chartData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#374151"
-                      opacity={0.3}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 12 }}
-                      stroke="#6b7280"
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#6b7280" />
                     <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" />
                     <Tooltip
-                      contentStyle={{
-                        background: "#1e293b",
-                        border: "none",
-                        borderRadius: 8,
-                      }}
+                      contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8 }}
                     />
-                    <Bar
-                      dataKey="confirmed"
-                      name={t('crm.confirmed')}
-                      radius={[4, 4, 0, 0]}
-                    >
+                    <Bar dataKey="shipped" name={t("crm.shipped")} radius={[4, 4, 0, 0]}>
                       {chartData.map((_, i) => (
                         <Cell key={i} fill={RANK_COLORS[i] || "#6366f1"} />
                       ))}
@@ -370,13 +261,13 @@ export default function Closers() {
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                     <tr>
                       {[
-                        t('crm.colRank'),
-                        t('crm.colAgent'),
-                        t('crm.totalOrders'),
-                        t('crm.confirmed'),
-                        t('crm.shipped'),
-                        t('crm.colShippingRate'),
-                        t('crm.colEarnings'),
+                        t("crm.colRank"),
+                        t("crm.colAgent"),
+                        t("crm.totalOrders"),
+                        t("crm.confirmed"),
+                        t("crm.shipped"),
+                        t("crm.colShippingRate"),
+                        t("crm.colEarnings"),
                       ].map((h) => (
                         <th
                           key={h}
@@ -431,14 +322,12 @@ export default function Closers() {
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                           <div className="flex items-center gap-1.5">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" />{" "}
-                            {c.totalOrders}
+                            <Phone className="w-3.5 h-3.5 text-slate-400" /> {c.totalOrders}
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                            <CheckCircle className="w-3.5 h-3.5" />{" "}
-                            {c.shippedFromConfirmedOrders ?? 0}
+                            <CheckCircle className="w-3.5 h-3.5" /> {c.confirmedOrders}
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -468,19 +357,15 @@ export default function Closers() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
-                            <Award className="w-3.5 h-3.5" />{" "}
-                            {fmt(c.totalEarnings)}
+                            <Award className="w-3.5 h-3.5" /> {fmt(c.totalEarnings)}
                           </div>
                         </td>
                       </tr>
                     ))}
                     {teamClosers.length === 0 && (
                       <tr>
-                        <td
-                          colSpan={7}
-                          className="text-center py-12 text-slate-400"
-                        >
-                          {t('crm.noClosersYet')}
+                        <td colSpan={7} className="text-center py-12 text-slate-400">
+                          {t("crm.noClosersYet")}
                         </td>
                       </tr>
                     )}
@@ -500,24 +385,19 @@ export default function Closers() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   className="input pl-9 w-full"
-                  placeholder={t('crm.searchTeam')}
+                  placeholder={t("crm.searchTeam")}
                   value={teamSearch}
                   onChange={(e) => setTeamSearch(e.target.value)}
                 />
               </div>
-              <p className="text-sm text-slate-500">
-                {t('crm.toggleClosersHint')}
-              </p>
+              <p className="text-sm text-slate-500">{t("crm.toggleClosersHint")}</p>
             </div>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredUsers.map((c) => {
                 const isToggling = toggling === c.id;
                 return (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between py-3"
-                  >
+                  <div key={c.id} className="flex items-center justify-between py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                         {c.avatar ? (
@@ -542,12 +422,14 @@ export default function Closers() {
                     <div className="flex items-center gap-3">
                       {c.isCloser && (
                         <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">
-                          {t('crm.designatedCloser')}
+                          {t("crm.designatedCloser")}
                         </span>
                       )}
                       <button
                         onClick={() =>
-                          c.isCloser ? toggleCloser(c.id) : openActivateModal(c)
+                          c.isCloser
+                            ? toggleCloser(c.id)
+                            : setActivateModal({ closerId: c.id, closerName: c.name })
                         }
                         disabled={isToggling}
                         className={cn(
@@ -557,11 +439,7 @@ export default function Closers() {
                             : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
                           isToggling && "opacity-50 cursor-not-allowed",
                         )}
-                        title={
-                          c.isCloser
-                            ? t('crm.removeFromTeam')
-                            : t('crm.addToTeam')
-                        }
+                        title={c.isCloser ? t("crm.removeFromTeam") : t("crm.addToTeam")}
                       >
                         {isToggling ? (
                           <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -577,7 +455,7 @@ export default function Closers() {
               })}
               {filteredUsers.length === 0 && (
                 <div className="py-10 text-center text-slate-400 text-sm">
-                  {t('crm.noUsersFound')}
+                  {t("crm.noUsersFound")}
                 </div>
               )}
             </div>
@@ -585,138 +463,37 @@ export default function Closers() {
         </div>
       )}
 
-      {/* Activate closer modal */}
+      {/* Activate closer modal — simple confirm */}
       {activateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => (!activating ? setActivateModal(null) : null)}
+            onClick={() => !activating && setActivateModal(null)}
           />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                  {t('crm.activateCloser')}
-                </h3>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  {t('crm.activateCloserDesc', { name: activateModal.closerName })}
-                </p>
-              </div>
-              <button
-                onClick={() => setActivateModal(null)}
-                disabled={activating}
-                className="btn-secondary px-3 py-1.5 text-sm"
-              >
-                {t('common.close')}
-              </button>
-            </div>
-
-            <div>
-              <label className="label">{t('crm.clientsLabel')}</label>
-              <div className="mt-1 max-h-52 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2">
-                {clientList.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-slate-400">
-                    {t('crm.noClientsFound')}
-                  </div>
-                ) : (
-                  clientList.map((client) => {
-                    const checked = selectedClientIds.has(client.id);
-                    return (
-                      <label
-                        key={client.id}
-                        className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-white/60 dark:hover:bg-slate-800 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => {
-                              const next = new Set(selectedClientIds);
-                              if (e.target.checked) next.add(client.id);
-                              else next.delete(client.id);
-                              setSelectedClientIds(next);
-                            }}
-                            className="accent-amber-500"
-                          />
-                          <span className="text-sm text-slate-800 dark:text-slate-200">
-                            {client.name}
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs text-slate-500">
-                  {t('crm.selectedCount', { count: selectedClientIds.size })}
-                </span>
-                <button
-                  type="button"
-                  className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                  onClick={() => setSelectedClientIds(new Set())}
-                  disabled={activating || selectedClientIds.size === 0}
-                >
-                  {t('crm.clear')}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">{t('crm.commissionType')}</label>
-                <select
-                  className="select mt-1"
-                  value={commissionType}
-                  onChange={(e) =>
-                    setCommissionType(e.target.value as CommissionType)
-                  }
-                >
-                  <option value="FIXED_PER_ORDER">{t('crm.fixedPerOrder')}</option>
-                  <option value="PERCENTAGE">{t('crm.percentageOfSale')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">
-                  {commissionType === "FIXED_PER_ORDER"
-                    ? t('crm.fixedAmountLabel')
-                    : t('crm.percentageLabel')}
-                </label>
-                <input
-                  className="input mt-1"
-                  type="number"
-                  step={commissionType === "FIXED_PER_ORDER" ? "0.01" : "0.1"}
-                  max={commissionType === "PERCENTAGE" ? 100 : undefined}
-                  value={commissionValue}
-                  onChange={(e) => setCommissionValue(e.target.value)}
-                  placeholder={
-                    commissionType === "FIXED_PER_ORDER" ? "20" : "5"
-                  }
-                />
-              </div>
-            </div>
-
-            {activateError && (
-              <p className="text-sm text-red-500">{activateError}</p>
-            )}
-
-            <div className="flex gap-3 pt-2">
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+            <h3 className="font-semibold text-slate-900 dark:text-white">
+              {t("crm.activateCloser")}
+            </h3>
+            <p className="text-sm text-slate-500">
+              {t("crm.activateCloserDesc", { name: activateModal.closerName })}
+            </p>
+            <div className="flex gap-3 pt-1">
               <button
                 onClick={() => setActivateModal(null)}
                 disabled={activating}
                 className="btn-secondary flex-1 py-2 text-sm"
               >
-                {t('common.cancel')}
+                {t("common.cancel")}
               </button>
               <button
-                onClick={activateCloserWithCommission}
+                onClick={activateCloser}
                 disabled={activating}
                 className="btn-primary flex-1 py-2 text-sm flex items-center justify-center gap-2"
               >
                 {activating && (
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                {activating ? t('crm.saving') : t('crm.activateAndSave')}
+                {activating ? t("crm.saving") : t("crm.activateAndSave")}
               </button>
             </div>
           </div>
