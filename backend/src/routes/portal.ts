@@ -752,8 +752,16 @@ router.get(
   portalAuthenticate,
   async (req: PortalRequest, res: Response): Promise<void> => {
     const clientId = req.portalUser!.clientId;
+    const { datePreset, from, to } = req.query as Record<string, string>;
+    const dateFilter: Record<string, Date> = {};
+    if (from) { const d = new Date(from); d.setHours(0,0,0,0); dateFilter.gte = d; }
+    if (to)   { const d = new Date(to);   d.setHours(23,59,59,999); dateFilter.lte = d; }
+    if (!from && !to && datePreset && datePreset !== 'all_time') {
+      const { start, end } = getPresetRange(datePreset);
+      dateFilter.gte = start; dateFilter.lte = end;
+    }
     const orders = await (prisma as any).crmOrder.findMany({
-      where: { clientId },
+      where: { clientId, ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}) },
       select: {
         orderAmount: true,
         netProfit: true,

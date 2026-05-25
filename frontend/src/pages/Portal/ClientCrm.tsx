@@ -145,9 +145,18 @@ function monthOptions() {
   });
 }
 
+const DATE_PRESETS = [
+  { value: "today",    label: "Today" },
+  { value: "last_7d",  label: "7 Days" },
+  { value: "last_30d", label: "30 Days" },
+  { value: "last_90d", label: "90 Days" },
+];
+
 export default function ClientCrm() {
   const { t } = useTranslation();
   const { fmt } = usePortalCurrency();
+  const [datePreset, setDatePreset] = useState("last_30d");
+  const [metaRoas, setMetaRoas] = useState<number | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
@@ -161,11 +170,16 @@ export default function ClientCrm() {
 
   useEffect(() => {
     setStatsLoading(true);
-    portalApi
-      .get<Stats>("/crm/stats")
-      .then(({ data }) => setStats(data))
-      .finally(() => setStatsLoading(false));
-  }, []);
+    setMetaRoas(null);
+    Promise.all([
+      portalApi.get<Stats>(`/crm/stats?datePreset=${datePreset}`),
+      portalApi.get<any>(`/kpis?datePreset=${datePreset}`),
+    ]).then(([statsRes, kpiRes]) => {
+      setStats(statsRes.data);
+      const roas = kpiRes.data?.summary?.roas;
+      if (roas != null && !kpiRes.data?.isMock) setMetaRoas(roas);
+    }).finally(() => setStatsLoading(false));
+  }, [datePreset]);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -202,7 +216,7 @@ export default function ClientCrm() {
         { label: t('portal.profitMargin'), value: `${stats.profitMargin}%`, icon: Percent, color: stats.profitMargin >= 20 ? "text-emerald-400" : "text-amber-400", bg: "bg-purple-500/10" },
         { label: t('portal.avgOrderValue'), value: fmt(stats.avgOrderValue), icon: BarChart2, color: "text-purple-400", bg: "bg-purple-500/10" },
         { label: t('portal.convRate'), value: `${stats.conversionRate}%`, icon: ArrowUpRight, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-        { label: t('portal.adSpendRoas'), value: stats.roas > 0 ? `${stats.roas}x` : "—", icon: TrendingUp, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+        { label: t('portal.adSpendRoas'), value: (() => { const r = metaRoas ?? stats.roas; return r > 0 ? `${r.toFixed(2)}x` : "—"; })(), icon: TrendingUp, color: "text-cyan-400", bg: "bg-cyan-500/10" },
         { label: t('portal.codPending'), value: fmt(stats.codPending), icon: AlertTriangle, color: "text-orange-400", bg: "bg-orange-500/10" },
         { label: t('portal.confirmedOrders'), value: stats.confirmed.toString(), icon: PackageCheck, color: "text-emerald-400", bg: "bg-emerald-500/10" },
         { label: t('portal.shippedCount'), value: stats.delivered.toString(), icon: PackageCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
@@ -213,11 +227,29 @@ export default function ClientCrm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">{t('portal.orderDashboard')}</h1>
-        <p className="text-sm text-slate-400 mt-0.5">
-          {t('portal.orderDashboardDesc')}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">{t('portal.orderDashboard')}</h1>
+          <p className="text-sm text-slate-400 mt-0.5">
+            {t('portal.orderDashboardDesc')}
+          </p>
+        </div>
+        <div className="flex items-center bg-[#0d1528] border border-slate-800/60 rounded-xl p-1 gap-1 self-start sm:self-auto">
+          {DATE_PRESETS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setDatePreset(p.value)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                datePreset === p.value
+                  ? "bg-amber-500 text-white shadow"
+                  : "text-slate-400 hover:text-white",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* KPI Grid */}
