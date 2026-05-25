@@ -864,6 +864,10 @@ router.put(
     const record = await (prisma as any).closerCommissionRecord.update({
       where: { id: req.params.id },
       data: { paid: true, paidAt: new Date() },
+      include: {
+        closer: { select: { id: true, name: true } },
+        order: { select: { id: true, customerName: true, productName: true, orderAmount: true, confirmedAt: true } },
+      },
     });
     res.json(record);
   }),

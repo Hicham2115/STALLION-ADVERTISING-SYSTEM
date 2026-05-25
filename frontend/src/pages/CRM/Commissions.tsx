@@ -241,53 +241,84 @@ export default function Commissions() {
         </>
       )}
 
-      {/* Payout Records */}
-      {tab === 'records' && (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  {[t('crm.colCloser'), t('crm.colOrder'), t('crm.colCommission'), t('common.date'), t('common.status'), ''].map((h, i) => (
-                    <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {records.map(r => (
-                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{r.closer?.name}</td>
-                    <td className="px-4 py-3 text-slate-500">
-                      <div>{r.order?.customerName}</div>
-                      <div className="text-xs">{r.order?.productName}</div>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-amber-600 dark:text-amber-400">{fmt(r.amount)}</td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(r.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      {r.paid ? (
-                        <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs">{t('crm.paid')}</span>
-                      ) : (
-                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">{t('crm.pending')}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {!r.paid && (
-                        <button onClick={() => payCommission(r.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
-                          <CheckCircle className="w-3.5 h-3.5" /> {t('crm.markPaid')}
-                        </button>
-                      )}
-                    </td>
+      {/* Payout Records — grouped by closer */}
+      {tab === 'records' && (() => {
+        const grouped = records.reduce<Record<string, {
+          closerId: string;
+          closerName: string;
+          paid: number;
+          unpaid: number;
+          pendingIds: string[];
+        }>>((acc, r) => {
+          const id = r.closerId;
+          const name = r.closer?.name || r.closerId;
+          if (!acc[id]) acc[id] = { closerId: id, closerName: name, paid: 0, unpaid: 0, pendingIds: [] };
+          if (r.paid) {
+            acc[id].paid += r.amount;
+          } else {
+            acc[id].unpaid += r.amount;
+            acc[id].pendingIds.push(r.id);
+          }
+          return acc;
+        }, {});
+        const rows = Object.values(grouped);
+
+        return (
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    {[t('crm.colCloser'), t('crm.totalPaid'), t('crm.pendingPayout'), ''].map((h, i) => (
+                      <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
-                ))}
-                {records.length === 0 && !loading && (
-                  <tr><td colSpan={6} className="text-center py-12 text-slate-400">{t('crm.noCommissionRecords')}</td></tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {rows.map(row => (
+                    <tr key={row.closerId} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <td className="px-4 py-4 font-semibold text-slate-900 dark:text-white">
+                        {row.closerName}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs">
+                            {t('crm.paid')}
+                          </span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">{fmt(row.paid)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs">
+                            {t('crm.pending')}
+                          </span>
+                          <span className="font-semibold text-amber-600 dark:text-amber-400">{fmt(row.unpaid)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {row.unpaid > 0 && (
+                          <button
+                            onClick={async () => {
+                              await Promise.all(row.pendingIds.map(id => payCommission(id)));
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" /> {t('crm.markPaid')}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {rows.length === 0 && !loading && (
+                    <tr><td colSpan={4} className="text-center py-12 text-slate-400">{t('crm.noCommissionRecords')}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
