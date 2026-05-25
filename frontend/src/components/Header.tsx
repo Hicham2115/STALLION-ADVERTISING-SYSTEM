@@ -286,7 +286,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </div>
               </div>
               <UserButton
-                appearance={clerkAppearance}
+                appearance={clerkAppearance(theme === 'dark')}
                 afterSignOutUrl="/login"
                 userProfileMode="modal"
               />
