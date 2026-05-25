@@ -274,7 +274,7 @@ export default function MasterDashboard() {
 
       {/* Agency cards */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-slate-900 border border-slate-700/50 rounded-2xl p-5 space-y-3 animate-pulse">
               <div className="h-5 bg-slate-800 rounded w-1/2" />
@@ -288,7 +288,7 @@ export default function MasterDashboard() {
       ) : agencies.length === 0 ? (
         <div className="text-center py-20 text-slate-400">No agencies found.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {agencies.map((a) => <AgencyCard key={a.id} agency={a} />)}
         </div>
       )}
