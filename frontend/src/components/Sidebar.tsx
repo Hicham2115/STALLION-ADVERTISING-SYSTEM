@@ -15,9 +15,12 @@ import {
   CalendarClock,
   ShoppingCart,
   Package,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+
+const MASTER_EMAIL = 'advertisingstallion@gmail.com';
 import { useTranslation } from "react-i18next";
 import logo from "../assets/png.png";
 
@@ -48,7 +51,8 @@ function NavItem({ to, icon: Icon, label, exact, onClick }: { to: string; icon: 
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { isAdmin, isManager } = useAuth();
+  const { isAdmin, isManager, user } = useAuth();
+  const isMaster = user?.email === MASTER_EMAIL;
   const { t } = useTranslation();
 
   const managerNav = [
@@ -129,6 +133,29 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <NavItem to="/team" icon={UserCog} label={t('nav.team')} onClick={onClose} />
             <NavItem to="/settings/services" icon={Layers} label={t('nav.services')} onClick={onClose} />
             <NavItem to="/portal-admin" icon={Globe} label={t('nav.portalClients')} onClick={onClose} />
+          </>
+        )}
+
+        {isMaster && (
+          <>
+            <div className="text-xs font-semibold text-amber-500/70 uppercase tracking-wider px-3 mt-5 mb-2">
+              Master
+            </div>
+            <NavLink
+              to="/master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  isActive
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    : "text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/10",
+                )
+              }
+            >
+              <Crown className="w-4 h-4 shrink-0" />
+              All Platforms
+            </NavLink>
           </>
         )}
       </nav>

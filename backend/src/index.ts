@@ -27,6 +27,7 @@ import portalAdminRoutes from './routes/portalAdmin';
 import currencyRoutes from './routes/currency';
 import meetingRoutes from './routes/meetings';
 import crmRoutes from './routes/crm';
+import masterRoutes from './routes/master';
 import { initSocket } from './socket';
 import { prisma } from './lib/prisma';
 import { errorHandler, notFound } from './middleware/errorHandler';
@@ -105,6 +106,7 @@ app.use('/api/portal-admin', portalAdminRoutes);
 app.use('/api/currency', currencyRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/crm', crmRoutes);
+app.use('/api/master', masterRoutes);
 
 // Error handling
 app.use(notFound);

@@ -36,6 +36,7 @@ import ClientCrm from "@/pages/Portal/ClientCrm";
 import PortalClientsPage from "@/pages/Admin/PortalClients";
 import ClientPortalDetail from "@/pages/Admin/PortalClients/ClientPortalDetail";
 import MyOrders from "@/pages/MyOrders";
+import MasterDashboard from "@/pages/Master";
 
 function Spinner() {
   return (
@@ -211,6 +212,7 @@ export default function App() {
                   </ManagerRoute>
                 }
               />
+              <Route path="master" element={<MasterDashboard />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
