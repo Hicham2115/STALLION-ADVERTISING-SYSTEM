@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, AuthRequest, ROLE_LEVELS } from "../middleware/auth";
-import { getRatesCache } from "../lib/currency";
+import { getRatesCache, convert, Currency } from "../lib/currency";
 
 const router = Router();
 router.use(authenticate);
@@ -74,6 +74,12 @@ async function getClientKpiSpend(
   });
   if (config?.metaToken && config?.metaAdAccountId) {
     try {
+      // Fetch ad account native currency first
+      const acctUrl = `https://graph.facebook.com/v19.0/act_${config.metaAdAccountId}?fields=currency&access_token=${config.metaToken}`;
+      const acctRes = await fetch(acctUrl);
+      const acctData: any = await acctRes.json();
+      const adAccountCurrency = (acctData?.currency || "USD") as Currency;
+
       const qs = new URLSearchParams({
         fields: "spend",
         level: "account",
@@ -95,7 +101,9 @@ async function getClientKpiSpend(
       const metaRes = await fetch(url);
       const metaData: any = await metaRes.json();
       if (!metaData.error) {
-        return parseFloat(metaData.data?.[0]?.spend || 0);
+        const spendInAdCurrency = parseFloat(metaData.data?.[0]?.spend || 0);
+        // Convert from ad account currency to MAD
+        return convert(spendInAdCurrency, adAccountCurrency, "MAD");
       }
     } catch (err: any) {
       console.error("Meta Ads spend lookup failed:", err.message);
