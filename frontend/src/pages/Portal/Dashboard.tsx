@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { DollarSign, FileText, Bell, CheckCircle, TrendingUp, Clock, ArrowRight, BarChart2, Calendar } from 'lucide-react';
+import { DollarSign, FileText, Bell, CheckCircle, TrendingUp, Clock, ArrowRight, BarChart2, Calendar, ShoppingCart, Truck, BarChart3 } from 'lucide-react';
 import { portalApi } from '@/context/PortalAuthContext';
 import { usePortalAuth } from '@/context/PortalAuthContext';
 import { usePortalCurrency } from '@/context/PortalCurrencyContext';
@@ -66,6 +66,7 @@ export default function PortalDashboardPage() {
   const { user } = usePortalAuth();
   const { fmt } = usePortalCurrency();
   const [data, setData] = useState<PortalDashboard | null>(null);
+  const [crmStats, setCrmStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
@@ -82,8 +83,13 @@ export default function PortalDashboardPage() {
       const range = getPresetRange(datePreset);
       if (range) { params.set('from', range.from); params.set('to', range.to); }
     }
-    portalApi.get<PortalDashboard>(`/dashboard?${params.toString()}`).then(({ data: d }) => {
-      setData(d);
+    const qs = params.toString();
+    Promise.all([
+      portalApi.get<PortalDashboard>(`/dashboard?${qs}`),
+      portalApi.get<any>(`/crm/stats?${qs}`),
+    ]).then(([dashRes, statsRes]) => {
+      setData(dashRes.data);
+      setCrmStats(statsRes.data);
     }).catch(() => {
       setError('Failed to load dashboard. Please try refreshing.');
     }).finally(() => setLoading(false));
@@ -154,6 +160,26 @@ export default function PortalDashboardPage() {
           </select>
         </div>
       </div>
+
+      {/* Order KPI cards */}
+      {crmStats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { icon: ShoppingCart, label: t('portal.totalOrders'),   value: crmStats.totalOrders.toString(),                                       color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20' },
+            { icon: DollarSign,   label: t('portal.totalRevenue'),   value: fmt(crmStats.totalRevenue),                                            color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20' },
+            { icon: BarChart3,    label: t('portal.avgOrderValue'),  value: fmt(crmStats.avgOrderValue),                                           color: 'text-purple-400',  bg: 'bg-purple-500/10 border-purple-500/20' },
+            { icon: Truck,        label: t('portal.shippedCount'),   value: ((crmStats.shipped ?? 0) + (crmStats.delivered ?? 0)).toString(),      color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+          ].map(({ icon: Icon, label, value, color, bg }) => (
+            <div key={label} className="bg-[#0d1528]/80 border border-slate-800/60 rounded-2xl p-5">
+              <div className={cn('w-10 h-10 rounded-xl border flex items-center justify-center mb-3', bg)}>
+                <Icon className={cn('w-5 h-5', color)} />
+              </div>
+              <div className="text-2xl font-bold text-white mb-0.5">{value}</div>
+              <div className="text-xs text-slate-500 mt-1">{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

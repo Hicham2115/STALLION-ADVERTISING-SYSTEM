@@ -596,7 +596,6 @@ export default function ClientCrm() {
                   t('portal.colRevenue'),
                   t('crm.colNetProfit'),
                   t('common.status'),
-                  t('portal.colPayment'),
                   t('portal.colSource'),
                   t('portal.colAgent'),
                   t('common.date'),
@@ -675,20 +674,6 @@ export default function ClientCrm() {
                         )}
                       >
                         {o.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "text-xs font-medium",
-                          o.paymentStatus === "PAID"
-                            ? "text-emerald-400"
-                            : o.paymentStatus === "REFUNDED"
-                              ? "text-red-400"
-                              : "text-amber-400",
-                        )}
-                      >
-                        {o.paymentStatus.replace("_", " ")}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400">
