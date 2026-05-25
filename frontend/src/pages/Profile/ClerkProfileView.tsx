@@ -4,6 +4,7 @@ import { Shield, Calendar, Clock, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { clerkAppearance } from '@/lib/clerk';
+import { useTheme } from '@/context/ThemeContext';
 import { cn, formatDate, formatRelativeTime } from '@/lib/utils';
 import { Role } from '@/types';
 
@@ -18,6 +19,7 @@ export default function ClerkProfileView() {
   const { t } = useTranslation();
   const { user, syncClerkProfile } = useAuth();
   const { user: clerkUser, isLoaded } = useUser();
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!user?.clerkId || !isLoaded) return;
@@ -70,7 +72,7 @@ export default function ClerkProfileView() {
       </div>
 
       <div className="card p-4 sm:p-6 overflow-hidden">
-        <UserProfile routing="hash" appearance={clerkAppearance} />
+        <UserProfile routing="hash" appearance={clerkAppearance(theme === 'dark')} />
       </div>
     </div>
   );
