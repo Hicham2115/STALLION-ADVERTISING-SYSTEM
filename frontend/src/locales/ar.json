@@ -840,7 +840,7 @@
     "tableRole": "الدور",
     "tableStatus": "الحالة",
     "tableUser": "المستخدم",
-    "totalUsers": "{{count}} مستخدم إجمالاً",
+    "totalUsers": "إجمالي المستخدمين",
     "userActivated": "تم تفعيل المستخدم",
     "userCreated": "تم إنشاء المستخدم",
     "userDeleted": "تم حذف المستخدم",

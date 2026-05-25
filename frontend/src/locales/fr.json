@@ -840,7 +840,7 @@
     "tableRole": "Rôle",
     "tableStatus": "Statut",
     "tableUser": "Utilisateur",
-    "totalUsers": "{{count}} utilisateur(s) total",
+    "totalUsers": "Utilisateurs total",
     "userActivated": "Utilisateur activé",
     "userCreated": "Utilisateur créé",
     "userDeleted": "Utilisateur supprimé",
