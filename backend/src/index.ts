@@ -10,8 +10,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import path from 'path';    
- 
+import path from 'path';
+import { authenticate } from './middleware/auth';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import clientRoutes from './routes/clients';
@@ -29,7 +29,6 @@ import meetingRoutes from './routes/meetings';
 import crmRoutes from './routes/crm';
 import masterRoutes from './routes/master';
 import { initSocket } from './socket';
-import { prisma } from './lib/prisma';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { syncRates, loadRatesFromDB } from './lib/currency';
 import { schedule as cronSchedule } from 'node-cron';
@@ -49,7 +48,10 @@ app.use(cors({
   credentials: true,
 }));
 
-// Rate limiting
+// Rate limiting — strict on auth endpoints, generous elsewhere
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 15, skipSuccessfulRequests: true, message: 'Too many login attempts, try again later' });
+app.use('/api/auth/login', authLimiter);
+app.use('/api/portal/login', authLimiter);
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: process.env.NODE_ENV === 'production' ? 500 : 5000, message: 'Too many requests' }));
 
 // Logging & parsing
@@ -57,38 +59,11 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Static uploads
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// DB diagnostic
-app.get('/db-test', async (_req, res) => {
-  const results: Record<string, unknown> = {};
-  try {
-    const raw = await Promise.race([
-      prisma.$queryRaw`SELECT 1 as n`,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout after 5s')), 5000)),
-    ]);
-    results.rawQuery = raw;
-  } catch (e: any) { results.rawQuery = { error: e.message }; }
-  try {
-    const count = await Promise.race([
-      prisma.user.count(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout after 5s')), 5000)),
-    ]);
-    results.count = count;
-  } catch (e: any) { results.count = { error: e.message }; }
-  try {
-    const find = await Promise.race([
-      prisma.user.findFirst(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout after 5s')), 5000)),
-    ]);
-    results.findFirst = find;
-  } catch (e: any) { results.findFirst = { error: e.message }; }
-  res.json(results);
-});
+// Serve uploads — requires valid JWT or portal token
+app.use('/uploads', authenticate, express.static(path.join(process.cwd(), 'uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);

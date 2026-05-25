@@ -39,7 +39,7 @@ frontend/.vite/
 # ---- Env / Secrets ----
 .env
 .env.*
-!.env.example
+.env.example
 
 # ---- Prisma ----
 # Prisma may download engines under node_modules; those are ignored via node_modules/

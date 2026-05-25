@@ -173,6 +173,10 @@ router.put(
       res.status(400).json({ message: "Both passwords required" });
       return;
     }
+    if (newPassword.length < 8) {
+      res.status(400).json({ message: "Password must be at least 8 characters" });
+      return;
+    }
     const user = await prisma.clientPortalUser.findUnique({
       where: { id: req.portalUser!.clientPortalUserId },
     });

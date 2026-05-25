@@ -158,10 +158,18 @@ router.put(
   "/:clientId/reset-password",
   async (req: AuthRequest, res: Response): Promise<void> => {
     const { password } = req.body;
-    if (!password || password.length < 6) {
-      res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters" });
+    if (!password || password.length < 8) {
+      res.status(400).json({ message: "Password must be at least 8 characters" });
+      return;
+    }
+    // Verify the client belongs to the authenticated user's agency
+    const client = await prisma.client.findUnique({ where: { id: req.params.clientId }, select: { agencyId: true } });
+    if (!client) {
+      res.status(404).json({ message: "Client not found" });
+      return;
+    }
+    if (req.user!.agencyId && client.agencyId !== req.user!.agencyId) {
+      res.status(403).json({ message: "Forbidden" });
       return;
     }
     const portalUser = await prisma.clientPortalUser.findUnique({
@@ -376,6 +384,14 @@ router.post(
 router.put(
   "/content/:contentId",
   async (req: AuthRequest, res: Response): Promise<void> => {
+    const existing = await prisma.contentDelivery.findUnique({
+      where: { id: req.params.contentId },
+      include: { client: { select: { agencyId: true } } },
+    });
+    if (!existing) { res.status(404).json({ message: "Content not found" }); return; }
+    if (req.user!.agencyId && existing.client?.agencyId !== req.user!.agencyId) {
+      res.status(403).json({ message: "Forbidden" }); return;
+    }
     const {
       title,
       description,
@@ -408,9 +424,15 @@ router.put(
 router.delete(
   "/content/:contentId",
   async (req: AuthRequest, res: Response): Promise<void> => {
-    await prisma.contentDelivery.delete({
+    const existing = await prisma.contentDelivery.findUnique({
       where: { id: req.params.contentId },
+      include: { client: { select: { agencyId: true } } },
     });
+    if (!existing) { res.status(404).json({ message: "Content not found" }); return; }
+    if (req.user!.agencyId && existing.client?.agencyId !== req.user!.agencyId) {
+      res.status(403).json({ message: "Forbidden" }); return;
+    }
+    await prisma.contentDelivery.delete({ where: { id: req.params.contentId } });
     res.json({ message: "Content deleted" });
   },
 );

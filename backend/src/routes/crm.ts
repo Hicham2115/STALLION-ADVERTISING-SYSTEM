@@ -350,12 +350,18 @@ router.post(
 
 router.put(
   "/orders/:id",
-  h(async (req, res) => {
+  h(async (req: AuthRequest, res) => {
     const existing = await (prisma as any).crmOrder.findUnique({
       where: { id: req.params.id },
+      include: { client: { select: { agencyId: true } } },
     });
     if (!existing) {
       res.status(404).json({ message: "Order not found" });
+      return;
+    }
+    // Ensure the order belongs to the same agency as the authenticated user
+    if (existing.client?.agencyId && req.user!.agencyId && existing.client.agencyId !== req.user!.agencyId) {
+      res.status(403).json({ message: "Forbidden" });
       return;
     }
 
