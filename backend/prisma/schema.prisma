@@ -584,12 +584,13 @@ model ClientNotification {
 }
 
 model ClientKpiConfig {
-  id              String   @id @default(cuid())
-  clientId        String   @unique
-  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  metaToken       String?
-  metaAdAccountId String?
-  updatedAt       DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  clientId           String    @unique
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  metaToken          String?
+  metaAdAccountId    String?
+  metaTokenExpiresAt DateTime?
+  updatedAt          DateTime  @updatedAt
 
   @@map("client_kpi_configs")
 }

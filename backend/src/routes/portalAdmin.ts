@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { authenticate, requireRole, AuthRequest } from "../middleware/auth";
+import https from "https";
 
 const router = Router();
 router.use(authenticate, requireRole("MANAGER"));
@@ -445,26 +446,57 @@ router.get(
     res.json({
       metaAdAccountId: config.metaAdAccountId,
       hasToken: !!config.metaToken,
+      metaTokenExpiresAt: (config as any).metaTokenExpiresAt ?? null,
     });
   },
 );
+
+async function exchangeForLongLivedToken(shortToken: string): Promise<{ token: string; expiresAt: Date | null }> {
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appId || !appSecret) return { token: shortToken, expiresAt: null };
+  try {
+    const url = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${encodeURIComponent(shortToken)}`;
+    const data: any = await new Promise((resolve, reject) => {
+      https.get(url, (r) => {
+        let body = "";
+        r.on("data", (c) => (body += c));
+        r.on("end", () => { try { resolve(JSON.parse(body)); } catch { reject(new Error("parse error")); } });
+      }).on("error", reject);
+    });
+    if (data.access_token) {
+      const expiresAt = data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null;
+      return { token: data.access_token, expiresAt };
+    }
+  } catch {}
+  return { token: shortToken, expiresAt: null };
+}
 
 // PUT /api/portal-admin/:clientId/kpi-config
 router.put(
   "/:clientId/kpi-config",
   async (req: AuthRequest, res: Response): Promise<void> => {
     const { metaToken, metaAdAccountId } = req.body;
+
+    // Build update payload — only touch metaToken if a new one was provided
+    const updateData: any = { metaAdAccountId: metaAdAccountId || null };
+    if (metaToken) {
+      const { token, expiresAt } = await exchangeForLongLivedToken(metaToken.trim());
+      updateData.metaToken = token;
+      updateData.metaTokenExpiresAt = expiresAt;
+    }
+
     await prisma.clientKpiConfig.upsert({
       where: { clientId: req.params.clientId },
       create: {
         clientId: req.params.clientId,
-        metaToken: metaToken || null,
-        metaAdAccountId: metaAdAccountId || null,
+        metaToken: updateData.metaToken ?? null,
+        metaAdAccountId: updateData.metaAdAccountId,
+        ...(updateData.metaTokenExpiresAt !== undefined
+          ? { metaTokenExpiresAt: updateData.metaTokenExpiresAt }
+          : {}),
       },
-      update: {
-        metaToken: metaToken || null,
-        metaAdAccountId: metaAdAccountId || null,
-      },
+      update: updateData,
     });
     res.json({ message: "KPI config saved" });
   },

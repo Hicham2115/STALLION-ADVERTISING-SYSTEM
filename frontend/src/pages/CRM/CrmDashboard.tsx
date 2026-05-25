@@ -150,10 +150,14 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
       if (month) {
         params.set("from", month.from);
         params.set("to", month.to);
+        params.set("datePreset", "custom");
       }
     } else if (datePreset) {
       const range = getPresetRange(datePreset);
       if (range) { params.set("from", range.from); params.set("to", range.to); }
+      params.set("datePreset", datePreset);
+    } else {
+      params.set("datePreset", "all_time");
     }
     api
       .get<AnalyticsData>(`/crm/analytics?${params.toString()}`)

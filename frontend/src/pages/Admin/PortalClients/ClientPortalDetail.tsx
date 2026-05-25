@@ -211,6 +211,7 @@ export default function ClientPortalDetail() {
     metaAdAccountId: "",
   });
   const [kpiHasToken, setKpiHasToken] = useState(false);
+  const [kpiTokenExpiresAt, setKpiTokenExpiresAt] = useState<string | null>(null);
   const [kpiLoading, setKpiLoading] = useState(false);
 
   // Shopify config
@@ -256,7 +257,7 @@ export default function ClientPortalDetail() {
     setLoading(true);
     Promise.all([
       api.get<DetailData>(`/portal-admin/${clientId}`),
-      api.get<{ metaAdAccountId: string | null; hasToken: boolean }>(
+      api.get<{ metaAdAccountId: string | null; hasToken: boolean; metaTokenExpiresAt: string | null }>(
         `/portal-admin/${clientId}/kpi-config`,
       ),
       api.get<ShopifyConfig[]>(`/portal-admin/${clientId}/shopify`),
@@ -268,6 +269,7 @@ export default function ClientPortalDetail() {
           metaAdAccountId: kpiRes.data.metaAdAccountId ?? "",
         }));
         setKpiHasToken(kpiRes.data.hasToken);
+        setKpiTokenExpiresAt(kpiRes.data.metaTokenExpiresAt ?? null);
         setShopifyConfigs(shopifyRes.data);
         setShopifyHasToken(
           shopifyRes.data.some((config) => !!config.accessToken),
@@ -401,7 +403,14 @@ export default function ClientPortalDetail() {
     try {
       await api.put(`/portal-admin/${clientId}/kpi-config`, kpiForm);
       showToast(t("portalAdmin.kpiSaved"));
-      setKpiHasToken(!!kpiForm.metaToken);
+      if (kpiForm.metaToken) setKpiHasToken(true);
+      // Re-fetch to get updated expiry date from server
+      const updated = await api.get<{ metaAdAccountId: string | null; hasToken: boolean; metaTokenExpiresAt: string | null }>(
+        `/portal-admin/${clientId}/kpi-config`,
+      );
+      setKpiHasToken(updated.data.hasToken);
+      setKpiTokenExpiresAt(updated.data.metaTokenExpiresAt ?? null);
+      setKpiForm((f) => ({ ...f, metaToken: "" }));
     } finally {
       setKpiLoading(false);
     }
@@ -1219,14 +1228,29 @@ export default function ClientPortalDetail() {
       {activeTab === "KPI Config" && (
         <Section title={t("portalAdmin.metaAdsConfig")}>
           <div className="space-y-4">
-            {kpiHasToken && (
-              <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl p-3">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <p className="text-xs text-green-300">
-                  {t("portalAdmin.metaTokenConfigured")}
-                </p>
-              </div>
-            )}
+            {kpiHasToken && (() => {
+              const expiry = kpiTokenExpiresAt ? new Date(kpiTokenExpiresAt) : null;
+              const now = new Date();
+              const daysLeft = expiry ? Math.ceil((expiry.getTime() - now.getTime()) / 86400000) : null;
+              const isExpired = daysLeft !== null && daysLeft <= 0;
+              const isWarning = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+              return (
+                <>
+                  <div className={`flex items-center gap-2 rounded-xl p-3 border ${isExpired ? "bg-red-500/10 border-red-500/20" : isWarning ? "bg-yellow-500/10 border-yellow-500/20" : "bg-green-500/10 border-green-500/20"}`}>
+                    <CheckCircle className={`w-4 h-4 ${isExpired ? "text-red-400" : isWarning ? "text-yellow-400" : "text-green-400"}`} />
+                    <p className={`text-xs ${isExpired ? "text-red-300" : isWarning ? "text-yellow-300" : "text-green-300"}`}>
+                      {isExpired
+                        ? "Meta token has expired — please enter a new token."
+                        : isWarning
+                        ? `Meta token expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"} — update it soon.`
+                        : expiry
+                        ? `${t("portalAdmin.metaTokenConfigured")} · Expires ${expiry.toLocaleDateString()}`
+                        : t("portalAdmin.metaTokenConfigured")}
+                    </p>
+                  </div>
+                </>
+              );
+            })()}
             <InputField
               label={t("portalAdmin.metaAdAccountId")}
               placeholder="123456789"

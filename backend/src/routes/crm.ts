@@ -1158,28 +1158,16 @@ router.get(
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
+    const isAllTime = !from && !to && (!datePreset || datePreset === "all_time");
 
-    // Default to a meaningful range to power the "trend" charts.
-    // If a custom range is provided, use it as-is.
-    const hasCustomRange = Boolean(from || to);
     const effectiveFromDate = (() => {
-      if (from) {
-        const d = new Date(from as string);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      }
-      if (hasCustomRange && !from) return undefined;
-      // default: start of month 5 months ago
+      if (from) { const d = new Date(from as string); d.setHours(0, 0, 0, 0); return d; }
+      if (isAllTime) return undefined;
       return new Date(today.getFullYear(), today.getMonth() - 5, 1);
     })();
     const effectiveToDate = (() => {
-      if (to) {
-        const d = new Date(to as string);
-        d.setHours(23, 59, 59, 999);
-        return d;
-      }
-      if (hasCustomRange && !to) return undefined;
-      // default: today
+      if (to) { const d = new Date(to as string); d.setHours(23, 59, 59, 999); return d; }
+      if (isAllTime) return undefined;
       return today;
     })();
 
@@ -1238,14 +1226,33 @@ router.get(
       effectiveFrom,
       effectiveTo,
     );
-    const totalAdSpend = clientId
-      ? await getClientKpiSpend(
-          clientId as string,
-          (datePreset as string) || "custom",
-          effectiveFrom,
-          effectiveTo,
-        )
-      : linkedCostSpend || orderAdSpend;
+    let totalAdSpend: number;
+    if (clientId) {
+      totalAdSpend = await getClientKpiSpend(
+        clientId as string,
+        (datePreset as string) || "custom",
+        effectiveFrom,
+        effectiveTo,
+      );
+    } else {
+      // All clients: sum Meta Ads spend from every client that has a token
+      const allKpiConfigs = await prisma.clientKpiConfig.findMany({
+        where: { metaToken: { not: null }, metaAdAccountId: { not: null } },
+        select: { clientId: true },
+      });
+      const metaSpends = await Promise.all(
+        allKpiConfigs.map((c: { clientId: string }) =>
+          getClientKpiSpend(
+            c.clientId,
+            (datePreset as string) || "custom",
+            effectiveFrom,
+            effectiveTo,
+          ),
+        ),
+      );
+      const totalMetaSpend = metaSpends.reduce((s: number, v: number) => s + v, 0);
+      totalAdSpend = totalMetaSpend || linkedCostSpend || orderAdSpend;
+    }
     const totalProductCost = revenueOrders.reduce(
       (s: number, o: any) => s + o.productCost,
       0,
@@ -1392,6 +1399,15 @@ router.get(
         (sum, k) => sum + monthlyMap[k].revenue,
         0,
       );
+      for (const key of seriesKeys) {
+        monthlyMap[key].adSpend =
+          revenueSum > 0
+            ? (totalAdSpend * monthlyMap[key].revenue) / revenueSum
+            : totalAdSpend / Math.max(seriesKeys.length, 1);
+      }
+    } else if (totalAdSpend > 0) {
+      // Distribute aggregated Meta Ads spend across months proportionally to revenue
+      const revenueSum = seriesKeys.reduce((sum, k) => sum + monthlyMap[k].revenue, 0);
       for (const key of seriesKeys) {
         monthlyMap[key].adSpend =
           revenueSum > 0
