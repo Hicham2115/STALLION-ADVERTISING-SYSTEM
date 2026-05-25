@@ -301,7 +301,6 @@ export default function ClosersSettings() {
                 <Stat label={t('crm.totalOrders')} value={c.totalOrders} />
                 <Stat label={t('crm.confirmed')} value={c.confirmedOrders} />
                 <Stat label={t('crm.shipped')} value={c.shippedOrders} />
-                <Stat label={t('crm.delivered')} value={c.deliveredOrders} />
                 <Stat label={t('crm.rate')} value={`${c.conversionRate}%`} accent />
                 <Stat label={t('crm.earned')} value={fmt(c.totalEarnings)} accent />
               </div>
