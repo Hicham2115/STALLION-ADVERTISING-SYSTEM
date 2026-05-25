@@ -219,7 +219,7 @@ export default function ClientCrm() {
         { label: t('portal.adSpendRoas'), value: (() => { const r = metaRoas ?? stats.roas; return r > 0 ? `${r.toFixed(2)}x` : "—"; })(), icon: TrendingUp, color: "text-cyan-400", bg: "bg-cyan-500/10" },
         { label: t('portal.codPending'), value: fmt(stats.codPending), icon: AlertTriangle, color: "text-orange-400", bg: "bg-orange-500/10" },
         { label: t('portal.confirmedOrders'), value: stats.confirmed.toString(), icon: PackageCheck, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-        { label: t('portal.shippedCount'), value: stats.delivered.toString(), icon: PackageCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
+        { label: t('portal.shippedCount'), value: (stats.shipped + stats.delivered).toString(), icon: PackageCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
         { label: t('portal.cancelledCount'), value: stats.cancelled.toString(), icon: XCircle, color: "text-red-400", bg: "bg-red-500/10" },
         { label: t('portal.returnRate'), value: `${stats.returnRate}%`, icon: Package, color: "text-orange-400", bg: "bg-orange-500/10" },
       ]
@@ -234,22 +234,15 @@ export default function ClientCrm() {
             {t('portal.orderDashboardDesc')}
           </p>
         </div>
-        <div className="flex items-center bg-[#0d1528] border border-slate-800/60 rounded-xl p-1 gap-1 self-start sm:self-auto">
+        <select
+          value={datePreset}
+          onChange={(e) => setDatePreset(e.target.value)}
+          className="bg-[#0d1528]/80 border border-slate-700/60 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer"
+        >
           {DATE_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => setDatePreset(p.value)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                datePreset === p.value
-                  ? "bg-amber-500 text-white shadow"
-                  : "text-slate-400 hover:text-white",
-              )}
-            >
-              {p.label}
-            </button>
+            <option key={p.value} value={p.value}>{p.label}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* KPI Grid */}

@@ -33,6 +33,23 @@ function monthOptions() {
     };
   });
 }
+
+const DATE_PRESETS = [
+  { value: "today",    label: "Today" },
+  { value: "last_7d",  label: "7 Days" },
+  { value: "last_30d", label: "30 Days" },
+  { value: "last_90d", label: "90 Days" },
+];
+
+function getPresetRange(preset: string): { from: string; to: string } | null {
+  const today = new Date();
+  const to = toIsoDate(today);
+  if (preset === "today") return { from: to, to };
+  if (preset === "last_7d") { const d = new Date(); d.setDate(d.getDate() - 6); return { from: toIsoDate(d), to }; }
+  if (preset === "last_30d") { const d = new Date(); d.setDate(d.getDate() - 29); return { from: toIsoDate(d), to }; }
+  if (preset === "last_90d") { const d = new Date(); d.setDate(d.getDate() - 89); return { from: toIsoDate(d), to }; }
+  return null;
+}
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { OrderStatus, OrderSource, OrderPaymentStatus } from "@/types";
@@ -172,6 +189,7 @@ export default function MyOrders() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [datePreset, setDatePreset] = useState("");
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultForm);
@@ -187,7 +205,9 @@ export default function MyOrders() {
   const loadAll = useCallback(async () => {
     setClientsLoading(true);
     const month = monthOptions().find((m) => m.key === selectedMonth);
-    const dateQs = month ? `?from=${month.from}&to=${month.to}` : "";
+    let dateQs = "";
+    if (month) { dateQs = `?from=${month.from}&to=${month.to}`; }
+    else if (datePreset) { const r = getPresetRange(datePreset); if (r) dateQs = `?from=${r.from}&to=${r.to}`; }
     try {
       const [clientsRes, statsRes] = await Promise.all([
         api.get<MyClient[]>("/crm/my-clients"),
@@ -223,7 +243,7 @@ export default function MyOrders() {
     } finally {
       setClientsLoading(false);
     }
-  }, [selectedMonth]);
+  }, [selectedMonth, datePreset]);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -233,6 +253,7 @@ export default function MyOrders() {
       if (statusFilter) params.set("status", statusFilter);
       const month = monthOptions().find((m) => m.key === selectedMonth);
       if (month) { params.set("from", month.from); params.set("to", month.to); }
+      else if (datePreset) { const r = getPresetRange(datePreset); if (r) { params.set("from", r.from); params.set("to", r.to); } }
       const { data } = await api.get<{
         orders: MyOrder[];
         total: number;
@@ -244,7 +265,7 @@ export default function MyOrders() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, selectedMonth]);
+  }, [page, search, statusFilter, selectedMonth, datePreset]);
 
   useEffect(() => {
     loadAll();
@@ -646,7 +667,8 @@ export default function MyOrders() {
       )}
 
       {/* Filters */}
-      <div className="card p-3 flex flex-col sm:flex-row gap-3">
+      <div className="card p-3 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -674,12 +696,22 @@ export default function MyOrders() {
             </option>
           ))}
         </select>
+        <select
+          className="select w-full sm:w-44"
+          value={datePreset}
+          onChange={(e) => { setDatePreset(e.target.value); setSelectedMonth(""); setPage(1); }}
+        >
+          <option value="">All Time</option>
+          {DATE_PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
         <div className="flex items-center gap-1.5 w-full sm:w-44">
           <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <select
             className="select flex-1"
             value={selectedMonth}
-            onChange={(e) => { setSelectedMonth(e.target.value); setPage(1); }}
+            onChange={(e) => { setSelectedMonth(e.target.value); setDatePreset(""); setPage(1); }}
           >
             <option value="">{t('myOrders.allMonths')}</option>
             {monthOptions().map((m) => (
@@ -690,6 +722,7 @@ export default function MyOrders() {
         <button onClick={loadOrders} className="btn-secondary p-2.5">
           <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
         </button>
+        </div>
       </div>
 
       {/* Orders Table */}

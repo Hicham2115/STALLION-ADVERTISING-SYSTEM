@@ -28,6 +28,23 @@ function monthOptions() {
   });
 }
 
+const DATE_PRESETS = [
+  { value: 'today',    label: 'Today' },
+  { value: 'last_7d',  label: '7 Days' },
+  { value: 'last_30d', label: '30 Days' },
+  { value: 'last_90d', label: '90 Days' },
+];
+
+function getPresetRange(preset: string): { from: string; to: string } | null {
+  const today = new Date();
+  const to = toIsoDate(today);
+  if (preset === 'today') return { from: to, to };
+  if (preset === 'last_7d') { const d = new Date(); d.setDate(d.getDate() - 6); return { from: toIsoDate(d), to }; }
+  if (preset === 'last_30d') { const d = new Date(); d.setDate(d.getDate() - 29); return { from: toIsoDate(d), to }; }
+  if (preset === 'last_90d') { const d = new Date(); d.setDate(d.getDate() - 89); return { from: toIsoDate(d), to }; }
+  return null;
+}
+
 const statusColors: Record<string, string> = {
   PAID: 'text-green-400 bg-green-500/10 border-green-500/20',
   PENDING: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
@@ -52,6 +69,7 @@ export default function PortalDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [datePreset, setDatePreset] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -60,13 +78,16 @@ export default function PortalDashboardPage() {
     if (selectedMonth) {
       const month = monthOptions().find(m => m.key === selectedMonth);
       if (month) { params.set('from', month.from); params.set('to', month.to); }
+    } else if (datePreset) {
+      const range = getPresetRange(datePreset);
+      if (range) { params.set('from', range.from); params.set('to', range.to); }
     }
     portalApi.get<PortalDashboard>(`/dashboard?${params.toString()}`).then(({ data: d }) => {
       setData(d);
     }).catch(() => {
       setError('Failed to load dashboard. Please try refreshing.');
     }).finally(() => setLoading(false));
-  }, [selectedMonth]);
+  }, [selectedMonth, datePreset]);
 
   if (loading) {
     return (
@@ -107,19 +128,31 @@ export default function PortalDashboardPage() {
         </div>
       </div>
 
-      {/* Month filter */}
-      <div className="flex items-center gap-2">
-        <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+      {/* Date filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <select
-          value={selectedMonth}
-          onChange={e => setSelectedMonth(e.target.value)}
+          value={datePreset}
+          onChange={e => { setDatePreset(e.target.value); setSelectedMonth(''); }}
           className="bg-[#0d1528]/80 border border-slate-700/60 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer"
         >
-          <option value="">{t('portal.allMonths')}</option>
-          {monthOptions().map(m => (
-            <option key={m.key} value={m.key}>{m.label}</option>
+          <option value="">All Time</option>
+          {DATE_PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
           ))}
         </select>
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <select
+            value={selectedMonth}
+            onChange={e => { setSelectedMonth(e.target.value); setDatePreset(''); }}
+            className="bg-[#0d1528]/80 border border-slate-700/60 text-slate-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer"
+          >
+            <option value="">{t('portal.allMonths')}</option>
+            {monthOptions().map(m => (
+              <option key={m.key} value={m.key}>{m.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* KPI cards */}

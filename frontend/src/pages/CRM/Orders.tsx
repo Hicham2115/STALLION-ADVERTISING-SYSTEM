@@ -46,6 +46,23 @@ function monthOptions() {
   });
 }
 
+const DATE_PRESETS = [
+  { value: "today",    label: "Today" },
+  { value: "last_7d",  label: "7 Days" },
+  { value: "last_30d", label: "30 Days" },
+  { value: "last_90d", label: "90 Days" },
+];
+
+function getPresetRange(preset: string): { from: string; to: string } | null {
+  const today = new Date();
+  const to = toIsoDate(today);
+  if (preset === "today") return { from: to, to };
+  if (preset === "last_7d") { const d = new Date(); d.setDate(d.getDate() - 6); return { from: toIsoDate(d), to }; }
+  if (preset === "last_30d") { const d = new Date(); d.setDate(d.getDate() - 29); return { from: toIsoDate(d), to }; }
+  if (preset === "last_90d") { const d = new Date(); d.setDate(d.getDate() - 89); return { from: toIsoDate(d), to }; }
+  return null;
+}
+
 export default function Orders() {
   const { t } = useTranslation();
   const { fmt } = useCrmCurrency();
@@ -57,6 +74,7 @@ export default function Orders() {
   const [clientFilter, setClientFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
+  const [datePreset, setDatePreset] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -96,10 +114,10 @@ export default function Orders() {
       if (statusFilter) params.set("status", statusFilter);
       if (monthFilter) {
         const month = monthOptions().find((m) => m.key === monthFilter);
-        if (month) {
-          params.set("from", month.from);
-          params.set("to", month.to);
-        }
+        if (month) { params.set("from", month.from); params.set("to", month.to); }
+      } else if (datePreset) {
+        const range = getPresetRange(datePreset);
+        if (range) { params.set("from", range.from); params.set("to", range.to); }
       }
       const { data } = await api.get<{
         orders: CrmOrder[];
@@ -112,14 +130,14 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, clientFilter, statusFilter, monthFilter]);
+  }, [page, search, clientFilter, statusFilter, monthFilter, datePreset]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
   useEffect(() => {
     setPage(1);
-  }, [search, clientFilter, statusFilter, monthFilter]);
+  }, [search, clientFilter, statusFilter, monthFilter, datePreset]);
 
   async function handleDelete(id: string) {
     await api.delete(`/crm/orders/${id}`);
@@ -150,7 +168,8 @@ export default function Orders() {
       </div>
 
       {/* Filters */}
-      <div className="card p-4 flex flex-col sm:flex-row gap-3">
+      <div className="card p-4 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -186,8 +205,18 @@ export default function Orders() {
         </select>
         <select
           className="select w-full sm:w-44"
+          value={datePreset}
+          onChange={(e) => { setDatePreset(e.target.value); setMonthFilter(""); }}
+        >
+          <option value="">All Time</option>
+          {DATE_PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
+        <select
+          className="select w-full sm:w-44"
           value={monthFilter}
-          onChange={(e) => setMonthFilter(e.target.value)}
+          onChange={(e) => { setMonthFilter(e.target.value); setDatePreset(""); }}
         >
           <option value="">{t('crm.allMonths')}</option>
           {monthOptions().map((month) => (
@@ -199,6 +228,7 @@ export default function Orders() {
         <button onClick={fetchOrders} className="btn-secondary p-2.5">
           <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
         </button>
+        </div>
       </div>
 
       {/* Table */}

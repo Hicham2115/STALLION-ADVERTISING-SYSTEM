@@ -100,6 +100,23 @@ function monthOptions() {
   });
 }
 
+const DATE_PRESETS = [
+  { value: "today",    label: "Today" },
+  { value: "last_7d",  label: "7 Days" },
+  { value: "last_30d", label: "30 Days" },
+  { value: "last_90d", label: "90 Days" },
+];
+
+function getPresetRange(preset: string): { from: string; to: string } | null {
+  const today = new Date();
+  const to = toIsoDate(today);
+  if (preset === "today") return { from: to, to };
+  if (preset === "last_7d") { const d = new Date(); d.setDate(d.getDate() - 6); return { from: toIsoDate(d), to }; }
+  if (preset === "last_30d") { const d = new Date(); d.setDate(d.getDate() - 29); return { from: toIsoDate(d), to }; }
+  if (preset === "last_90d") { const d = new Date(); d.setDate(d.getDate() - 89); return { from: toIsoDate(d), to }; }
+  return null;
+}
+
 interface Props {
   onNavigate?: (tab: string) => void;
   analyticsMode?: boolean;
@@ -111,6 +128,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [datePreset, setDatePreset] = useState("");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -130,16 +148,18 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
     if (selectedMonth) {
       const month = monthOptions().find((m) => m.key === selectedMonth);
       if (month) {
-        params.set("datePreset", "custom");
         params.set("from", month.from);
         params.set("to", month.to);
       }
+    } else if (datePreset) {
+      const range = getPresetRange(datePreset);
+      if (range) { params.set("from", range.from); params.set("to", range.to); }
     }
     api
       .get<AnalyticsData>(`/crm/analytics?${params.toString()}`)
       .then((r) => setData(r.data))
       .finally(() => setLoading(false));
-  }, [selectedClient, selectedMonth]);
+  }, [selectedClient, selectedMonth, datePreset]);
 
   const s = data?.summary;
 
@@ -267,9 +287,19 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
               : t('crm.businessOverview')}
           </p>
         </div>
-        <div className="w-full xl:w-auto grid sm:grid-cols-2 gap-3">
+        <div className="w-full xl:w-auto flex flex-wrap gap-3">
           <select
-            className="select w-full sm:w-56"
+            className="select flex-1 min-w-[130px]"
+            value={datePreset}
+            onChange={(e) => { setDatePreset(e.target.value); setSelectedMonth(""); }}
+          >
+            <option value="">All Time</option>
+            {DATE_PRESETS.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+          <select
+            className="select flex-1 min-w-[160px]"
             value={selectedClient}
             onChange={(e) => setSelectedClient(e.target.value)}
           >
@@ -281,9 +311,9 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
             ))}
           </select>
           <select
-            className="select w-full sm:w-44"
+            className="select flex-1 min-w-[130px]"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={(e) => { setSelectedMonth(e.target.value); setDatePreset(""); }}
           >
             <option value="">{t('crm.allMonths')}</option>
             {monthOptions().map((month) => (
