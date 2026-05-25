@@ -304,7 +304,7 @@ export default function Closers() {
                     <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
                         <div className="font-bold text-amber-600 dark:text-amber-400">
-                          {c.shippedFromConfirmedOrders ?? 0}
+                          {c.shippedOrders}
                         </div>
                         <div className="text-xs text-slate-500">{t('crm.shipped')}</div>
                       </div>

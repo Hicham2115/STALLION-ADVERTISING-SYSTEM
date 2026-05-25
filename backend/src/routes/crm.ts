@@ -706,8 +706,8 @@ router.get(
           shippedFromConfirmedOrders: shippedFromConfirmed,
           ...commissionSummary,
           conversionRate:
-            confirmedEver > 0
-              ? Math.round((shippedFromConfirmed / confirmedEver) * 100)
+            total > 0
+              ? Math.round(((shipped + delivered) / total) * 100)
               : 0,
           totalEarnings: closerCommissionTotal,
           commissionTotal,
