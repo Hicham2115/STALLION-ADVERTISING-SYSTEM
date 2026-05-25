@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
-const MASTER_EMAIL = 'advertisingstallion@gmail.com';
+const MASTER_EMAIL = "advertisingstallion@gmail.com";
 import { useTranslation } from "react-i18next";
 import logo from "../assets/png.png";
 
@@ -29,7 +29,19 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-function NavItem({ to, icon: Icon, label, exact, onClick }: { to: string; icon: React.ElementType; label: string; exact?: boolean; onClick: () => void }) {
+function NavItem({
+  to,
+  icon: Icon,
+  label,
+  exact,
+  onClick,
+}: {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  exact?: boolean;
+  onClick: () => void;
+}) {
   return (
     <NavLink
       to={to}
@@ -56,23 +68,21 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const { t } = useTranslation();
 
   const managerNav = [
-    { to: "/", icon: LayoutDashboard, label: t('nav.dashboard'), exact: true },
-    { to: "/clients", icon: Users, label: t('nav.clients') },
-    { to: "/revenue", icon: DollarSign, label: t('nav.revenue') },
-    { to: "/expenses", icon: Receipt, label: t('nav.expenses') },
-    { to: "/leads", icon: Target, label: t('nav.leads') },
+    { to: "/", icon: LayoutDashboard, label: t("nav.dashboard"), exact: true },
+    { to: "/clients", icon: Users, label: t("nav.clients") },
+    { to: "/revenue", icon: DollarSign, label: t("nav.revenue") },
+    { to: "/expenses", icon: Receipt, label: t("nav.expenses") },
+    { to: "/leads", icon: Target, label: t("nav.leads") },
   ];
 
   const allNav = [
-    { to: "/tasks", icon: CheckSquare, label: t('nav.tasks') },
-    { to: "/my-orders", icon: Package, label: t('nav.myOrders') },
-    { to: "/meetings", icon: CalendarClock, label: t('nav.meetings') },
-    { to: "/chat", icon: MessageSquare, label: t('nav.teamChat') },
+    { to: "/tasks", icon: CheckSquare, label: t("nav.tasks") },
+    { to: "/my-orders", icon: Package, label: t("nav.myOrders") },
+    { to: "/meetings", icon: CalendarClock, label: t("nav.meetings") },
+    { to: "/chat", icon: MessageSquare, label: t("nav.teamChat") },
   ];
 
-  const crmNav = [
-    { to: "/crm", icon: ShoppingCart, label: t('nav.crm') },
-  ];
+  const crmNav = [{ to: "/crm", icon: ShoppingCart, label: t("nav.crm") }];
 
   return (
     <aside
@@ -103,23 +113,42 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               Main
             </div>
             {managerNav.map(({ to, icon, label, exact }) => (
-              <NavItem key={to} to={to} icon={icon} label={label} exact={exact} onClick={onClose} />
+              <NavItem
+                key={to}
+                to={to}
+                icon={icon}
+                label={label}
+                exact={exact}
+                onClick={onClose}
+              />
             ))}
             <div className="pt-2" />
           </>
         )}
 
         {allNav.map(({ to, icon, label }) => (
-          <NavItem key={to} to={to} icon={icon} label={label} onClick={onClose} />
+          <NavItem
+            key={to}
+            to={to}
+            icon={icon}
+            label={label}
+            onClick={onClose}
+          />
         ))}
 
         {isManager && (
           <>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">
-              {t('nav.crm')}
+              {t("nav.crm")}
             </div>
             {crmNav.map(({ to, icon, label }) => (
-              <NavItem key={to} to={to} icon={icon} label={label} onClick={onClose} />
+              <NavItem
+                key={to}
+                to={to}
+                icon={icon}
+                label={label}
+                onClick={onClose}
+              />
             ))}
             <div className="pt-2" />
           </>
@@ -128,17 +157,32 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">
-              {t('nav.administration')}
+              {t("nav.administration")}
             </div>
-            <NavItem to="/team" icon={UserCog} label={t('nav.team')} onClick={onClose} />
-            <NavItem to="/settings/services" icon={Layers} label={t('nav.services')} onClick={onClose} />
-            <NavItem to="/portal-admin" icon={Globe} label={t('nav.portalClients')} onClick={onClose} />
+            <NavItem
+              to="/team"
+              icon={UserCog}
+              label={t("nav.team")}
+              onClick={onClose}
+            />
+            <NavItem
+              to="/settings/services"
+              icon={Layers}
+              label={t("nav.services")}
+              onClick={onClose}
+            />
+            <NavItem
+              to="/portal-admin"
+              icon={Globe}
+              label={t("nav.portalClients")}
+              onClick={onClose}
+            />
           </>
         )}
 
         {isMaster && (
           <>
-            <div className="text-xs font-semibold text-amber-500/70 uppercase tracking-wider px-3 mt-5 mb-2">
+            <div className="text-xs font-semibold text-amber-500/70 uppercase tracking-wider px-3 mt-20 mb-2">
               Master
             </div>
             <NavLink
