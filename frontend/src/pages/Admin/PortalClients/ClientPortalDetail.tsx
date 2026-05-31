@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Store,
 } from "lucide-react";
+import axios from "axios";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast, useConfirm } from "@/context/ToastContext";
@@ -419,6 +420,9 @@ export default function ClientPortalDetail() {
       setKpiHasToken(updated.data.hasToken);
       setKpiTokenExpiresAt(updated.data.metaTokenExpiresAt ?? null);
       setKpiForm((f) => ({ ...f, metaToken: "" }));
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? (err.response?.data?.message ?? err.message) : String(err);
+      showToast(message, false);
     } finally {
       setKpiLoading(false);
     }

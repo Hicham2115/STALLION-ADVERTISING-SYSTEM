@@ -502,29 +502,32 @@ async function exchangeForLongLivedToken(shortToken: string): Promise<{ token: s
 router.put(
   "/:clientId/kpi-config",
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const { metaToken, metaAdAccountId } = req.body;
+    try {
+      const { metaToken, metaAdAccountId } = req.body;
 
-    // Build update payload — only touch metaToken if a new one was provided
-    const updateData: any = { metaAdAccountId: metaAdAccountId || null };
-    if (metaToken) {
-      const { token, expiresAt } = await exchangeForLongLivedToken(metaToken.trim());
-      updateData.metaToken = token;
-      updateData.metaTokenExpiresAt = expiresAt;
+      const updateData: any = { metaAdAccountId: metaAdAccountId || null };
+      if (metaToken) {
+        const { token, expiresAt } = await exchangeForLongLivedToken(metaToken.trim());
+        updateData.metaToken = token;
+        updateData.metaTokenExpiresAt = expiresAt;
+      }
+
+      await prisma.clientKpiConfig.upsert({
+        where: { clientId: req.params.clientId },
+        create: {
+          clientId: req.params.clientId,
+          metaToken: updateData.metaToken ?? null,
+          metaAdAccountId: updateData.metaAdAccountId,
+          ...(updateData.metaTokenExpiresAt !== undefined
+            ? { metaTokenExpiresAt: updateData.metaTokenExpiresAt }
+            : {}),
+        },
+        update: updateData,
+      });
+      res.json({ message: "KPI config saved" });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Failed to save KPI config" });
     }
-
-    await prisma.clientKpiConfig.upsert({
-      where: { clientId: req.params.clientId },
-      create: {
-        clientId: req.params.clientId,
-        metaToken: updateData.metaToken ?? null,
-        metaAdAccountId: updateData.metaAdAccountId,
-        ...(updateData.metaTokenExpiresAt !== undefined
-          ? { metaTokenExpiresAt: updateData.metaTokenExpiresAt }
-          : {}),
-      },
-      update: updateData,
-    });
-    res.json({ message: "KPI config saved" });
   },
 );
 
