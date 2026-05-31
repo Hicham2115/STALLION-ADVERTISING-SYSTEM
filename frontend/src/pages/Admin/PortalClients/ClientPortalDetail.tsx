@@ -255,31 +255,39 @@ export default function ClientPortalDetail() {
 
   const fetchData = () => {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       api.get<DetailData>(`/portal-admin/${clientId}`),
       api.get<{ metaAdAccountId: string | null; hasToken: boolean; metaTokenExpiresAt: string | null }>(
         `/portal-admin/${clientId}/kpi-config`,
       ),
       api.get<ShopifyConfig[]>(`/portal-admin/${clientId}/shopify`),
     ])
-      .then(([detailRes, kpiRes, shopifyRes]) => {
-        setData(detailRes.data);
-        setKpiForm((f) => ({
-          ...f,
-          metaAdAccountId: kpiRes.data.metaAdAccountId ?? "",
-        }));
-        setKpiHasToken(kpiRes.data.hasToken);
-        setKpiTokenExpiresAt(kpiRes.data.metaTokenExpiresAt ?? null);
-        setShopifyConfigs(shopifyRes.data);
-        setShopifyHasToken(
-          shopifyRes.data.some((config) => !!config.accessToken),
-        );
-        if (shopifyRes.data[0]) {
-          setShopifyForm((form) => ({
-            ...form,
-            storeName: shopifyRes.data[0].storeName,
-            storeUrl: shopifyRes.data[0].storeUrl,
-          }));
+      .then(([detailResult, kpiResult, shopifyResult]) => {
+        if (detailResult.status === "rejected") {
+          // Main client data failed — page cannot render
+          setLoading(false);
+          return;
+        }
+        setData(detailResult.value.data);
+
+        if (kpiResult.status === "fulfilled") {
+          const kpi = kpiResult.value.data;
+          setKpiForm((f) => ({ ...f, metaAdAccountId: kpi.metaAdAccountId ?? "" }));
+          setKpiHasToken(kpi.hasToken);
+          setKpiTokenExpiresAt(kpi.metaTokenExpiresAt ?? null);
+        }
+
+        if (shopifyResult.status === "fulfilled") {
+          const configs = shopifyResult.value.data;
+          setShopifyConfigs(configs);
+          setShopifyHasToken(configs.some((config) => !!config.accessToken));
+          if (configs[0]) {
+            setShopifyForm((form) => ({
+              ...form,
+              storeName: configs[0].storeName,
+              storeUrl: configs[0].storeUrl,
+            }));
+          }
         }
       })
       .finally(() => setLoading(false));

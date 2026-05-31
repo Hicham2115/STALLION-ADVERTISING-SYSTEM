@@ -458,18 +458,22 @@ router.put(
 router.get(
   "/:clientId/kpi-config",
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const config = await prisma.clientKpiConfig.findUnique({
-      where: { clientId: req.params.clientId },
-    });
-    if (!config) {
-      res.json({ metaAdAccountId: null, hasToken: false });
-      return;
+    try {
+      const config = await prisma.clientKpiConfig.findUnique({
+        where: { clientId: req.params.clientId },
+      });
+      if (!config) {
+        res.json({ metaAdAccountId: null, hasToken: false, metaTokenExpiresAt: null });
+        return;
+      }
+      res.json({
+        metaAdAccountId: config.metaAdAccountId,
+        hasToken: !!config.metaToken,
+        metaTokenExpiresAt: (config as any).metaTokenExpiresAt ?? null,
+      });
+    } catch {
+      res.json({ metaAdAccountId: null, hasToken: false, metaTokenExpiresAt: null });
     }
-    res.json({
-      metaAdAccountId: config.metaAdAccountId,
-      hasToken: !!config.metaToken,
-      metaTokenExpiresAt: (config as any).metaTokenExpiresAt ?? null,
-    });
   },
 );
 
@@ -528,12 +532,16 @@ router.put(
 router.get(
   "/:clientId/shopify",
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const configs = await (prisma as any).shopifyConfig.findMany({
-      where: { clientId: req.params.clientId },
-      include: { client: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(configs);
+    try {
+      const configs = await (prisma as any).shopifyConfig.findMany({
+        where: { clientId: req.params.clientId },
+        include: { client: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+      res.json(configs);
+    } catch {
+      res.json([]);
+    }
   },
 );
 
