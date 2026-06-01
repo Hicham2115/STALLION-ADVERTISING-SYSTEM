@@ -279,6 +279,7 @@ router.post(
       notes,
       shopifyOrderId,
       shopifyStore,
+      orderDate,
     } = req.body;
     if (!clientId || !customerName || !productName || !orderAmount) {
       res.status(400).json({
@@ -338,6 +339,7 @@ router.post(
         notes: notes || null,
         shopifyOrderId: shopifyOrderId || null,
         shopifyStore: shopifyStore || null,
+        orderDate: orderDate ? new Date(orderDate) : new Date(),
       },
       include: {
         client: { select: { id: true, name: true } },

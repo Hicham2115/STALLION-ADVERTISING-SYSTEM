@@ -1,5 +1,6 @@
 import { useEffect, useState, FormEvent, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import DateSelector from "@/components/DateSelector";
 import {
   Plus,
   Search,
@@ -76,6 +77,7 @@ interface MyOrder {
   paymentStatus: OrderPaymentStatus;
   source: OrderSource;
   notes?: string;
+  orderDate?: string | null;
   createdAt: string;
 }
 interface MyStats {
@@ -184,6 +186,7 @@ const defaultForm = {
   status: "NEW" as OrderStatus,
   source: "OTHER" as OrderSource,
   notes: "",
+  orderDate: toIsoDate(new Date()),
 };
 
 export default function MyOrders() {
@@ -332,6 +335,7 @@ export default function MyOrders() {
         productCost: toMAD(Number(form.productCost), orderCurrency),
         shippingCost: toMAD(Number(form.shippingCost), orderCurrency),
         adCost: 0,
+        orderDate: form.orderDate || undefined,
       });
       setForm(defaultForm);
       setShowForm(false);
@@ -661,8 +665,8 @@ export default function MyOrders() {
             {t('myOrders.estimatedMargin', { value: `${netProfit.toFixed(2)} ${orderCurrency}` })}
           </div>
 
-          {/* Source + Notes */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Source + Notes + Date */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="label">{t('myOrders.source')}</label>
               <select
@@ -684,6 +688,13 @@ export default function MyOrders() {
                 value={form.notes}
                 onChange={(e) => set("notes", e.target.value)}
                 placeholder="Optional notes…"
+              />
+            </div>
+            <div>
+              <DateSelector
+                label="Date of Order"
+                value={form.orderDate}
+                onChange={(v) => set("orderDate", v)}
               />
             </div>
           </div>
@@ -884,7 +895,7 @@ export default function MyOrders() {
                         {o.client?.name}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-400">
-                        {formatDate(o.createdAt)}
+                        {formatDate(o.orderDate ?? o.createdAt)}
                       </td>
                       <td className="px-4 py-3">
                         <button

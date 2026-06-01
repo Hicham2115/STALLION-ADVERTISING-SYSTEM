@@ -728,6 +728,7 @@ model CrmOrder {
   notes            String?
   closerNotes      String?
   confirmedAt      DateTime?
+  orderDate        DateTime?
 
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
