@@ -268,28 +268,28 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
         },
         {
           label: t('crm.averageOrder'),
-          value: fmt(s.avgOrderValue),
+          value: fmtStable(s.avgOrderValue),
           icon: Package,
           color: "text-orange-500",
           bg: "bg-orange-500/10",
         },
         {
           label: t('crm.adSpend'),
-          value: fmt(s.totalAdSpend),
+          value: fmtStable(s.totalAdSpend),
           icon: TrendingUp,
           color: "text-pink-500",
           bg: "bg-pink-500/10",
         },
         {
           label: t('crm.commissions'),
-          value: fmt(s.totalCommissions),
+          value: fmtStable(s.totalCommissions),
           icon: Award,
           color: "text-indigo-500",
           bg: "bg-indigo-500/10",
         },
         {
           label: t('crm.totalCosts'),
-          value: fmt(s.totalLinkedCosts > 0 ? s.totalLinkedCosts : s.totalProductCost),
+          value: fmtStable(s.totalLinkedCosts > 0 ? s.totalLinkedCosts : s.totalProductCost),
           icon: Package,
           color: "text-slate-400",
           bg: "bg-slate-500/10",
@@ -419,7 +419,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                         item.color,
                       )}
                     >
-                      {fmt(Math.abs(item.value))}
+                      {fmtStable(Math.abs(item.value))}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">
                       {item.label}
@@ -461,7 +461,7 @@ export default function CrmDashboard({ onNavigate, analyticsMode }: Props) {
                   />
                   <YAxis tick={{ fontSize: 11 }} stroke="#6b7280" />
                   <Tooltip
-                    formatter={(v: number) => fmt(v)}
+                    formatter={(v: number) => fmtStable(v)}
                     contentStyle={{
                       background: "#1e293b",
                       border: "none",
