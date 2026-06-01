@@ -1,7 +1,12 @@
 import { Router, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, AuthRequest, ROLE_LEVELS } from "../middleware/auth";
-import { getRatesCache, getBaseRates, convert, Currency } from "../lib/currency";
+import {
+  getRatesCache,
+  getBaseRates,
+  convert,
+  Currency,
+} from "../lib/currency";
 
 const router = Router();
 router.use(authenticate);
@@ -17,8 +22,8 @@ const h =
 
 /** Normalize any stored amount to MAD using the order's currency field. */
 function toMAD(amount: number, currency?: string | null): number {
-  if (!currency || currency === 'MAD') return amount;
-  return convert(amount, currency as Currency, 'MAD');
+  if (!currency || currency === "MAD") return amount;
+  return convert(amount, currency as Currency, "MAD");
 }
 
 function calcNetProfit(order: {
@@ -59,6 +64,39 @@ function toIsoDate(d: Date) {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string): Date {
+  // If the input is date-only (YYYY-MM-DD), interpret it as a local calendar
+  // date to avoid timezone shifts when filtering by month.
+  const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(value);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]) - 1;
+    const day = Number(m[3]);
+    // Use midday local time to be robust across DST/timezone conversions.
+    return new Date(year, month, day, 12, 0, 0, 0);
+  }
+  return new Date(value);
+}
+
+function buildDateRangeFilter(
+  from?: unknown,
+  to?: unknown,
+): Record<string, Date> | null {
+  if (!from && !to) return null;
+  const dateFilter: Record<string, Date> = {};
+  if (from) {
+    const d = parseDateInput(String(from));
+    d.setHours(0, 0, 0, 0);
+    dateFilter.gte = d;
+  }
+  if (to) {
+    const d = parseDateInput(String(to));
+    d.setHours(23, 59, 59, 999);
+    dateFilter.lte = d;
+  }
+  return dateFilter;
 }
 
 async function getClientKpiSpend(
@@ -196,20 +234,8 @@ router.get(
     if (status) where.status = status;
     if (paymentStatus) where.paymentStatus = paymentStatus;
     if (source) where.source = source;
-    if (from || to) {
-      const dateFilter: Record<string, Date> = {};
-      if (from) {
-        const start = new Date(from as string);
-        start.setHours(0, 0, 0, 0);
-        dateFilter.gte = start;
-      }
-      if (to) {
-        const end = new Date(to as string);
-        end.setHours(23, 59, 59, 999);
-        dateFilter.lte = end;
-      }
-      where.createdAt = dateFilter;
-    }
+    const dateFilter = buildDateRangeFilter(from, to);
+    if (dateFilter) where.orderDate = dateFilter;
     if (search) {
       where.OR = [
         { customerName: { contains: search as string, mode: "insensitive" } },
@@ -346,7 +372,7 @@ router.post(
         notes: notes || null,
         shopifyOrderId: shopifyOrderId || null,
         shopifyStore: shopifyStore || null,
-        orderDate: orderDate ? new Date(orderDate) : new Date(),
+        orderDate: orderDate ? parseDateInput(String(orderDate)) : new Date(),
         currency: currency || "MAD",
       },
       include: {
@@ -370,7 +396,11 @@ router.put(
       return;
     }
     // Ensure the order belongs to the same agency as the authenticated user
-    if (existing.client?.agencyId && req.user!.agencyId && existing.client.agencyId !== req.user!.agencyId) {
+    if (
+      existing.client?.agencyId &&
+      req.user!.agencyId &&
+      existing.client.agencyId !== req.user!.agencyId
+    ) {
       res.status(403).json({ message: "Forbidden" });
       return;
     }
@@ -402,11 +432,17 @@ router.put(
     for (const f of fields) {
       if (f in req.body) data[f] = req.body[f] ?? null;
     }
-    for (const numField of ["quantity", "orderAmount", "productCost", "shippingCost", "adCost"]) {
+    for (const numField of [
+      "quantity",
+      "orderAmount",
+      "productCost",
+      "shippingCost",
+      "adCost",
+    ]) {
       if (numField in data) data[numField] = Number(data[numField]);
     }
     if ("orderDate" in data && data.orderDate) {
-      data.orderDate = new Date(data.orderDate as string);
+      data.orderDate = parseDateInput(String(data.orderDate));
     }
 
     const closerId = (
@@ -432,9 +468,20 @@ router.put(
     }
     data.netProfit = calcNetProfit({
       orderAmount: orderAmountMAD,
-      productCost: toMAD(Number("productCost" in data ? data.productCost : existing.productCost), orderCurrency),
-      shippingCost: toMAD(Number("shippingCost" in data ? data.shippingCost : existing.shippingCost), orderCurrency),
-      adCost: toMAD(Number("adCost" in data ? data.adCost : existing.adCost), orderCurrency),
+      productCost: toMAD(
+        Number("productCost" in data ? data.productCost : existing.productCost),
+        orderCurrency,
+      ),
+      shippingCost: toMAD(
+        Number(
+          "shippingCost" in data ? data.shippingCost : existing.shippingCost,
+        ),
+        orderCurrency,
+      ),
+      adCost: toMAD(
+        Number("adCost" in data ? data.adCost : existing.adCost),
+        orderCurrency,
+      ),
       closerCommission: Number(
         data.closerCommission ?? existing.closerCommission,
       ),
@@ -458,7 +505,9 @@ router.put(
 
     // Auto-create commission record when shipped
     if (wasShipped && closerId && Number(order.closerCommission) > 0) {
-      const alreadyExists = await (prisma as any).closerCommissionRecord.findFirst({
+      const alreadyExists = await (
+        prisma as any
+      ).closerCommissionRecord.findFirst({
         where: { closerId, orderId: order.id },
       });
       if (!alreadyExists) {
@@ -731,9 +780,7 @@ router.get(
           shippedFromConfirmedOrders: shippedFromConfirmed,
           ...commissionSummary,
           conversionRate:
-            total > 0
-              ? Math.round(((shipped + delivered) / total) * 100)
-              : 0,
+            total > 0 ? Math.round(((shipped + delivered) / total) * 100) : 0,
           totalEarnings: closerCommissionTotal,
           commissionTotal,
           agencyCommissionTotal,
@@ -891,7 +938,15 @@ router.put(
       data: { paid: true, paidAt: new Date() },
       include: {
         closer: { select: { id: true, name: true } },
-        order: { select: { id: true, customerName: true, productName: true, orderAmount: true, confirmedAt: true } },
+        order: {
+          select: {
+            id: true,
+            customerName: true,
+            productName: true,
+            orderAmount: true,
+            confirmedAt: true,
+          },
+        },
       },
     });
     res.json(record);
@@ -1092,12 +1147,8 @@ router.get(
     const skip = (parseInt(page as string) - 1) * take;
     const where: Record<string, unknown> = { closerId: req.user!.userId };
     if (status) where.status = status;
-    if (from || to) {
-      const dateFilter: Record<string, Date> = {};
-      if (from) { const d = new Date(from as string); d.setHours(0,0,0,0); dateFilter.gte = d; }
-      if (to)   { const d = new Date(to as string);   d.setHours(23,59,59,999); dateFilter.lte = d; }
-      where.createdAt = dateFilter;
-    }
+    const dateFilter = buildDateRangeFilter(from, to);
+    if (dateFilter) where.orderDate = dateFilter;
     if (search) {
       where.OR = [
         { customerName: { contains: search as string, mode: "insensitive" } },
@@ -1124,13 +1175,13 @@ router.get(
   h(async (req, res) => {
     const userId = req.user!.userId;
     const { from, to } = req.query;
-    const dateFilter: Record<string, Date> = {};
-    if (from) { const d = new Date(from as string); d.setHours(0,0,0,0); dateFilter.gte = d; }
-    if (to)   { const d = new Date(to as string);   d.setHours(23,59,59,999); dateFilter.lte = d; }
-    const dateWhere = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
+    const dateFilter = buildDateRangeFilter(from, to);
+    const dateWhere = dateFilter ? { orderDate: dateFilter } : {};
     const [total, confirmed, shipped, delivered, pendingComm, totalComm] =
       await Promise.all([
-        (prisma as any).crmOrder.count({ where: { closerId: userId, ...dateWhere } }),
+        (prisma as any).crmOrder.count({
+          where: { closerId: userId, ...dateWhere },
+        }),
         (prisma as any).crmOrder.count({
           where: { closerId: userId, status: "CONFIRMED", ...dateWhere },
         }),
@@ -1175,15 +1226,24 @@ router.get(
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
-    const isAllTime = !from && !to && (!datePreset || datePreset === "all_time");
+    const isAllTime =
+      !from && !to && (!datePreset || datePreset === "all_time");
 
     const effectiveFromDate = (() => {
-      if (from) { const d = new Date(from as string); d.setHours(0, 0, 0, 0); return d; }
+      if (from) {
+        const d = new Date(from as string);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
       if (isAllTime) return undefined;
       return new Date(today.getFullYear(), today.getMonth() - 5, 1);
     })();
     const effectiveToDate = (() => {
-      if (to) { const d = new Date(to as string); d.setHours(23, 59, 59, 999); return d; }
+      if (to) {
+        const d = new Date(to as string);
+        d.setHours(23, 59, 59, 999);
+        return d;
+      }
       if (isAllTime) return undefined;
       return today;
     })();
@@ -1191,7 +1251,7 @@ router.get(
     const dateFilter: Record<string, unknown> = {};
     if (effectiveFromDate) dateFilter.gte = effectiveFromDate;
     if (effectiveToDate) dateFilter.lte = effectiveToDate;
-    if (Object.keys(dateFilter).length > 0) where.createdAt = dateFilter;
+    if (Object.keys(dateFilter).length > 0) where.orderDate = dateFilter;
 
     const effectiveFrom = effectiveFromDate
       ? toIsoDate(effectiveFromDate)
@@ -1224,7 +1284,9 @@ router.get(
         where: {
           order: {
             ...(clientId ? { clientId: clientId as string } : {}),
-            ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {}),
+            ...(Object.keys(dateFilter).length > 0
+              ? { createdAt: dateFilter }
+              : {}),
           },
         },
         _sum: { amount: true },
@@ -1233,12 +1295,17 @@ router.get(
 
     const totalOrders = orders.length;
     const NON_REVENUE = ["CANCELLED", "REFUSED", "RETURNED"];
-    const revenueOrders = orders.filter((o: any) => !NON_REVENUE.includes(o.status));
+    const revenueOrders = orders.filter(
+      (o: any) => !NON_REVENUE.includes(o.status),
+    );
     const totalRevenue = revenueOrders.reduce(
       (s: number, o: any) => s + toMAD(o.orderAmount, o.currency),
       0,
     );
-    const orderAdSpend = orders.reduce((s: number, o: any) => s + toMAD(o.adCost, o.currency), 0);
+    const orderAdSpend = orders.reduce(
+      (s: number, o: any) => s + toMAD(o.adCost, o.currency),
+      0,
+    );
     const linkedCostSpend = await getClientCostsSpend(
       clientId ? (clientId as string) : undefined,
       (datePreset as string) || "custom",
@@ -1269,7 +1336,10 @@ router.get(
           ),
         ),
       );
-      const totalMetaSpend = metaSpends.reduce((s: number, v: number) => s + v, 0);
+      const totalMetaSpend = metaSpends.reduce(
+        (s: number, v: number) => s + v,
+        0,
+      );
       totalAdSpend = totalMetaSpend || linkedCostSpend || orderAdSpend;
     }
     const totalProductCost = revenueOrders.reduce(
@@ -1290,8 +1360,8 @@ router.get(
       totalShipping -
       totalAdSpend -
       totalOrderCommissions;
-    const confirmed = orders.filter(
-      (o: any) => ["CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"].includes(o.status),
+    const confirmed = orders.filter((o: any) =>
+      ["CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"].includes(o.status),
     ).length;
     const shipped = orders.filter(
       (o: any) => o.status === "SHIPPED" || o.status === "DELIVERED",
@@ -1303,7 +1373,8 @@ router.get(
       (o: any) => o.status === "CANCELLED" || o.status === "REFUSED",
     ).length;
     const returned = orders.filter((o: any) => o.status === "RETURNED").length;
-    const avgOrderValue = revenueOrders.length > 0 ? totalRevenue / revenueOrders.length : 0;
+    const avgOrderValue =
+      revenueOrders.length > 0 ? totalRevenue / revenueOrders.length : 0;
     const convertedOrders = orders.filter((o: any) =>
       ["CONFIRMED", "SHIPPED", "DELIVERED"].includes(o.status),
     ).length;
@@ -1426,7 +1497,10 @@ router.get(
       }
     } else if (totalAdSpend > 0) {
       // Distribute aggregated Meta Ads spend across months proportionally to revenue
-      const revenueSum = seriesKeys.reduce((sum, k) => sum + monthlyMap[k].revenue, 0);
+      const revenueSum = seriesKeys.reduce(
+        (sum, k) => sum + monthlyMap[k].revenue,
+        0,
+      );
       for (const key of seriesKeys) {
         monthlyMap[key].adSpend =
           revenueSum > 0
