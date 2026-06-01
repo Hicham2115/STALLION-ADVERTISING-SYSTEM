@@ -84,9 +84,10 @@ async function syncShopifyOrders(config: any) {
 }
 
 // GET /api/portal-admin — list clients with portal status
-router.get("/", async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get("/", async (req: AuthRequest, res: Response): Promise<void> => {
+  const agencyId = req.user!.agencyId ?? null;
   const clients = await prisma.client.findMany({
-    where: { archived: false },
+    where: { archived: false, agencyId },
     include: {
       portalUser: {
         select: {

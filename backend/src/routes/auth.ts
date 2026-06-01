@@ -34,6 +34,8 @@ router.get('/setup-status', async (_req: Request, res: Response): Promise<void> 
   res.json({ registrationAvailable: true, createsRole: 'SUPER_ADMIN' });
 });
 
+const SUPER_ADMIN_EMAILS = ['advertisingstallion@gmail.com'];
+
 // POST /api/auth/register — creates a new isolated agency workspace for each registration
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -56,9 +58,10 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
     // Each registration creates its own isolated agency workspace
     const agency = await prisma.agency.create({ data: { name: `${name}'s Agency` } });
+    const role = SUPER_ADMIN_EMAILS.includes(email.toLowerCase()) ? 'SUPER_ADMIN' : 'ADMIN';
 
     const user = await prisma.user.create({
-      data: { name, email, password: hashed, role: 'SUPER_ADMIN', agencyId: agency.id },
+      data: { name, email, password: hashed, role, agencyId: agency.id },
       select: USER_PUBLIC_SELECT,
     });
 
@@ -148,13 +151,14 @@ router.post('/clerk', async (req: Request, res: Response): Promise<void> => {
       // Always create the account for Google OAuth users — they've already proven identity via Google
       const hashed = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
       const agency = await prisma.agency.create({ data: { name: `${displayName}'s Agency` } });
+      const oauthRole = SUPER_ADMIN_EMAILS.includes(normalizedEmail) ? 'SUPER_ADMIN' : 'ADMIN';
       user = await prisma.user.create({
         data: {
           clerkId: clerkUserId,
           name: displayName,
           email: normalizedEmail,
           password: hashed,
-          role: 'SUPER_ADMIN',
+          role: oauthRole,
           avatar,
           agencyId: agency.id,
         },
