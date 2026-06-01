@@ -259,7 +259,11 @@ export interface Expense {
   name: string;
   category: ExpenseCategory;
   type: ExpenseType;
+  // Stored in MAD for reporting.
   amount: number;
+  // Original entered values.
+  currency?: Currency;
+  originalAmount?: number | null;
   date: string;
   method?: PaymentMethod;
   notes?: string;

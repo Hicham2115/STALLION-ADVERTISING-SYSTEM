@@ -318,7 +318,11 @@ model Expense {
   name          String
   category      ExpenseCategory
   type          ExpenseType
+  // Stored in MAD for consistent reporting.
   amount        Float
+  // Preserves the original entered amount/currency for edit/history.
+  currency      String          @default("MAD")
+  originalAmount Float?
   date          DateTime
   method        PaymentMethod?
   notes         String?

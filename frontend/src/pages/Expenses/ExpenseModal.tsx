@@ -4,9 +4,12 @@ import { X, CheckCircle, Clock } from 'lucide-react';
 import api from '@/lib/api';
 import { Expense, ExpenseCategory, ExpenseType, ExpensePaymentStatus, PaymentMethod } from '@/types';
 import { getCategoryLabel, cn } from '@/lib/utils';
+import DateSelector from '@/components/DateSelector';
 
 const CATEGORIES: ExpenseCategory[] = ['RENT', 'SALARIES', 'SOFTWARE_SUBSCRIPTIONS', 'INSURANCE', 'ADS_SPEND', 'FREELANCERS', 'EQUIPMENT', 'TRAVEL', 'MISC'];
 const METHODS: PaymentMethod[] = ['BANK_TRANSFER', 'CREDIT_CARD', 'CASH', 'CHECK', 'PAYPAL', 'OTHER'];
+const CURRENCIES = ['MAD', 'USD', 'EUR'] as const;
+type ExpenseCurrency = (typeof CURRENCIES)[number];
 
 interface Props {
   open: boolean;
@@ -30,24 +33,29 @@ const defaultForm = {
 export default function ExpenseModal({ open, onClose, expense, onSaved }: Props) {
   const { t } = useTranslation();
   const [form, setForm] = useState(defaultForm);
+  const [currency, setCurrency] = useState<ExpenseCurrency>('MAD');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (expense) {
+      const cur = ((expense.currency as ExpenseCurrency | undefined) || 'MAD') as ExpenseCurrency;
+      const original = expense.originalAmount ?? expense.amount;
       setForm({
         name: expense.name,
         category: expense.category,
         type: expense.type,
-        amount: String(expense.amount),
+        amount: String(original),
         date: expense.date.split('T')[0],
         method: expense.method || 'BANK_TRANSFER',
         notes: expense.notes || '',
         recurring: expense.recurring,
         paymentStatus: expense.paymentStatus || 'PENDING',
       });
+      setCurrency(cur);
     } else {
       setForm(defaultForm);
+      setCurrency('MAD');
     }
     setError('');
   }, [expense, open]);
@@ -61,7 +69,11 @@ export default function ExpenseModal({ open, onClose, expense, onSaved }: Props)
     setSaving(true);
     setError('');
     try {
-      const payload = { ...form, amount: parseFloat(form.amount) };
+      const payload = {
+        ...form,
+        originalAmount: parseFloat(form.amount),
+        currency,
+      };
       if (expense) {
         await api.put(`/expenses/${expense.id}`, payload);
       } else {
@@ -105,12 +117,34 @@ export default function ExpenseModal({ open, onClose, expense, onSaved }: Props)
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">{t('expenses.amountMAD')} *</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label">{t('expenses.amountMAD').replace('(MAD)', `(${currency})`)} *</label>
+                <div className="flex rounded-lg overflow-hidden border border-slate-700/50">
+                  {CURRENCIES.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCurrency(c)}
+                      className={cn(
+                        'px-2 py-0.5 text-xs font-bold transition-colors',
+                        currency === c
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-transparent text-slate-400 hover:text-white'
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input className="input" type="number" required min="0" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder="0.00" />
             </div>
             <div>
-              <label className="label">{t('expenses.date')} *</label>
-              <input className="input" type="date" required value={form.date} onChange={(e) => set('date', e.target.value)} />
+              <DateSelector
+                label={`${t('expenses.date')} *`}
+                value={form.date}
+                onChange={(value) => set('date', value)}
+              />
             </div>
           </div>
           <div>

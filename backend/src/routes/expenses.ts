@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { convert, Currency } from '../lib/currency';
 import * as XLSX from 'xlsx';
 
 const router = Router();
@@ -15,6 +16,12 @@ function toDate(val: unknown): Date {
   const d = new Date(val as string);
   if (isNaN(d.getTime())) throw new Error(`Invalid date: ${val}`);
   return d;
+}
+
+function normalizeCurrency(val: unknown): Currency {
+  const cur = String(val || 'MAD').toUpperCase();
+  if (cur === 'MAD' || cur === 'USD' || cur === 'EUR') return cur;
+  throw new Error(`Unsupported currency: ${cur}`);
 }
 
 // GET /api/expenses
@@ -60,12 +67,19 @@ router.get('/summary', h(async (req: AuthRequest, res: Response) => {
 
 // POST /api/expenses
 router.post('/', h(async (req: AuthRequest, res: Response) => {
-  const { date, amount, method, notes, paymentStatus, ...rest } = req.body;
+  const { date, amount, originalAmount, currency, method, notes, paymentStatus, ...rest } = req.body;
   if (!date) { res.status(400).json({ message: 'Date is required' }); return; }
-  const expense = await prisma.expense.create({
+  const cur = normalizeCurrency(currency);
+  const orig = originalAmount !== undefined && originalAmount !== null
+    ? Number(originalAmount)
+    : Number(amount);
+  if (!orig || isNaN(orig)) { res.status(400).json({ message: 'Valid amount is required' }); return; }
+  const expense = await (prisma as any).expense.create({
     data: {
       ...rest,
-      amount: Number(amount),
+      amount: convert(orig, cur, 'MAD'),
+      currency: cur,
+      originalAmount: orig,
       date: toDate(date),
       method: method || null,
       notes: notes || null,
@@ -78,14 +92,27 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
 
 // PUT /api/expenses/:id
 router.put('/:id', h(async (req: AuthRequest, res: Response) => {
-  const { date, amount, method, notes, paymentStatus, ...rest } = req.body;
+  const { date, amount, originalAmount, currency, method, notes, paymentStatus, ...rest } = req.body;
   const data: Record<string, unknown> = { ...rest };
   if (date) data.date = toDate(date);
-  if (amount !== undefined) data.amount = Number(amount);
+  if (currency !== undefined) data.currency = normalizeCurrency(currency);
+  const hasOrig = originalAmount !== undefined && originalAmount !== null;
+  const hasAmount = amount !== undefined && amount !== null;
+  if (hasOrig || hasAmount) {
+    const existing = await (prisma as any).expense.findUnique({ where: { id: req.params.id } });
+    if (!existing) { res.status(404).json({ message: 'Expense not found' }); return; }
+
+    const cur = normalizeCurrency(currency !== undefined ? currency : existing.currency);
+    const orig = hasOrig ? Number(originalAmount) : Number(amount);
+    if (!orig || isNaN(orig)) { res.status(400).json({ message: 'Valid amount is required' }); return; }
+    data.currency = cur;
+    data.originalAmount = orig;
+    data.amount = convert(orig, cur, 'MAD');
+  }
   if ('method' in req.body) data.method = method || null;
   if ('notes' in req.body) data.notes = notes || null;
   if (paymentStatus) data.paymentStatus = paymentStatus;
-  const expense = await prisma.expense.update({ where: { id: req.params.id }, data });
+  const expense = await (prisma as any).expense.update({ where: { id: req.params.id }, data });
   res.json(expense);
 }));
 
@@ -99,12 +126,14 @@ router.delete('/:id', h(async (req: AuthRequest, res: Response) => {
 router.get('/export', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
   const agencyId = req.user!.agencyId ?? null;
-  const expenses = await prisma.expense.findMany({
+  const expenses = await (prisma as any).expense.findMany({
     where: { agencyId, date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
     orderBy: { date: 'desc' },
   });
   const rows = expenses.map((e) => ({
     'Expense Name': e.name, 'Category': e.category, 'Type': e.type,
+    'Original Amount': e.originalAmount ?? e.amount,
+    'Currency': e.currency ?? 'MAD',
     'Amount (MAD)': e.amount.toFixed(2), 'Date': new Date(e.date).toLocaleDateString(),
     'Method': e.method || '', 'Recurring': e.recurring ? 'Yes' : 'No',
     'Payment Status': e.paymentStatus, 'Notes': e.notes || '',

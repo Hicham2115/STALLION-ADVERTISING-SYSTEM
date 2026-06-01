@@ -3,6 +3,7 @@ import { X, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { Meeting, MeetingType, MeetingStatus } from '@/types';
+import DateSelector from '@/components/DateSelector';
 
 const TIMEZONES = ['Africa/Casablanca', 'Europe/Paris', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai'];
 
@@ -162,8 +163,11 @@ export default function MeetingModal({ open, onClose, meeting, onSaved }: Props)
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">{t('meetings.date')} *</label>
-              <input className="input" type="date" required value={form.startDate} onChange={e => set('startDate', e.target.value)} />
+              <DateSelector
+                label={`${t('meetings.date')} *`}
+                value={form.startDate}
+                onChange={value => set('startDate', value)}
+              />
             </div>
             <div>
               <label className="label">{t('meetings.time')} *</label>
