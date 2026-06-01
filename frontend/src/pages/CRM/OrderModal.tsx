@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { CrmOrder, Client, User, OrderStatus, OrderPaymentStatus, OrderSource } from '@/types';
 import { cn } from '@/lib/utils';
+import { CrmCurrency, useCrmCurrency } from '@/context/CrmCurrencyContext';
 
 function useAssignedClosers(clientId: string, allUsers: User[]) {
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
@@ -22,6 +23,7 @@ function useAssignedClosers(clientId: string, allUsers: User[]) {
 const STATUSES: OrderStatus[] = ['NEW', 'PENDING_CONFIRMATION', 'CONFIRMED', 'NO_ANSWER', 'CANCELLED', 'REFUSED', 'SHIPPED', 'DELIVERED', 'RETURNED'];
 const PAYMENT_STATUSES: OrderPaymentStatus[] = ['COD_PENDING', 'PAID', 'REFUNDED'];
 const SOURCES: OrderSource[] = ['FACEBOOK_ADS', 'TIKTOK_ADS', 'GOOGLE_ADS', 'ORGANIC', 'WHATSAPP', 'INSTAGRAM', 'OTHER'];
+const CURRENCIES: CrmCurrency[] = ['MAD', 'USD', 'EUR'];
 
 interface Props {
   order: CrmOrder | null;
@@ -35,11 +37,12 @@ const defaultForm = {
   clientId: '', closerId: '', customerName: '', customerPhone: '', customerCity: '',
   productName: '', quantity: '1', orderAmount: '', productCost: '0', shippingCost: '0',
   adCost: '0', status: 'NEW' as OrderStatus, paymentStatus: 'COD_PENDING' as OrderPaymentStatus,
-  source: 'OTHER' as OrderSource, notes: '', closerNotes: '',
+  source: 'OTHER' as OrderSource, notes: '', closerNotes: '', currency: 'MAD' as CrmCurrency,
 };
 
 export default function OrderModal({ order, clients, users, onClose, onSaved }: Props) {
   const { t } = useTranslation();
+  const { currency: activeCurrency } = useCrmCurrency();
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -51,16 +54,17 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
         clientId: order.clientId, closerId: order.closerId || '',
         customerName: order.customerName, customerPhone: order.customerPhone || '',
         customerCity: order.customerCity || '', productName: order.productName,
-        quantity: String(order.quantity), orderAmount: String(order.orderAmount),
+        quantity: String(order.quantity), orderAmount: String(order.originalAmount ?? order.orderAmount),
         productCost: String(order.productCost), shippingCost: String(order.shippingCost),
         adCost: String(order.adCost), status: order.status, paymentStatus: order.paymentStatus,
         source: order.source, notes: order.notes || '', closerNotes: order.closerNotes || '',
+        currency: (order.currency || 'MAD') as CrmCurrency,
       });
     } else {
-      setForm(defaultForm);
+      setForm({ ...defaultForm, currency: activeCurrency });
     }
     setError('');
-  }, [order]);
+  }, [order, activeCurrency]);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -79,6 +83,7 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
         productCost: Number(form.productCost),
         shippingCost: Number(form.shippingCost),
         adCost: Number(form.adCost),
+        currency: form.currency,
       };
       if (order) {
         await api.put(`/crm/orders/${order.id}`, payload);
@@ -162,7 +167,26 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           {/* Financials */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="label">{t('crm.orderAmount')}</label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="label">{t('crm.orderAmount')}</label>
+                <div className="flex rounded-lg overflow-hidden border border-slate-700/50">
+                  {CURRENCIES.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => set('currency', c)}
+                      className={cn(
+                        'px-2 py-0.5 text-xs font-bold transition-colors',
+                        form.currency === c
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-transparent text-slate-400 hover:text-white',
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input className="input mt-1" type="number" step="0.01" value={form.orderAmount} onChange={e => set('orderAmount', e.target.value)} placeholder="0" required />
             </div>
             <div>

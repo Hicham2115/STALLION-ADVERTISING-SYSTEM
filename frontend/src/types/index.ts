@@ -38,6 +38,7 @@ export interface CrmOrder {
   productName: string;
   quantity: number;
   orderAmount: number;
+  originalAmount?: number | null;
   productCost: number;
   shippingCost: number;
   adCost: number;
@@ -48,6 +49,7 @@ export interface CrmOrder {
   source: OrderSource;
   notes?: string;
   closerNotes?: string;
+  currency?: Currency;
   confirmedAt?: string;
   createdAt: string;
   updatedAt: string;

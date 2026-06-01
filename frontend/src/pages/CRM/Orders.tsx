@@ -14,7 +14,7 @@ import api from "@/lib/api";
 import { CrmOrder, OrderStatus, Client, User } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
 import OrderModal from "./OrderModal";
-import { useCrmCurrency } from "@/context/CrmCurrencyContext";
+import { CrmCurrency, useCrmCurrency } from "@/context/CrmCurrencyContext";
 
 const PAYMENT_CONFIG = {
   PAID: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -314,7 +314,7 @@ export default function Orders() {
                         )}
                       </td>
                       <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                        {fmt(o.orderAmount)}
+                        {fmt(o.originalAmount ?? o.orderAmount, (o.currency || "MAD") as CrmCurrency)}
                       </td>
                       <td
                         className={cn(

@@ -361,6 +361,7 @@ router.post(
         productName,
         quantity: Number(quantity || 1),
         orderAmount: Number(orderAmount),
+        originalAmount: Number(orderAmount),
         productCost: Number(productCost || 0),
         shippingCost: Number(shippingCost || 0),
         adCost: Number(adCost || 0),
@@ -457,6 +458,7 @@ router.put(
     const orderAmount = (
       "orderAmount" in data ? Number(data.orderAmount) : existing.orderAmount
     ) as number;
+    if ("orderAmount" in data) data.originalAmount = orderAmount;
     const orderAmountMAD = toMAD(orderAmount, orderCurrency);
 
     if (closerId) {
