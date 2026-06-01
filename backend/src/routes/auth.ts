@@ -34,7 +34,7 @@ router.get('/setup-status', async (_req: Request, res: Response): Promise<void> 
   res.json({ registrationAvailable: true, createsRole: 'SUPER_ADMIN' });
 });
 
-const SUPER_ADMIN_EMAILS = ['advertisingstallion@gmail.com'];
+const SUPER_ADMIN_EMAILS = ['advertisingstallion@gmail.com', 'hichamkama20@gmail.com'];
 
 // POST /api/auth/register — creates a new isolated agency workspace for each registration
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
