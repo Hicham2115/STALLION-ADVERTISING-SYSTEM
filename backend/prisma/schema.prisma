@@ -283,6 +283,7 @@ model ClientCost {
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name      String
   amount    Float
+  currency  String   @default("MAD")
   date      DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

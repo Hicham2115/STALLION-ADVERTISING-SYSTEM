@@ -570,6 +570,7 @@ export interface ClientCost {
   clientId: string;
   name: string;
   amount: number;
+  currency: string;
   date: string;
   createdAt: string;
   updatedAt: string;

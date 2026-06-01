@@ -110,6 +110,18 @@ function fmt(n: number) {
   return n.toLocaleString("en-MA", { maximumFractionDigits: 0 }) + " MAD";
 }
 
+const ORDER_CURRENCIES = ["MAD", "USD", "EUR"] as const;
+type OrderCurrency = typeof ORDER_CURRENCIES[number];
+
+const CURRENCY_RATES: Record<string, Record<string, number>> = {
+  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
+  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
+  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
+};
+function toMAD(amount: number, from: OrderCurrency): number {
+  return from === "MAD" ? amount : amount * (CURRENCY_RATES[from]?.MAD ?? 1);
+}
+
 const STATUS_CONFIG: Partial<
   Record<OrderStatus, { label: string; color: string }>
 > = {
@@ -191,6 +203,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [orderCurrency, setOrderCurrency] = useState<OrderCurrency>("MAD");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
@@ -315,9 +328,9 @@ export default function MyOrders() {
         ...form,
         closerId: user?.id,
         quantity: Number(form.quantity),
-        orderAmount: Number(form.orderAmount),
-        productCost: Number(form.productCost),
-        shippingCost: Number(form.shippingCost),
+        orderAmount: toMAD(Number(form.orderAmount), orderCurrency),
+        productCost: toMAD(Number(form.productCost), orderCurrency),
+        shippingCost: toMAD(Number(form.shippingCost), orderCurrency),
         adCost: 0,
       });
       setForm(defaultForm);
@@ -334,6 +347,19 @@ export default function MyOrders() {
     (Number(form.orderAmount) || 0) -
     (Number(form.productCost) || 0) -
     (Number(form.shippingCost) || 0);
+
+  const switchOrderCurrency = (next: OrderCurrency) => {
+    if (next === orderCurrency) return;
+    const conv = (v: string) =>
+      v ? String(parseFloat((Number(v) * (CURRENCY_RATES[orderCurrency]?.[next] ?? 1)).toFixed(2))) : v;
+    setForm((f) => ({
+      ...f,
+      orderAmount: conv(f.orderAmount),
+      productCost: conv(f.productCost),
+      shippingCost: conv(f.shippingCost),
+    }));
+    setOrderCurrency(next);
+  };
 
   if (clientsLoading) {
     return (
@@ -564,40 +590,62 @@ export default function MyOrders() {
           </div>
 
           {/* Financials */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="label">{t('myOrders.orderAmountMAD')}</label>
-              <input
-                className="input mt-1"
-                type="number"
-                step="0.01"
-                value={form.orderAmount}
-                onChange={(e) => set("orderAmount", e.target.value)}
-                placeholder="0"
-                required
-              />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="label">{t('myOrders.amounts')}</span>
+              <div className="flex rounded-lg overflow-hidden border border-slate-700/50">
+                {ORDER_CURRENCIES.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => switchOrderCurrency(c)}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-bold transition-colors",
+                      orderCurrency === c
+                        ? "bg-amber-500 text-white"
+                        : "bg-transparent text-slate-400 hover:text-white",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <label className="label">{t('myOrders.productCostMAD')}</label>
-              <input
-                className="input mt-1"
-                type="number"
-                step="0.01"
-                value={form.productCost}
-                onChange={(e) => set("productCost", e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="label">{t('myOrders.shippingCostMAD')}</label>
-              <input
-                className="input mt-1"
-                type="number"
-                step="0.01"
-                value={form.shippingCost}
-                onChange={(e) => set("shippingCost", e.target.value)}
-                placeholder="0"
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="label">{t('myOrders.orderAmount')} ({orderCurrency})</label>
+                <input
+                  className="input mt-1"
+                  type="number"
+                  step="0.01"
+                  value={form.orderAmount}
+                  onChange={(e) => set("orderAmount", e.target.value)}
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">{t('myOrders.productCost')} ({orderCurrency})</label>
+                <input
+                  className="input mt-1"
+                  type="number"
+                  step="0.01"
+                  value={form.productCost}
+                  onChange={(e) => set("productCost", e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="label">{t('myOrders.shippingCost')} ({orderCurrency})</label>
+                <input
+                  className="input mt-1"
+                  type="number"
+                  step="0.01"
+                  value={form.shippingCost}
+                  onChange={(e) => set("shippingCost", e.target.value)}
+                  placeholder="0"
+                />
+              </div>
             </div>
           </div>
 
@@ -610,7 +658,7 @@ export default function MyOrders() {
                 : "bg-red-50 dark:bg-red-900/10 text-red-600",
             )}
           >
-            {t('myOrders.estimatedMargin', { value: netProfit.toFixed(2) })}
+            {t('myOrders.estimatedMargin', { value: `${netProfit.toFixed(2)} ${orderCurrency}` })}
           </div>
 
           {/* Source + Notes */}

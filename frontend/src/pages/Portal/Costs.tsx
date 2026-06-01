@@ -24,13 +24,16 @@ function InputField({
   );
 }
 
+const CURRENCIES = ["MAD", "USD", "EUR"] as const;
+type Currency = typeof CURRENCIES[number];
+
 export default function PortalCostsPage() {
   const { t } = useTranslation();
-  const { currency, fmt } = usePortalCurrency();
+  const { currency, fmt, convert } = usePortalCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [costs, setCosts] = useState<ClientCost[]>([]);
-  const [form, setForm] = useState({ name: "", amount: "", date: "" });
+  const [form, setForm] = useState({ name: "", amount: "", date: "", currency: currency as Currency });
 
   useEffect(() => {
     portalApi
@@ -47,10 +50,11 @@ export default function PortalCostsPage() {
         name: form.name.trim(),
         amount: Number(form.amount),
         date: form.date,
+        currency: form.currency,
       };
       const { data } = await portalApi.post<ClientCost>("/costs", payload);
       setCosts((cs) => [data, ...cs]);
-      setForm({ name: "", amount: "", date: "" });
+      setForm((f) => ({ name: "", amount: "", date: "", currency: f.currency }));
     } finally {
       setSaving(false);
     }
@@ -84,21 +88,53 @@ export default function PortalCostsPage() {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-4 gap-3">
           <InputField
             label={t('portal.costName')}
             placeholder={t('portal.costNamePlaceholder')}
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
-          <InputField
-            label={`${t('portal.costAmount')} (${currency})`}
-            type="number"
-            step="0.01"
-            placeholder="0"
-            value={form.amount}
-            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-          />
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              {t('portal.costAmount')}
+            </label>
+            <div className="flex gap-1.5">
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0"
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                className="flex-1 min-w-0 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 transition-all"
+              />
+              <div className="flex rounded-xl overflow-hidden border border-slate-700/60">
+                {CURRENCIES.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => {
+                        const converted =
+                          f.amount && f.currency !== c
+                            ? String(parseFloat(convert(Number(f.amount), f.currency as Currency).toFixed(2)))
+                            : f.amount;
+                        return { ...f, currency: c, amount: converted };
+                      })
+                    }
+                    className={cn(
+                      "px-2.5 py-2 text-xs font-bold transition-colors",
+                      form.currency === c
+                        ? "bg-amber-500 text-white"
+                        : "bg-slate-800/60 text-slate-400 hover:text-white",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <DateSelector
             label={t('portal.costDate')}
             value={form.date}
@@ -147,8 +183,15 @@ export default function PortalCostsPage() {
                     {formatDate(c.date)}
                   </div>
                 </div>
-                <div className="text-sm font-bold text-white whitespace-nowrap">
-                  {fmt(Number(c.amount))}
+                <div className="text-right">
+                  <div className="text-sm font-bold text-white whitespace-nowrap">
+                    {fmt(Number(c.amount), (c.currency || "MAD") as Currency)}
+                  </div>
+                  {c.currency && c.currency !== currency && (
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      {Number(c.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {c.currency}
+                    </div>
+                  )}
                 </div>
               </div>
             ))

@@ -397,7 +397,7 @@ router.post(
   "/costs",
   portalAuthenticate,
   async (req: PortalRequest, res: Response): Promise<void> => {
-    const { name, amount, date } = req.body;
+    const { name, amount, date, currency } = req.body;
     if (!name?.trim()) {
       res.status(400).json({ message: "Cost name required" });
       return;
@@ -412,12 +412,15 @@ router.post(
       res.status(400).json({ message: "Valid date required" });
       return;
     }
+    const validCurrencies = ["MAD", "USD", "EUR"];
+    const costCurrency = validCurrencies.includes(currency) ? currency : "MAD";
 
     const cost = await (prisma as any).clientCost.create({
       data: {
         clientId: req.portalUser!.clientId,
         name: name.trim(),
         amount: parsedAmount,
+        currency: costCurrency,
         date: parsedDate,
       },
     });

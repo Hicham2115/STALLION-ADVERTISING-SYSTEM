@@ -52,6 +52,14 @@ interface DetailData {
   costs: ClientCost[];
 }
 
+const CURRENCY_RATES: Record<string, Record<string, number>> = {
+  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
+  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
+  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
+};
+const convertCurrency = (amount: number, from: string, to: string) =>
+  from === to ? amount : amount * (CURRENCY_RATES[from]?.[to] ?? 1);
+
 const TABS = [
   "Overview",
   "Updates",
@@ -247,7 +255,10 @@ export default function ClientPortalDetail() {
   const [notifyLoading, setNotifyLoading] = useState(false);
 
   // Costs
-  const [costForm, setCostForm] = useState({ name: "", amount: "", date: "" });
+  const COST_CURRENCIES = ["MAD", "USD", "EUR"] as const;
+  type CostCurrency = typeof COST_CURRENCIES[number];
+  const [costForm, setCostForm] = useState({ name: "", amount: "", date: "", currency: "MAD" as CostCurrency });
+  const [displayCurrency, setDisplayCurrency] = useState<CostCurrency>("MAD");
   const [costLoading, setCostLoading] = useState(false);
 
   const showToast = (msg: string, ok = true) => {
@@ -553,13 +564,14 @@ export default function ClientPortalDetail() {
         name: costForm.name.trim(),
         amount: Number(costForm.amount),
         date: costForm.date,
+        currency: costForm.currency,
       };
       const res = await api.post<ClientCost>(
         `/portal-admin/${clientId}/costs`,
         payload,
       );
       setData((d) => (d ? { ...d, costs: [res.data, ...(d.costs || [])] } : d));
-      setCostForm({ name: "", amount: "", date: "" });
+      setCostForm((f) => ({ name: "", amount: "", date: "", currency: f.currency }));
       showToast(t("portalAdmin.costAdded"));
     } catch (err: any) {
       showToast(
@@ -862,7 +874,7 @@ export default function ClientPortalDetail() {
 
           <Section title={t("portalAdmin.costs")}>
             <div className="space-y-4">
-              <div className="grid sm:grid-cols-3 gap-3">
+              <div className="grid sm:grid-cols-4 gap-3">
                 <InputField
                   label={t("portalAdmin.costName")}
                   placeholder={t("portalAdmin.costNamePlaceholder")}
@@ -871,16 +883,48 @@ export default function ClientPortalDetail() {
                     setCostForm((f) => ({ ...f, name: e.target.value }))
                   }
                 />
-                <InputField
-                  label={t("common.amount")}
-                  type="number"
-                  step="0.01"
-                  placeholder="0"
-                  value={costForm.amount}
-                  onChange={(e) =>
-                    setCostForm((f) => ({ ...f, amount: e.target.value }))
-                  }
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    {t("common.amount")}
+                  </label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={costForm.amount}
+                      onChange={(e) =>
+                        setCostForm((f) => ({ ...f, amount: e.target.value }))
+                      }
+                      className="flex-1 min-w-0 bg-[#0d1528] border border-slate-700/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 transition-all"
+                    />
+                    <div className="flex rounded-xl overflow-hidden border border-slate-700/50">
+                      {COST_CURRENCIES.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() =>
+                            setCostForm((f) => {
+                              const converted =
+                                f.amount && f.currency !== c
+                                  ? String(parseFloat(convertCurrency(Number(f.amount), f.currency, c).toFixed(2)))
+                                  : f.amount;
+                              return { ...f, currency: c, amount: converted };
+                            })
+                          }
+                          className={cn(
+                            "px-2 py-2 text-xs font-bold transition-colors",
+                            costForm.currency === c
+                              ? "bg-amber-500 text-white"
+                              : "bg-[#0d1528] text-slate-400 hover:text-white",
+                          )}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
                 <DateSelector
                   label={t("common.date")}
                   value={costForm.date}
@@ -906,11 +950,26 @@ export default function ClientPortalDetail() {
               </button>
 
               <div className="border border-slate-700/50 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-slate-800/40 border-b border-slate-700/50">
+                <div className="px-4 py-3 bg-slate-800/40 border-b border-slate-700/50 flex items-center justify-between gap-3">
                   <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    {t("portalAdmin.savedCosts", {
-                      count: data.costs?.length ?? 0,
-                    })}
+                    {t("portalAdmin.savedCosts", { count: data.costs?.length ?? 0 })}
+                  </div>
+                  <div className="flex rounded-lg overflow-hidden border border-slate-700/50">
+                    {COST_CURRENCIES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setDisplayCurrency(c)}
+                        className={cn(
+                          "px-2.5 py-1 text-xs font-bold transition-colors",
+                          displayCurrency === c
+                            ? "bg-amber-500 text-white"
+                            : "bg-slate-800/60 text-slate-400 hover:text-white",
+                        )}
+                      >
+                        {c}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="divide-y divide-slate-800/60">
@@ -919,32 +978,42 @@ export default function ClientPortalDetail() {
                       {t("portalAdmin.noCosts")}
                     </div>
                   ) : (
-                    data.costs.map((c) => (
-                      <div
-                        key={c.id}
-                        className="px-4 py-3 flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">
-                            {c.name}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            {new Date(c.date).toLocaleDateString()} ·{" "}
-                            {Number(c.amount).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => deleteCost(c.id)}
-                          className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
-                          aria-label="Delete cost"
+                    data.costs.map((c) => {
+                      const fromCurrency = (c.currency || "MAD") as CostCurrency;
+                      const converted = convertCurrency(Number(c.amount), fromCurrency, displayCurrency);
+                      return (
+                        <div
+                          key={c.id}
+                          className="px-4 py-3 flex items-center justify-between gap-3"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-white truncate">
+                              {c.name}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {new Date(c.date).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-sm font-bold text-white">
+                              {converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {displayCurrency}
+                            </div>
+                            {fromCurrency !== displayCurrency && (
+                              <div className="text-xs text-slate-500 mt-0.5">
+                                {Number(c.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {fromCurrency}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => deleteCost(c.id)}
+                            className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
+                            aria-label="Delete cost"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
