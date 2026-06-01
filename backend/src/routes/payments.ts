@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { convert, Currency } from '../lib/currency';
 import * as XLSX from 'xlsx';
 
 const router = Router();
@@ -16,6 +17,12 @@ function toDate(val: unknown): Date {
   const d = new Date(val as string);
   if (isNaN(d.getTime())) throw new Error(`Invalid date: ${val}`);
   return d;
+}
+
+function normalizeCurrency(val: unknown): Currency {
+  const cur = String(val || 'MAD').toUpperCase();
+  if (cur === 'MAD' || cur === 'USD' || cur === 'EUR') return cur;
+  throw new Error(`Unsupported currency: ${cur}`);
 }
 
 // GET /api/payments
@@ -76,16 +83,28 @@ router.get('/by-service', h(async (req: AuthRequest, res: Response) => {
 
 // POST /api/payments
 router.post('/', h(async (req: AuthRequest, res: Response) => {
-  const { date, amount, clientId, method, invoiceNumber, status, notes, pdfUrl } = req.body;
+  const { date, amount, originalAmount, currency, clientId, method, invoiceNumber, status, notes, pdfUrl } = req.body;
 
   if (!clientId) { res.status(400).json({ message: 'Client is required' }); return; }
-  if (!amount || isNaN(Number(amount))) { res.status(400).json({ message: 'Valid amount is required' }); return; }
+  if ((originalAmount === undefined || originalAmount === null) && (!amount || isNaN(Number(amount)))) {
+    res.status(400).json({ message: 'Valid amount is required' });
+    return;
+  }
   if (!date) { res.status(400).json({ message: 'Date is required' }); return; }
 
-  const payment = await prisma.payment.create({
+  const cur = normalizeCurrency(currency);
+  const orig = originalAmount !== undefined && originalAmount !== null
+    ? Number(originalAmount)
+    : Number(amount);
+  if (!orig || isNaN(orig)) { res.status(400).json({ message: 'Valid amount is required' }); return; }
+  const amountMAD = convert(orig, cur, 'MAD');
+
+  const payment = await (prisma as any).payment.create({
     data: {
       clientId,
-      amount: Number(amount),
+      amount: amountMAD,
+      currency: cur,
+      originalAmount: orig,
       date: toDate(date),
       method: method || 'BANK_TRANSFER',
       invoiceNumber: invoiceNumber || null,
@@ -101,7 +120,7 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
       clientId: payment.clientId,
       module: 'REVENUE',
       action: 'PAYMENT_RECORDED',
-      details: `Payment recorded: ${payment.amount} MAD`,
+      details: `Payment recorded: ${payment.originalAmount ?? payment.amount} ${payment.currency ?? 'MAD'}`,
     },
   });
 
@@ -110,24 +129,43 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
 
 // PUT /api/payments/:id
 router.put('/:id', h(async (req: AuthRequest, res: Response) => {
-  const { date, amount, ...rest } = req.body;
+  const { date, amount, originalAmount, currency, clientId, ...rest } = req.body;
   const data: Record<string, unknown> = { ...rest };
   if (date) data.date = toDate(date);
-  if (amount !== undefined) data.amount = Number(amount);
-  const payment = await prisma.payment.update({ where: { id: req.params.id }, data });
+  if (currency !== undefined) data.currency = normalizeCurrency(currency);
+  if (clientId) data.client = { connect: { id: clientId } };
+  if ('invoiceNumber' in rest) data.invoiceNumber = rest.invoiceNumber || null;
+  if ('notes' in rest) data.notes = rest.notes || null;
+  if ('pdfUrl' in rest) data.pdfUrl = rest.pdfUrl || null;
+
+  // Prefer originalAmount for updates; fall back to amount (treated as original)
+  const hasOrig = originalAmount !== undefined && originalAmount !== null;
+  const hasAmount = amount !== undefined && amount !== null;
+  if (hasOrig || hasAmount) {
+    const existing = await (prisma as any).payment.findUnique({ where: { id: req.params.id } });
+    if (!existing) { res.status(404).json({ message: 'Payment not found' }); return; }
+
+    const cur = normalizeCurrency(currency !== undefined ? currency : existing.currency);
+    const orig = hasOrig ? Number(originalAmount) : Number(amount);
+    data.currency = cur;
+    data.originalAmount = orig;
+    data.amount = convert(orig, cur, 'MAD');
+  }
+
+  const payment = await (prisma as any).payment.update({ where: { id: req.params.id }, data });
   res.json(payment);
 }));
 
 // DELETE /api/payments/:id
 router.delete('/:id', h(async (req: AuthRequest, res: Response) => {
-  await prisma.payment.delete({ where: { id: req.params.id } });
+  await (prisma as any).payment.delete({ where: { id: req.params.id } });
   res.json({ message: 'Payment deleted' });
 }));
 
 // GET /api/payments/export
 router.get('/export', h(async (req: AuthRequest, res: Response) => {
   const y = parseInt(req.query.year as string) || new Date().getFullYear();
-  const payments = await prisma.payment.findMany({
+  const payments = await (prisma as any).payment.findMany({
     where: { date: { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) } },
     include: { client: { select: { name: true, services: true } } },
     orderBy: { date: 'desc' },
@@ -135,6 +173,8 @@ router.get('/export', h(async (req: AuthRequest, res: Response) => {
   const rows = payments.map((p) => ({
     'Client': p.client.name,
     'Service': p.client.services.join(', '),
+    'Original Amount': p.originalAmount ?? p.amount,
+    'Currency': p.currency ?? 'MAD',
     'Amount (MAD)': p.amount,
     'Date': new Date(p.date).toLocaleDateString(),
     'Method': p.method,

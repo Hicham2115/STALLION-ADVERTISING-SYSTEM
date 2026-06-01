@@ -8,14 +8,6 @@ import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["MAD", "USD", "EUR"] as const;
 type PaymentCurrency = (typeof CURRENCIES)[number];
-const TO_MAD: Record<PaymentCurrency, number> = {
-  MAD: 1,
-  USD: 9.85,
-  EUR: 10.85,
-};
-function toMAD(amount: number, from: PaymentCurrency): number {
-  return from === "MAD" ? amount : amount * TO_MAD[from];
-}
 
 const METHODS: PaymentMethod[] = [
   "BANK_TRANSFER",
@@ -62,9 +54,11 @@ export default function PaymentModal({
 
   useEffect(() => {
     if (payment) {
+      const cur = ((payment.currency as PaymentCurrency | undefined) || "MAD") as PaymentCurrency;
+      const original = payment.originalAmount ?? payment.amount;
       setForm({
         clientId: payment.clientId,
-        amount: String(payment.amount),
+        amount: String(original),
         date: payment.date.split("T")[0],
         method: payment.method,
         invoiceNumber: payment.invoiceNumber || "",
@@ -72,6 +66,7 @@ export default function PaymentModal({
         notes: payment.notes || "",
         pdfUrl: payment.pdfUrl || "",
       });
+      setCurrency(cur);
     } else {
       setForm(defaultForm);
       setCurrency("MAD");
@@ -104,7 +99,8 @@ export default function PaymentModal({
     try {
       const payload = {
         ...form,
-        amount: toMAD(parseFloat(form.amount), currency),
+        originalAmount: parseFloat(form.amount),
+        currency,
         // Interpret date-only input as a local calendar day.
         date: new Date(`${form.date}T12:00:00`).toISOString(),
         pdfUrl: form.pdfUrl || null,

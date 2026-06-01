@@ -296,7 +296,11 @@ model Payment {
   id            String        @id @default(cuid())
   clientId      String
   client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  // Stored in MAD for consistent reporting.
   amount        Float
+  // Preserves the original entered amount/currency for edit/history.
+  currency      String        @default("MAD")
+  originalAmount Float?
   date          DateTime
   method        PaymentMethod @default(BANK_TRANSFER)
   invoiceNumber String?

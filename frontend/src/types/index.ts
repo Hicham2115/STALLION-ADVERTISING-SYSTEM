@@ -238,7 +238,11 @@ export interface Payment {
   id: string;
   clientId: string;
   client?: Pick<Client, "id" | "name" | "services">;
+  // Stored in MAD for reporting.
   amount: number;
+  // Original entered values.
+  currency?: Currency;
+  originalAmount?: number | null;
   date: string;
   method: PaymentMethod;
   invoiceNumber?: string;
