@@ -2,23 +2,18 @@ import { prisma } from './prisma';
 
 export type Currency = 'MAD' | 'USD' | 'EUR';
 
-// Fallback rates (updated May 2026): 1 USD ≈ 9.85 MAD, 1 EUR ≈ 10.85 MAD
-const FALLBACK_RATES: Record<string, Record<string, number>> = {
-  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
-  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
-  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
-};
+// Base rates: 1 unit of currency X = N MAD. All other rates are derived from these
+// to guarantee perfect round-trip accuracy (EUR→MAD→EUR = original amount).
+const TO_MAD_FALLBACK: Record<string, number> = { MAD: 1, USD: 9.85, EUR: 10.85 };
 
-let ratesCache: Record<string, Record<string, number>> = {
-  MAD: { ...FALLBACK_RATES.MAD },
-  USD: { ...FALLBACK_RATES.USD },
-  EUR: { ...FALLBACK_RATES.EUR },
-};
+// ratesCache stores X→MAD rates (1 unit of X in MAD)
+let ratesCache: Record<string, number> = { ...TO_MAD_FALLBACK };
 
 export function convert(amount: number, from: Currency, to: Currency): number {
   if (from === to) return amount;
-  const rate = ratesCache[from]?.[to] ?? FALLBACK_RATES[from]?.[to] ?? 1;
-  return amount * rate;
+  const fromToMAD = ratesCache[from] ?? TO_MAD_FALLBACK[from] ?? 1;
+  const toToMAD   = ratesCache[to]   ?? TO_MAD_FALLBACK[to]   ?? 1;
+  return amount * fromToMAD / toToMAD;
 }
 
 export async function syncRates(): Promise<void> {
@@ -29,33 +24,22 @@ export async function syncRates(): Promise<void> {
     const { rates } = data;
 
     const currencies: Currency[] = ['MAD', 'USD', 'EUR'];
-    const newCache: Record<string, Record<string, number>> = {};
+    const newCache: Record<string, number> = { MAD: 1 };
 
-    for (const base of currencies) {
-      newCache[base] = {};
-      for (const target of currencies) {
-        let rate: number;
-        if (base === target) {
-          rate = 1;
-        } else if (base === 'MAD') {
-          rate = rates[target] ?? FALLBACK_RATES.MAD[target];
-        } else {
-          const baseToMAD = 1 / (rates[base] ?? (1 / FALLBACK_RATES.MAD[base]));
-          const madToTarget = rates[target] ?? FALLBACK_RATES.MAD[target];
-          rate = baseToMAD * madToTarget;
-        }
-        newCache[base][target] = rate;
+    for (const cur of currencies) {
+      if (cur === 'MAD') continue;
+      // rates[cur] = "1 MAD = X cur", so "1 cur = 1/rates[cur] MAD"
+      const madPerUnit = rates[cur] ? 1 / rates[cur] : TO_MAD_FALLBACK[cur];
+      newCache[cur] = madPerUnit;
 
-        // Upsert into DB via raw SQL (avoids Prisma model type issues)
-        try {
-          await prisma.$executeRaw`
-            INSERT INTO exchange_rates (id, base_currency, target_currency, rate, updated_at)
-            VALUES (${`${base}_${target}`}, ${base}, ${target}, ${rate}, NOW())
-            ON CONFLICT (base_currency, target_currency) DO UPDATE SET rate = ${rate}, updated_at = NOW()
-          `;
-        } catch {
-          // DB write failure is non-fatal
-        }
+      try {
+        await prisma.$executeRaw`
+          INSERT INTO exchange_rates (id, base_currency, target_currency, rate, updated_at)
+          VALUES (${`${cur}_MAD`}, ${cur}, ${'MAD'}, ${madPerUnit}, NOW())
+          ON CONFLICT (base_currency, target_currency) DO UPDATE SET rate = ${madPerUnit}, updated_at = NOW()
+        `;
+      } catch {
+        // DB write failure is non-fatal
       }
     }
 
@@ -72,10 +56,10 @@ export async function loadRatesFromDB(): Promise<void> {
       SELECT base_currency, target_currency, rate FROM exchange_rates
     `;
     if (!rows.length) return;
-    const cache: Record<string, Record<string, number>> = {};
+    const cache: Record<string, number> = { MAD: 1 };
     for (const r of rows) {
-      if (!cache[r.base_currency]) cache[r.base_currency] = {};
-      cache[r.base_currency][r.target_currency] = Number(r.rate);
+      // Only store X→MAD rates
+      if (r.target_currency === 'MAD') cache[r.base_currency] = Number(r.rate);
     }
     ratesCache = cache;
     console.log('[currency] Rates loaded from DB');
@@ -84,6 +68,22 @@ export async function loadRatesFromDB(): Promise<void> {
   }
 }
 
+/** Returns the simple X→MAD base rates currently in use. */
+export function getBaseRates(): Record<string, number> {
+  return { ...ratesCache };
+}
+
 export function getRatesCache(): Record<string, Record<string, number>> {
-  return ratesCache;
+  // Return full cross-table derived from base rates for API consumers that expect it
+  const currencies = ['MAD', 'USD', 'EUR'];
+  const full: Record<string, Record<string, number>> = {};
+  for (const from of currencies) {
+    full[from] = {};
+    for (const to of currencies) {
+      const fromToMAD = ratesCache[from] ?? TO_MAD_FALLBACK[from] ?? 1;
+      const toToMAD   = ratesCache[to]   ?? TO_MAD_FALLBACK[to]   ?? 1;
+      full[from][to] = from === to ? 1 : fromToMAD / toToMAD;
+    }
+  }
+  return full;
 }

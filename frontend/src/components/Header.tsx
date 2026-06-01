@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, Sun, Moon, Bell, LogOut, UserCircle, Check, Activity, Globe } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UserButton } from '@clerk/clerk-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useCrmCurrency, CrmCurrency, SYMBOLS } from '@/context/CrmCurrencyContext';
 import { getInitials, cn } from '@/lib/utils';
 import { Role } from '@/types';
 import { isClerkEnabled, clerkAppearance } from '@/lib/clerk';
@@ -63,9 +64,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout, isClerkUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
+  const { currency: crmCurrency, setCurrency: setCrmCurrency } = useCrmCurrency();
+  const location = useLocation();
+  const showCurrencySwitcher = location.pathname.startsWith('/my-orders');
   const [notifOpen, setNotifOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
   const [notifications, setNotifications] = useState<ActivityLog[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -102,10 +108,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setLangOpen(false);
       }
+      if (currencyRef.current && !currencyRef.current.contains(e.target as Node)) {
+        setCurrencyOpen(false);
+      }
     }
-    if (notifOpen || langOpen) document.addEventListener('mousedown', handleClickOutside);
+    if (notifOpen || langOpen || currencyOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [notifOpen, langOpen]);
+  }, [notifOpen, langOpen, currencyOpen]);
 
   const markAllRead = () => {
     const now = new Date().toISOString();
@@ -132,6 +141,40 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Currency switcher — only on My Orders */}
+        {showCurrencySwitcher && (
+        <div className="relative" ref={currencyRef}>
+          <button
+            onClick={() => setCurrencyOpen((o) => !o)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors text-xs font-bold"
+          >
+            {crmCurrency !== 'MAD' && <span>{SYMBOLS[crmCurrency]}</span>}
+            {crmCurrency}
+          </button>
+          {currencyOpen && (
+            <div className="absolute right-0 top-11 w-28 bg-white dark:bg-[#0d1528] border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-2xl z-[100] overflow-hidden py-1">
+              {(['MAD', 'USD', 'EUR'] as CrmCurrency[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => { setCrmCurrency(c); setCurrencyOpen(false); }}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors text-left',
+                    crmCurrency === c
+                      ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  )}
+                >
+                  <span className="font-bold text-xs w-5 text-center">
+                    {c === 'MAD' ? 'Dh' : SYMBOLS[c]}
+                  </span>
+                  <span>{c}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        )}
+
         {/* Language switcher */}
         <div className="relative" ref={langRef}>
           <button

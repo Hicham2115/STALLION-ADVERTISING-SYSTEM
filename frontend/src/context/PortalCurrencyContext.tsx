@@ -5,11 +5,8 @@ import { formatCurrency } from '@/lib/utils';
 
 const STORAGE_KEY = 'stallion_portal_currency';
 
-const FALLBACK: Record<string, Record<string, number>> = {
-  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
-  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
-  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
-};
+// Base rates: 1 unit of X = N MAD. Derived inversely to guarantee perfect round-trips.
+const TO_MAD: Record<string, number> = { MAD: 1, USD: 9.85, EUR: 10.85 };
 
 interface PortalCurrencyContextValue {
   currency: Currency;
@@ -29,11 +26,18 @@ export function PortalCurrencyProvider({ children }: Props) {
     const stored = localStorage.getItem(STORAGE_KEY) as Currency | null;
     return stored || 'USD';
   });
-  const [rates, setRates] = useState<Record<string, Record<string, number>>>(FALLBACK);
+  const [toMAD, setToMAD] = useState<Record<string, number>>(TO_MAD);
 
   useEffect(() => {
     portalApi.get<Record<string, Record<string, number>>>('/rates')
-      .then(({ data }) => { if (data && Object.keys(data).length > 0) setRates(data); })
+      .then(({ data }) => {
+        if (!data || !Object.keys(data).length) return;
+        const base: Record<string, number> = { MAD: 1 };
+        for (const cur of ['USD', 'EUR']) {
+          if (data[cur]?.MAD) base[cur] = data[cur].MAD;
+        }
+        setToMAD(base);
+      })
       .catch(() => {});
   }, []);
 
@@ -44,9 +48,8 @@ export function PortalCurrencyProvider({ children }: Props) {
 
   const convert = useCallback((amount: number, from: Currency = 'MAD') => {
     if (from === currency) return amount;
-    const rate = rates[from]?.[currency] ?? FALLBACK[from]?.[currency] ?? 1;
-    return amount * rate;
-  }, [currency, rates]);
+    return amount * (toMAD[from] ?? TO_MAD[from] ?? 1) / (toMAD[currency] ?? TO_MAD[currency] ?? 1);
+  }, [currency, toMAD]);
 
   const fmt = useCallback((amount: number, from: Currency = 'MAD') => {
     return formatCurrency(convert(amount, from), currency);

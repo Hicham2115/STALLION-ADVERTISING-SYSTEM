@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, AuthRequest, ROLE_LEVELS } from "../middleware/auth";
-import { getRatesCache, convert, Currency } from "../lib/currency";
+import { getRatesCache, getBaseRates, convert, Currency } from "../lib/currency";
 
 const router = Router();
 router.use(authenticate);
@@ -14,6 +14,12 @@ const h =
     fn(req, res, next).catch(next);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Normalize any stored amount to MAD using the order's currency field. */
+function toMAD(amount: number, currency?: string | null): number {
+  if (!currency || currency === 'MAD') return amount;
+  return convert(amount, currency as Currency, 'MAD');
+}
 
 function calcNetProfit(order: {
   orderAmount: number;
@@ -280,6 +286,7 @@ router.post(
       shopifyOrderId,
       shopifyStore,
       orderDate,
+      currency,
     } = req.body;
     if (!clientId || !customerName || !productName || !orderAmount) {
       res.status(400).json({
@@ -308,13 +315,13 @@ router.post(
       commission = await calcCommission(
         closerId,
         clientId,
-        Number(orderAmount),
+        toMAD(Number(orderAmount), currency),
       );
     const netProfit = calcNetProfit({
-      orderAmount: Number(orderAmount),
-      productCost: Number(productCost || 0),
-      shippingCost: Number(shippingCost || 0),
-      adCost: Number(adCost || 0),
+      orderAmount: toMAD(Number(orderAmount), currency),
+      productCost: toMAD(Number(productCost || 0), currency),
+      shippingCost: toMAD(Number(shippingCost || 0), currency),
+      adCost: toMAD(Number(adCost || 0), currency),
       closerCommission: commission,
     });
     const order = await (prisma as any).crmOrder.create({
@@ -340,6 +347,7 @@ router.post(
         shopifyOrderId: shopifyOrderId || null,
         shopifyStore: shopifyStore || null,
         orderDate: orderDate ? new Date(orderDate) : new Date(),
+        currency: currency || "MAD",
       },
       include: {
         client: { select: { id: true, name: true } },
@@ -388,18 +396,13 @@ router.put(
       "shopifyOrderId",
       "shopifyStore",
       "orderDate",
+      "currency",
     ];
     const data: Record<string, unknown> = {};
     for (const f of fields) {
       if (f in req.body) data[f] = req.body[f] ?? null;
     }
-    for (const numField of [
-      "quantity",
-      "orderAmount",
-      "productCost",
-      "shippingCost",
-      "adCost",
-    ]) {
+    for (const numField of ["quantity", "orderAmount", "productCost", "shippingCost", "adCost"]) {
       if (numField in data) data[numField] = Number(data[numField]);
     }
     if ("orderDate" in data && data.orderDate) {
@@ -410,26 +413,28 @@ router.put(
       "closerId" in data ? data.closerId : existing.closerId
     ) as string | null;
     const clientId = existing.clientId as string;
+    const orderCurrency = (
+      "currency" in data ? data.currency : existing.currency
+    ) as string | null;
+    // Amounts are stored in their original currency; normalize to MAD only for
+    // commission and net-profit math.
     const orderAmount = (
       "orderAmount" in data ? Number(data.orderAmount) : existing.orderAmount
     ) as number;
+    const orderAmountMAD = toMAD(orderAmount, orderCurrency);
 
     if (closerId) {
       data.closerCommission = await calcCommission(
         closerId,
         clientId,
-        orderAmount,
+        orderAmountMAD,
       );
     }
     data.netProfit = calcNetProfit({
-      orderAmount,
-      productCost: Number(
-        "productCost" in data ? data.productCost : existing.productCost,
-      ),
-      shippingCost: Number(
-        "shippingCost" in data ? data.shippingCost : existing.shippingCost,
-      ),
-      adCost: Number("adCost" in data ? data.adCost : existing.adCost),
+      orderAmount: orderAmountMAD,
+      productCost: toMAD(Number("productCost" in data ? data.productCost : existing.productCost), orderCurrency),
+      shippingCost: toMAD(Number("shippingCost" in data ? data.shippingCost : existing.shippingCost), orderCurrency),
+      adCost: toMAD(Number("adCost" in data ? data.adCost : existing.adCost), orderCurrency),
       closerCommission: Number(
         data.closerCommission ?? existing.closerCommission,
       ),
@@ -1201,6 +1206,7 @@ router.get(
         orderBy: { createdAt: "asc" },
         select: {
           orderAmount: true,
+          originalAmount: true,
           productCost: true,
           shippingCost: true,
           adCost: true,
@@ -1211,6 +1217,7 @@ router.get(
           source: true,
           createdAt: true,
           customerCity: true,
+          currency: true,
         },
       }),
       (prisma as any).closerCommissionRecord.aggregate({
@@ -1228,10 +1235,10 @@ router.get(
     const NON_REVENUE = ["CANCELLED", "REFUSED", "RETURNED"];
     const revenueOrders = orders.filter((o: any) => !NON_REVENUE.includes(o.status));
     const totalRevenue = revenueOrders.reduce(
-      (s: number, o: any) => s + o.orderAmount,
+      (s: number, o: any) => s + toMAD(o.orderAmount, o.currency),
       0,
     );
-    const orderAdSpend = orders.reduce((s: number, o: any) => s + o.adCost, 0);
+    const orderAdSpend = orders.reduce((s: number, o: any) => s + toMAD(o.adCost, o.currency), 0);
     const linkedCostSpend = await getClientCostsSpend(
       clientId ? (clientId as string) : undefined,
       (datePreset as string) || "custom",
@@ -1266,11 +1273,11 @@ router.get(
       totalAdSpend = totalMetaSpend || linkedCostSpend || orderAdSpend;
     }
     const totalProductCost = revenueOrders.reduce(
-      (s: number, o: any) => s + o.productCost,
+      (s: number, o: any) => s + toMAD(o.productCost, o.currency),
       0,
     );
     const totalShipping = revenueOrders.reduce(
-      (s: number, o: any) => s + o.shippingCost,
+      (s: number, o: any) => s + toMAD(o.shippingCost, o.currency),
       0,
     );
     const totalOrderCommissions = revenueOrders.reduce(
@@ -1362,11 +1369,11 @@ router.get(
       const key = ymKeyOf(createdAt);
       const bucket = monthlyMap[key];
       if (!bucket) continue;
-      bucket.revenue += o.orderAmount;
-      bucket.productCost += o.productCost;
-      bucket.shipping += o.shippingCost;
+      bucket.revenue += toMAD(o.orderAmount, o.currency);
+      bucket.productCost += toMAD(o.productCost, o.currency);
+      bucket.shipping += toMAD(o.shippingCost, o.currency);
       bucket.commissions += o.closerCommission;
-      bucket.orderAdSpend += o.adCost;
+      bucket.orderAdSpend += toMAD(o.adCost, o.currency);
       bucket.orders += 1;
     }
 
@@ -1457,6 +1464,7 @@ router.get(
     });
 
     res.json({
+      rates: getBaseRates(),
       summary: {
         totalOrders,
         totalRevenue,

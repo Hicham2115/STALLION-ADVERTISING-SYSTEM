@@ -56,6 +56,7 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { OrderStatus, OrderSource, OrderPaymentStatus } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
+import { useCrmCurrency } from "@/context/CrmCurrencyContext";
 
 interface MyClient {
   id: string;
@@ -81,6 +82,8 @@ interface MyOrder {
   source: OrderSource;
   notes?: string;
   orderDate?: string | null;
+  currency?: string | null;
+  originalAmount?: number | null;
   createdAt: string;
 }
 interface MyStats {
@@ -111,20 +114,13 @@ const SOURCES: OrderSource[] = [
   "OTHER",
 ];
 
-function fmt(n: number) {
-  return n.toLocaleString("en-MA", { maximumFractionDigits: 0 }) + " MAD";
-}
-
 const ORDER_CURRENCIES = ["MAD", "USD", "EUR"] as const;
 type OrderCurrency = typeof ORDER_CURRENCIES[number];
 
-const CURRENCY_RATES: Record<string, Record<string, number>> = {
-  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
-  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
-  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
-};
-function toMAD(amount: number, from: OrderCurrency): number {
-  return from === "MAD" ? amount : amount * (CURRENCY_RATES[from]?.MAD ?? 1);
+const TO_MAD: Record<string, number> = { MAD: 1, USD: 9.85, EUR: 10.85 };
+function convertCurrency(amount: number, from: OrderCurrency, to: OrderCurrency): number {
+  if (from === to) return amount;
+  return amount * (TO_MAD[from] ?? 1) / (TO_MAD[to] ?? 1);
 }
 
 const STATUS_CONFIG: Partial<
@@ -216,6 +212,7 @@ export default function MyOrders() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editingOrder, setEditingOrder] = useState<MyOrder | null>(null);
+  const { fmt } = useCrmCurrency();
 
   const set = (k: keyof typeof form, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -236,7 +233,7 @@ export default function MyOrders() {
       notes: o.notes ?? "",
       orderDate: o.orderDate ? o.orderDate.split("T")[0] : toIsoDate(new Date()),
     });
-    setOrderCurrency("MAD");
+    setOrderCurrency((o.currency as OrderCurrency) || "MAD");
     setEditingOrder(o);
     setShowForm(true);
     setError("");
@@ -364,10 +361,11 @@ export default function MyOrders() {
         ...form,
         closerId: user?.id,
         quantity: Number(form.quantity),
-        orderAmount: toMAD(Number(form.orderAmount), orderCurrency),
-        productCost: toMAD(Number(form.productCost), orderCurrency),
-        shippingCost: toMAD(Number(form.shippingCost), orderCurrency),
+        orderAmount: Number(form.orderAmount),
+        productCost: Number(form.productCost),
+        shippingCost: Number(form.shippingCost),
         adCost: 0,
+        currency: orderCurrency,
         orderDate: form.orderDate || undefined,
       };
       if (editingOrder) {
@@ -392,7 +390,7 @@ export default function MyOrders() {
   const switchOrderCurrency = (next: OrderCurrency) => {
     if (next === orderCurrency) return;
     const conv = (v: string) =>
-      v ? String(parseFloat((Number(v) * (CURRENCY_RATES[orderCurrency]?.[next] ?? 1)).toFixed(2))) : v;
+      v ? String(parseFloat(convertCurrency(Number(v), orderCurrency, next).toFixed(2))) : v;
     setForm((f) => ({
       ...f,
       orderAmount: conv(f.orderAmount),
@@ -494,14 +492,14 @@ export default function MyOrders() {
             },
             {
               label: t('myOrders.pendingPay'),
-              value: fmt(stats.pendingCommission),
+              value: fmt(stats.pendingCommission, 'MAD'),
               icon: DollarSign,
               color: "text-amber-600",
               bg: "bg-amber-500/10",
             },
             {
               label: t('myOrders.totalEarned'),
-              value: fmt(stats.totalCommission),
+              value: fmt(stats.totalCommission, 'MAD'),
               icon: DollarSign,
               color: "text-emerald-600",
               bg: "bg-emerald-500/10",
@@ -897,11 +895,11 @@ export default function MyOrders() {
                         )}
                       </td>
                       <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
-                        {fmt(o.orderAmount)}
+                        {o.originalAmount ?? o.orderAmount} {o.currency || 'MAD'}
                       </td>
                       <td className="px-4 py-3 font-semibold text-amber-600 dark:text-amber-400">
                         {o.closerCommission > 0 ? (
-                          fmt(o.closerCommission)
+                          fmt(o.closerCommission, 'MAD')
                         ) : (
                           <span className="text-slate-400 font-normal">—</span>
                         )}

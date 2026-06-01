@@ -4,11 +4,22 @@ import { Currency, ExchangeRates } from '@/types';
 
 const STORAGE_KEY = 'stallion_currency';
 
-const FALLBACK: ExchangeRates = {
-  MAD: { MAD: 1, USD: 0.1, EUR: 0.093 },
-  USD: { USD: 1, MAD: 10.0, EUR: 0.93 },
-  EUR: { EUR: 1, MAD: 10.75, USD: 1.075 },
-};
+// Base rates: 1 unit of X = N MAD. All conversions derived from these for perfect round-trips.
+const TO_MAD_FALLBACK: Record<string, number> = { MAD: 1, USD: 9.85, EUR: 10.85 };
+
+function buildRates(toMAD: Record<string, number>): ExchangeRates {
+  const currencies = ['MAD', 'USD', 'EUR'];
+  const result: ExchangeRates = {} as ExchangeRates;
+  for (const from of currencies) {
+    (result as any)[from] = {};
+    for (const to of currencies) {
+      (result as any)[from][to] = from === to ? 1 : (toMAD[from] ?? 1) / (toMAD[to] ?? 1);
+    }
+  }
+  return result;
+}
+
+const FALLBACK: ExchangeRates = buildRates(TO_MAD_FALLBACK);
 
 interface CurrencyContextValue {
   currency: Currency;
@@ -50,8 +61,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const convert = useCallback((amount: number, from: Currency = 'MAD'): number => {
     if (from === currency) return amount;
-    const rate = rates[from]?.[currency] ?? FALLBACK[from]?.[currency] ?? 1;
-    return amount * rate;
+    const fromToMAD = rates[from]?.MAD ?? FALLBACK[from]?.MAD ?? TO_MAD_FALLBACK[from] ?? 1;
+    const toToMAD   = rates[currency]?.MAD ?? FALLBACK[currency]?.MAD ?? TO_MAD_FALLBACK[currency] ?? 1;
+    return amount * fromToMAD / toToMAD;
   }, [currency, rates]);
 
   const fmt = useCallback((amount: number, from: Currency = 'MAD'): string => {

@@ -4,11 +4,8 @@ import api from '@/lib/api';
 export type CrmCurrency = 'MAD' | 'USD' | 'EUR';
 
 const SYMBOLS: Record<CrmCurrency, string> = { MAD: 'MAD', USD: '$', EUR: '€' };
-const FALLBACK: Record<string, Record<string, number>> = {
-  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
-  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
-  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
-};
+// Base rates: 1 unit of X = N MAD. Derive all conversions from these for perfect round-trips.
+const TO_MAD: Record<string, number> = { MAD: 1, USD: 9.85, EUR: 10.85 };
 
 interface CrmCurrencyCtx {
   currency: CrmCurrency;
@@ -26,18 +23,25 @@ const Ctx = createContext<CrmCurrencyCtx>({
 
 export function CrmCurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState<CrmCurrency>('MAD');
-  const [rates, setRates] = useState<Record<string, Record<string, number>>>(FALLBACK);
+  // toMAD[X] = "1 unit of X in MAD" — only store base rates, derive all else
+  const [toMAD, setToMAD] = useState<Record<string, number>>(TO_MAD);
 
   useEffect(() => {
     api.get<Record<string, Record<string, number>>>('/crm/rates')
-      .then(({ data }) => setRates(data))
+      .then(({ data }) => {
+        // API returns full cross-table; extract X→MAD column
+        const base: Record<string, number> = { MAD: 1 };
+        for (const cur of ['USD', 'EUR']) {
+          if (data[cur]?.MAD) base[cur] = data[cur].MAD;
+        }
+        setToMAD(base);
+      })
       .catch(() => {});
   }, []);
 
   const convert = (amount: number, from: CrmCurrency = 'MAD'): number => {
     if (from === currency) return amount;
-    const rate = rates[from]?.[currency] ?? FALLBACK[from]?.[currency] ?? 1;
-    return amount * rate;
+    return amount * (toMAD[from] ?? TO_MAD[from] ?? 1) / (toMAD[currency] ?? TO_MAD[currency] ?? 1);
   };
 
   const fmt = (amount: number, from: CrmCurrency = 'MAD'): string => {

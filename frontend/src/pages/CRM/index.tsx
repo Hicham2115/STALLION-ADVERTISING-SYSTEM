@@ -11,7 +11,6 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import {
-  CrmCurrencyProvider,
   useCrmCurrency,
   CrmCurrency,
 } from "@/context/CrmCurrencyContext";
@@ -115,9 +114,5 @@ function CRMContent() {
 }
 
 export default function CRMPage() {
-  return (
-    <CrmCurrencyProvider>
-      <CRMContent />
-    </CrmCurrencyProvider>
-  );
+  return <CRMContent />;
 }

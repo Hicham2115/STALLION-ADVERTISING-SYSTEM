@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PortalAuthProvider } from '@/context/PortalAuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
+import { CrmCurrencyProvider } from '@/context/CrmCurrencyContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { clerkPublishableKey, isClerkEnabled } from '@/lib/clerk';
 
@@ -59,12 +60,12 @@ export default function AppProviders({ children }: { children: React.ReactNode }
       signUpFallbackRedirectUrl="/"
     >
       <PortalAuthProvider>
-        <CurrencyProvider>{inner}</CurrencyProvider>
+        <CurrencyProvider><CrmCurrencyProvider>{inner}</CrmCurrencyProvider></CurrencyProvider>
       </PortalAuthProvider>
     </ClerkProvider>
   ) : (
     <PortalAuthProvider>
-      <CurrencyProvider>{inner}</CurrencyProvider>
+      <CurrencyProvider><CrmCurrencyProvider>{inner}</CrmCurrencyProvider></CurrencyProvider>
     </PortalAuthProvider>
   );
 }

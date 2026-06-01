@@ -52,13 +52,9 @@ interface DetailData {
   costs: ClientCost[];
 }
 
-const CURRENCY_RATES: Record<string, Record<string, number>> = {
-  MAD: { MAD: 1, USD: 0.1015, EUR: 0.0922 },
-  USD: { USD: 1, MAD: 9.85, EUR: 0.9079 },
-  EUR: { EUR: 1, MAD: 10.85, USD: 1.1015 },
-};
+const TO_MAD: Record<string, number> = { MAD: 1, USD: 9.85, EUR: 10.85 };
 const convertCurrency = (amount: number, from: string, to: string) =>
-  from === to ? amount : amount * (CURRENCY_RATES[from]?.[to] ?? 1);
+  from === to ? amount : amount * (TO_MAD[from] ?? 1) / (TO_MAD[to] ?? 1);
 
 const TABS = [
   "Overview",

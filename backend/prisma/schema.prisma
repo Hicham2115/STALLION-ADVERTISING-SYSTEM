@@ -721,6 +721,9 @@ model CrmOrder {
   closerCommission Float              @default(0)
   netProfit        Float              @default(0)
 
+  currency         String             @default("MAD")
+  originalAmount   Float?
+
   status           OrderStatus        @default(NEW)
   paymentStatus    OrderPaymentStatus @default(COD_PENDING)
   source           OrderSource        @default(OTHER)
