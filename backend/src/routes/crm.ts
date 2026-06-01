@@ -387,6 +387,7 @@ router.put(
       "closerNotes",
       "shopifyOrderId",
       "shopifyStore",
+      "orderDate",
     ];
     const data: Record<string, unknown> = {};
     for (const f of fields) {
@@ -400,6 +401,9 @@ router.put(
       "adCost",
     ]) {
       if (numField in data) data[numField] = Number(data[numField]);
+    }
+    if ("orderDate" in data && data.orderDate) {
+      data.orderDate = new Date(data.orderDate as string);
     }
 
     const closerId = (

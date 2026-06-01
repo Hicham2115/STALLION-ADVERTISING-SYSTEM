@@ -14,6 +14,7 @@ import {
   X,
   Calendar,
   Trash2,
+  Pencil,
 } from "lucide-react";
 
 function toIsoDate(date: Date) {
@@ -72,6 +73,8 @@ interface MyOrder {
   productName: string;
   quantity: number;
   orderAmount: number;
+  productCost: number;
+  shippingCost: number;
   closerCommission: number;
   status: OrderStatus;
   paymentStatus: OrderPaymentStatus;
@@ -212,9 +215,39 @@ export default function MyOrders() {
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<MyOrder | null>(null);
 
   const set = (k: keyof typeof form, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  function startEdit(o: MyOrder) {
+    setForm({
+      clientId: o.clientId,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone ?? "",
+      customerCity: o.customerCity ?? "",
+      productName: o.productName,
+      quantity: String(o.quantity),
+      orderAmount: String(o.orderAmount),
+      productCost: String(o.productCost ?? 0),
+      shippingCost: String(o.shippingCost ?? 0),
+      status: o.status,
+      source: o.source,
+      notes: o.notes ?? "",
+      orderDate: o.orderDate ? o.orderDate.split("T")[0] : toIsoDate(new Date()),
+    });
+    setOrderCurrency("MAD");
+    setEditingOrder(o);
+    setShowForm(true);
+    setError("");
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingOrder(null);
+    setForm(defaultForm);
+    setError("");
+  }
 
   const loadAll = useCallback(async () => {
     setClientsLoading(true);
@@ -327,7 +360,7 @@ export default function MyOrders() {
     setSaving(true);
     setError("");
     try {
-      await api.post("/crm/orders", {
+      const payload = {
         ...form,
         closerId: user?.id,
         quantity: Number(form.quantity),
@@ -336,9 +369,13 @@ export default function MyOrders() {
         shippingCost: toMAD(Number(form.shippingCost), orderCurrency),
         adCost: 0,
         orderDate: form.orderDate || undefined,
-      });
-      setForm(defaultForm);
-      setShowForm(false);
+      };
+      if (editingOrder) {
+        await api.put(`/crm/orders/${editingOrder.id}`, payload);
+      } else {
+        await api.post("/crm/orders", payload);
+      }
+      closeForm();
       await Promise.all([loadOrders(), loadAll()]);
     } catch (err: any) {
       setError(err.response?.data?.message || t('myOrders.failedToSave'));
@@ -408,7 +445,7 @@ export default function MyOrders() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => showForm ? closeForm() : setShowForm(true)}
           className="btn-primary flex items-center gap-2"
         >
           {showForm ? (
@@ -500,7 +537,8 @@ export default function MyOrders() {
           className="card p-5 border-2 border-amber-400/30 space-y-4"
         >
           <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <Plus className="w-4 h-4 text-amber-500" /> {t('myOrders.newOrder')}
+            {editingOrder ? <Pencil className="w-4 h-4 text-amber-500" /> : <Plus className="w-4 h-4 text-amber-500" />}
+            {editingOrder ? "Edit Order" : t('myOrders.newOrder')}
           </h3>
 
           {/* Client */}
@@ -704,7 +742,7 @@ export default function MyOrders() {
           <div className="flex gap-3 pt-1">
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={closeForm}
               className="btn-secondary px-5 py-2 text-sm"
             >
               {t('common.cancel')}
@@ -717,7 +755,7 @@ export default function MyOrders() {
               {saving && (
                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               )}
-              {saving ? t('settings.saving') : t('myOrders.submitOrder')}
+              {saving ? t('settings.saving') : editingOrder ? "Save Changes" : t('myOrders.submitOrder')}
             </button>
           </div>
         </form>
@@ -898,13 +936,22 @@ export default function MyOrders() {
                         {formatDate(o.orderDate ?? o.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => setConfirmDeleteId(o.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          title="Delete order"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => startEdit(o)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                            title="Edit order"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(o.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            title="Delete order"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
