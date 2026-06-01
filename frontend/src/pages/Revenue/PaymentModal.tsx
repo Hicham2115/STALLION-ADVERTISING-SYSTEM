@@ -120,7 +120,26 @@ export default function PaymentModal({ open, onClose, payment, clients, onSaved 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">{t('revenue.amountLabel')}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label">{t('revenue.amountLabel')}</label>
+                <div className="flex rounded-lg overflow-hidden border border-slate-700/50">
+                  {CURRENCIES.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCurrency(c)}
+                      className={cn(
+                        'px-2 py-0.5 text-xs font-bold transition-colors',
+                        currency === c
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-transparent text-slate-400 hover:text-white',
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input className="input" type="number" required min="0" step="0.01" value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder="0.00" />
             </div>
             <div>
