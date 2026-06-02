@@ -11,10 +11,19 @@ const MSG_INCLUDE = {
   reactions: { include: { user: { select: { id: true, name: true } } } },
 };
 
+async function resolveAgencyId(req: AuthRequest): Promise<string | null> {
+  if (req.user!.agencyId) return req.user!.agencyId;
+  const dbUser = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { agencyId: true },
+  });
+  return dbUser?.agencyId ?? null;
+}
+
 // GET /api/chat/channels
 router.get('/channels', async (req: AuthRequest, res: Response): Promise<void> => {
   const userId = req.user!.userId;
-  const agencyId = req.user!.agencyId ?? null;
+  const agencyId = await resolveAgencyId(req);
   const channels = await prisma.channel.findMany({
     where: {
       agencyId,
@@ -37,7 +46,7 @@ router.post('/channels', requireRole('MANAGER'), async (req: AuthRequest, res: R
   const { name, description, type = 'PUBLIC', memberIds = [] } = req.body;
   if (!name?.trim()) { res.status(400).json({ message: 'name required' }); return; }
 
-  const agencyId = req.user!.agencyId ?? null;
+  const agencyId = await resolveAgencyId(req);
   const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const existing = await prisma.channel.findFirst({ where: { agencyId, slug } });
   if (existing) { res.status(409).json({ message: `Channel "${slug}" already exists` }); return; }
@@ -148,8 +157,9 @@ router.get('/dm/:userId', async (req: AuthRequest, res: Response): Promise<void>
 
 // GET /api/chat/users
 router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
+  // JWT may be missing agencyId if user logged in before multi-tenancy; look it up from DB
+  const agencyId = await resolveAgencyId(req);
   try {
-    const agencyId = req.user!.agencyId ?? null;
     const users = await prisma.user.findMany({
       where: { agencyId, active: true, suspended: false },
       select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
@@ -158,7 +168,6 @@ router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
     res.json(users);
   } catch {
     // Fallback if suspended column doesn't exist in DB yet
-    const agencyId = req.user!.agencyId ?? null;
     const users = await prisma.user.findMany({
       where: { agencyId, active: true },
       select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
