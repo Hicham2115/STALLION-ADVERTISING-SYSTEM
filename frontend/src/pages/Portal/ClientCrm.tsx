@@ -52,6 +52,7 @@ interface Order {
   quantity: number;
   orderAmount: number;
   netProfit: number;
+  currency?: string | null;
   status: OrderStatus;
   paymentStatus: string;
   source: string;
@@ -669,7 +670,7 @@ export default function ClientCrm() {
                       )}
                     </td>
                     <td className="px-4 py-3 font-semibold text-amber-400">
-                      {fmt(o.orderAmount)}
+                      {fmt(o.orderAmount, (o.currency || 'MAD') as any)}
                     </td>
                     <td className="px-4 py-3 font-semibold">
                       <span

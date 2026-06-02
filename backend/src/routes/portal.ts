@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 import { portalAuthenticate, PortalRequest } from "../middleware/portalAuth";
-import { getRatesCache } from "../lib/currency";
+import { getRatesCache, convert } from "../lib/currency";
 
 const router = Router();
 
@@ -801,21 +801,24 @@ router.get(
         productName: true,
         quantity: true,
         createdAt: true,
+        currency: true,
       },
     });
 
     const totalOrders = orders.length;
     const NON_REVENUE = ["CANCELLED", "REFUSED", "RETURNED"];
     const revenueOrders = orders.filter((o: any) => !NON_REVENUE.includes(o.status));
+    const toMAD = (amount: number, cur: string | null) =>
+      convert(amount, (cur || 'MAD') as any, 'MAD');
     const totalRevenue = revenueOrders.reduce(
-      (s: number, o: any) => s + o.orderAmount,
+      (s: number, o: any) => s + toMAD(o.orderAmount, o.currency),
       0,
     );
     const totalProfit = revenueOrders.reduce(
       (s: number, o: any) => s + o.netProfit,
       0,
     );
-    const totalAdSpend = revenueOrders.reduce((s: number, o: any) => s + o.adCost, 0);
+    const totalAdSpend = revenueOrders.reduce((s: number, o: any) => s + toMAD(o.adCost, o.currency), 0);
     const confirmed = orders.filter(
       (o: any) => o.status === "CONFIRMED",
     ).length;
@@ -830,7 +833,7 @@ router.get(
     const refused = orders.filter((o: any) => o.status === "REFUSED").length;
     const codPending = orders
       .filter((o: any) => o.paymentStatus === "COD_PENDING")
-      .reduce((s: number, o: any) => s + o.orderAmount, 0);
+      .reduce((s: number, o: any) => s + toMAD(o.orderAmount, o.currency), 0);
     const convRate =
       totalOrders > 0
         ? ((confirmed + delivered + shipped) / totalOrders) * 100
@@ -858,7 +861,7 @@ router.get(
         year: "2-digit",
       });
       if (!monthly[key]) monthly[key] = { revenue: 0, profit: 0, orders: 0 };
-      monthly[key].revenue += o.orderAmount;
+      monthly[key].revenue += toMAD(o.orderAmount, o.currency);
       monthly[key].profit += o.netProfit;
       monthly[key].orders += 1;
     }
