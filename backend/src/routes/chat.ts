@@ -157,12 +157,18 @@ router.get('/dm/:userId', async (req: AuthRequest, res: Response): Promise<void>
 
 // GET /api/chat/users
 router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
-  // JWT may be missing agencyId if user logged in before multi-tenancy; look it up from DB
   const agencyId = await resolveAgencyId(req);
-  console.log('[chat/users] agencyId resolved:', agencyId, 'userId:', req.user!.userId);
+  console.log('[chat/users] agencyId:', agencyId, 'userId:', req.user!.userId);
+
+  // Build where clause — if agencyId is null (pre-migration data), return all active users
+  const buildWhere = (extraFilter: Record<string, unknown> = {}) =>
+    agencyId
+      ? { agencyId, active: true, ...extraFilter }
+      : { active: true, ...extraFilter };
+
   try {
     const users = await prisma.user.findMany({
-      where: { agencyId, active: true, suspended: false },
+      where: buildWhere({ suspended: false }),
       select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
       orderBy: { name: 'asc' },
     });
@@ -171,9 +177,8 @@ router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
   } catch (err1) {
     console.warn('[chat/users] primary query failed:', (err1 as Error).message);
     try {
-      // Fallback: drop columns that might not exist yet
       const users = await prisma.user.findMany({
-        where: { agencyId, active: true },
+        where: buildWhere(),
         select: { id: true, name: true, avatar: true, role: true },
         orderBy: { name: 'asc' },
       });
