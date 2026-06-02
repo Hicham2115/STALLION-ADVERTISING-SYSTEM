@@ -191,12 +191,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [authHeader]);
 
   const loadUsers = useCallback(async () => {
-    const [r1, r2] = await Promise.all([
-      fetch(`${API}/api/chat/users`, { headers: authHeader() }),
-      fetch(`${API}/api/chat/channels`, { headers: authHeader() }),
-    ]);
-    setUsers(await r1.json());
-    setChannels(await r2.json());
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch(`${API}/api/chat/users`, { headers: authHeader() }),
+        fetch(`${API}/api/chat/channels`, { headers: authHeader() }),
+      ]);
+      const usersData = await r1.json();
+      const channelsData = await r2.json();
+      if (Array.isArray(usersData)) setUsers(usersData);
+      if (Array.isArray(channelsData)) setChannels(channelsData);
+    } catch (err) {
+      console.error('[chat] loadUsers failed:', err);
+    }
   }, [authHeader]);
 
   const sendChannelMessage = useCallback((channelId: string, content: string, replyToId?: string) => {

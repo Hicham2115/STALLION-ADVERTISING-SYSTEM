@@ -148,13 +148,24 @@ router.get('/dm/:userId', async (req: AuthRequest, res: Response): Promise<void>
 
 // GET /api/chat/users
 router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
-  const agencyId = req.user!.agencyId ?? null;
-  const users = await prisma.user.findMany({
-    where: { agencyId, active: true, suspended: false },
-    select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
-    orderBy: { name: 'asc' },
-  });
-  res.json(users);
+  try {
+    const agencyId = req.user!.agencyId ?? null;
+    const users = await prisma.user.findMany({
+      where: { agencyId, active: true, suspended: false },
+      select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json(users);
+  } catch {
+    // Fallback if suspended column doesn't exist in DB yet
+    const agencyId = req.user!.agencyId ?? null;
+    const users = await prisma.user.findMany({
+      where: { agencyId, active: true },
+      select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json(users);
+  }
 });
 
 // GET /api/chat/search
