@@ -10,7 +10,13 @@ const onlineUsers = new Map<string, string>(); // userId -> socketId
 export function initSocket(httpServer: HttpServer) {
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: [
+        process.env.FRONTEND_URL || 'http://localhost:5173',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'https://stallion-system-front.vercel.app',
+        'https://partners.stallionadvertising.ma',
+      ].filter(Boolean),
       credentials: true,
     },
   });
