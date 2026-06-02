@@ -882,7 +882,7 @@ router.get(
     for (const o of orders) {
       if (!productMap[o.productName])
         productMap[o.productName] = { revenue: 0, count: 0 };
-      productMap[o.productName].revenue += o.orderAmount;
+      productMap[o.productName].revenue += toMAD(o.orderAmount, o.currency);
       productMap[o.productName].count += o.quantity;
     }
     const topProducts = Object.entries(productMap)
