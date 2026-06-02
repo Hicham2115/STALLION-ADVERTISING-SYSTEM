@@ -162,6 +162,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const authHeader = useCallback(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
+  // Load users & channels whenever token becomes available (handles production auth delay)
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const [r1, r2] = await Promise.all([
+          fetch(`${API}/api/chat/users`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API}/api/chat/channels`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        const usersData = await r1.json();
+        const channelsData = await r2.json();
+        if (Array.isArray(usersData)) setUsers(usersData);
+        if (Array.isArray(channelsData)) setChannels(channelsData);
+      } catch (err) {
+        console.error('[chat] initial load failed:', err);
+      }
+    })();
+  }, [token]);
+
   const loadChannelMessages = useCallback(async (channelId: string, before?: string) => {
     const params = new URLSearchParams({ limit: '50' });
     if (before) params.set('before', before);
@@ -191,6 +210,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [authHeader]);
 
   const loadUsers = useCallback(async () => {
+    if (!token) return;
     try {
       const [r1, r2] = await Promise.all([
         fetch(`${API}/api/chat/users`, { headers: authHeader() }),
@@ -203,7 +223,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('[chat] loadUsers failed:', err);
     }
-  }, [authHeader]);
+  }, [token, authHeader]);
 
   const sendChannelMessage = useCallback((channelId: string, content: string, replyToId?: string) => {
     // Optimistic: add immediately to local state so it shows without waiting for echo

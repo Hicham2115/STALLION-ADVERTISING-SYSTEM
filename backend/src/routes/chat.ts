@@ -159,21 +159,30 @@ router.get('/dm/:userId', async (req: AuthRequest, res: Response): Promise<void>
 router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
   // JWT may be missing agencyId if user logged in before multi-tenancy; look it up from DB
   const agencyId = await resolveAgencyId(req);
+  console.log('[chat/users] agencyId resolved:', agencyId, 'userId:', req.user!.userId);
   try {
     const users = await prisma.user.findMany({
       where: { agencyId, active: true, suspended: false },
       select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
       orderBy: { name: 'asc' },
     });
+    console.log('[chat/users] returned', users.length, 'users');
     res.json(users);
-  } catch {
-    // Fallback if suspended column doesn't exist in DB yet
-    const users = await prisma.user.findMany({
-      where: { agencyId, active: true },
-      select: { id: true, name: true, avatar: true, role: true, onlineStatus: true, lastSeen: true },
-      orderBy: { name: 'asc' },
-    });
-    res.json(users);
+  } catch (err1) {
+    console.warn('[chat/users] primary query failed:', (err1 as Error).message);
+    try {
+      // Fallback: drop columns that might not exist yet
+      const users = await prisma.user.findMany({
+        where: { agencyId, active: true },
+        select: { id: true, name: true, avatar: true, role: true },
+        orderBy: { name: 'asc' },
+      });
+      console.log('[chat/users] fallback returned', users.length, 'users');
+      res.json(users);
+    } catch (err2) {
+      console.error('[chat/users] fallback also failed:', (err2 as Error).message);
+      res.status(500).json({ message: 'Failed to load users' });
+    }
   }
 });
 

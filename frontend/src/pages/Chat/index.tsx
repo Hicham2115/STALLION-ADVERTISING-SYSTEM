@@ -571,7 +571,7 @@ export default function Chat() {
     return false;
   });
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { loadUsers(); }, [loadUsers]);
 
   useEffect(() => {
     if (activeChannelId) loadChannelMessages(activeChannelId);
