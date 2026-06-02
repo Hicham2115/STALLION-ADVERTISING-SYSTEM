@@ -57,6 +57,7 @@ interface Order {
   paymentStatus: string;
   source: string;
   closer?: { id: string; name: string } | null;
+  orderDate?: string | null;
   createdAt: string;
 }
 
@@ -706,7 +707,7 @@ export default function ClientCrm() {
                       {o.closer?.name || "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
-                      {new Date(o.createdAt).toLocaleDateString()}
+                      {new Date(o.orderDate ?? o.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))

@@ -716,7 +716,7 @@ router.get(
     const where: any = {
       clientId,
       ...(status && { status }),
-      ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
+      ...(Object.keys(dateFilter).length > 0 && { orderDate: dateFilter }),
       ...(search && {
         OR: [
           { customerName: { contains: search as string, mode: "insensitive" } },
@@ -732,7 +732,7 @@ router.get(
       (prisma as any).crmOrder.findMany({
         where,
         include: { closer: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
+        orderBy: { orderDate: "desc" },
         take,
         skip,
       }),
@@ -788,7 +788,7 @@ router.get(
       dateFilter.gte = start; dateFilter.lte = end;
     }
     const orders = await (prisma as any).crmOrder.findMany({
-      where: { clientId, ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}) },
+      where: { clientId, ...(Object.keys(dateFilter).length ? { orderDate: dateFilter } : {}) },
       select: {
         orderAmount: true,
         netProfit: true,
@@ -800,6 +800,7 @@ router.get(
         source: true,
         productName: true,
         quantity: true,
+        orderDate: true,
         createdAt: true,
         currency: true,
       },
@@ -849,14 +850,14 @@ router.get(
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
     const recentOrders = orders.filter(
-      (o: any) => new Date(o.createdAt) >= sixMonthsAgo,
+      (o: any) => new Date(o.orderDate ?? o.createdAt) >= sixMonthsAgo,
     );
     const monthly: Record<
       string,
       { revenue: number; profit: number; orders: number }
     > = {};
     for (const o of recentOrders) {
-      const key = new Date(o.createdAt).toLocaleString("en-US", {
+      const key = new Date(o.orderDate ?? o.createdAt).toLocaleString("en-US", {
         month: "short",
         year: "2-digit",
       });
