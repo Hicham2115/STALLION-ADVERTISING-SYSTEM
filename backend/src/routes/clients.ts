@@ -165,7 +165,7 @@ router.put('/:id', h(async (req: AuthRequest, res: Response) => {
   // Set productName via raw SQL — avoids Prisma client validation on cached deploys
   if ('productName' in req.body) {
     const pn = productName || null;
-    await prisma.$executeRaw`UPDATE "Client" SET "productName" = ${pn} WHERE id = ${req.params.id}`;
+    await prisma.$executeRaw`UPDATE "clients" SET "productName" = ${pn} WHERE id = ${req.params.id}`;
   }
 
   await prisma.activityLog.create({
