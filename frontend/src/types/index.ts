@@ -229,6 +229,8 @@ export interface Client {
   phone?: string;
   country?: string;
   preferredCurrency: Currency;
+  productName?: string;
+  commissionAmount?: number;
   archived: boolean;
   createdAt: string;
   updatedAt: string;

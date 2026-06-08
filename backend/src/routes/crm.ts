@@ -1122,22 +1122,75 @@ router.get(
     if (userLevel >= ROLE_LEVELS["MANAGER"]) {
       const clients = await prisma.client.findMany({
         where: { archived: false, agencyId },
-        select: { id: true, name: true, services: true, status: true },
+        select: { id: true, name: true, services: true, status: true, productName: true, commissionAmount: true },
         orderBy: { name: "asc" },
       });
       res.json(clients);
       return;
     }
     const clients = await prisma.$queryRaw<
-      { id: string; name: string; services: string[]; status: string }[]
+      { id: string; name: string; services: string[]; status: string; productName: string | null; commissionAmount: number | null }[]
     >`
-    SELECT c.id, c.name, c.services, c.status
+    SELECT c.id, c.name, c.services, c.status, c."productName", c."commissionAmount"
     FROM client_closers cc
     JOIN clients c ON c.id = cc."clientId"
     WHERE cc."userId" = ${req.user!.userId}
     ORDER BY cc."assignedAt" ASC
   `;
     res.json(clients);
+  }),
+);
+
+// ── AGENCY COMMISSIONS ────────────────────────────────────────────────────────
+
+router.get(
+  "/agency-commissions",
+  h(async (req, res) => {
+    const agencyId = req.user!.agencyId ?? null;
+    const clients = await prisma.client.findMany({
+      where: { archived: false, agencyId, commissionAmount: { not: null } },
+      select: {
+        id: true, name: true, productName: true, commissionAmount: true,
+        agencyCommission: { select: { amountPaid: true } },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    const rows = await Promise.all(
+      clients.map(async (c) => {
+        const where: Record<string, unknown> = { clientId: c.id, status: "SHIPPED" };
+        if (c.productName) where.productName = c.productName;
+        const shippedCount = await (prisma as any).crmOrder.count({ where });
+        const totalAmount = (c.commissionAmount ?? 0) * shippedCount;
+        const amountPaid = c.agencyCommission?.amountPaid ?? 0;
+        return {
+          clientId: c.id,
+          clientName: c.name,
+          productName: c.productName,
+          commissionAmount: c.commissionAmount,
+          shippedOrderCount: shippedCount,
+          totalAmount,
+          amountPaid,
+          amountUnpaid: Math.max(0, totalAmount - amountPaid),
+        };
+      }),
+    );
+
+    res.json(rows);
+  }),
+);
+
+router.put(
+  "/agency-commissions/:clientId",
+  h(async (req, res) => {
+    const { clientId } = req.params;
+    const amountPaid = Number(req.body.amountPaid ?? 0);
+    const record = await (prisma as any).agencyCommission.upsert({
+      where: { clientId },
+      update: { amountPaid },
+      create: { clientId, amountPaid },
+    });
+    res.json(record);
   }),
 );
 

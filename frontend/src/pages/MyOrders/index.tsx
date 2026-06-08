@@ -63,6 +63,8 @@ interface MyClient {
   name: string;
   service: string;
   status: string;
+  productName?: string | null;
+  commissionAmount?: number | null;
 }
 interface MyOrder {
   id: string;
@@ -546,7 +548,14 @@ export default function MyOrders() {
               <select
                 className="select mt-1"
                 value={form.clientId}
-                onChange={(e) => set("clientId", e.target.value)}
+                onChange={(e) => {
+                  const selectedClient = clients.find(c => c.id === e.target.value);
+                  setForm(f => ({
+                    ...f,
+                    clientId: e.target.value,
+                    productName: selectedClient?.productName || f.productName,
+                  }));
+                }}
                 required
               >
                 <option value="">Select client…</option>
@@ -609,13 +618,49 @@ export default function MyOrders() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">{t('myOrders.productName')}</label>
-              <input
-                className="input mt-1"
-                value={form.productName}
-                onChange={(e) => set("productName", e.target.value)}
-                placeholder="Product name"
-                required
-              />
+              {(() => {
+                const selectedClient = clients.find(c => c.id === form.clientId);
+                const clientProduct = selectedClient?.productName;
+                if (clientProduct) {
+                  const isCustom = form.productName !== clientProduct && form.productName !== '';
+                  const selectVal = isCustom || form.productName === '' ? '__custom__' : form.productName;
+                  return (
+                    <div className="space-y-1.5">
+                      <select
+                        className="select mt-1"
+                        value={selectVal}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') set("productName", "");
+                          else set("productName", e.target.value);
+                        }}
+                        required={selectVal !== '__custom__'}
+                      >
+                        <option value={clientProduct}>{clientProduct}</option>
+                        <option value="__custom__">Custom…</option>
+                      </select>
+                      {selectVal === '__custom__' && (
+                        <input
+                          className="input"
+                          value={form.productName}
+                          onChange={(e) => set("productName", e.target.value)}
+                          placeholder="Enter product name"
+                          required
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <input
+                    className="input mt-1"
+                    value={form.productName}
+                    onChange={(e) => set("productName", e.target.value)}
+                    placeholder="Product name"
+                    required
+                  />
+                );
+              })()}
             </div>
             <div>
               <label className="label">{t('myOrders.quantity')}</label>

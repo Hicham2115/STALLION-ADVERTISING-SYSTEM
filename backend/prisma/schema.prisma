@@ -253,6 +253,8 @@ model Client {
   phone             String?
   country           String?
   preferredCurrency String           @default("MAD") @map("preferred_currency")
+  productName       String?
+  commissionAmount  Float?
   archived          Boolean          @default(false)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -273,8 +275,20 @@ model Client {
   commissionRules   CommissionRule[]
   assignedClosers   ClientCloser[]
   costs             ClientCost[]
+  agencyCommission  AgencyCommission?
 
   @@map("clients")
+}
+
+model AgencyCommission {
+  id          String   @id @default(cuid())
+  clientId    String   @unique
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amountPaid  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("agency_commissions")
 }
 
 model ClientCost {

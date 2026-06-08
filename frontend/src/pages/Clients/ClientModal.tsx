@@ -18,6 +18,7 @@ const defaultForm = {
   billingFrequency: 'MONTHLY' as BillingFrequency, status: 'ACTIVE' as ClientStatus,
   startDate: new Date().toISOString().split('T')[0], website: '', googleDriveLink: '',
   notes: '', contactPerson: '', email: '', phone: '',
+  productName: '', commissionAmount: '',
 };
 
 function MultiServiceSelect({
@@ -130,6 +131,8 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
         contactPerson: client.contactPerson,
         email: client.email,
         phone: client.phone || '',
+        productName: client.productName || '',
+        commissionAmount: client.commissionAmount !== undefined && client.commissionAmount !== null ? String(client.commissionAmount) : '',
       });
     } else {
       setForm(defaultForm);
@@ -163,6 +166,7 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
       const payload = {
         ...form,
         monthlyFee: parseFloat(form.monthlyFee),
+        commissionAmount: form.commissionAmount !== '' ? parseFloat(form.commissionAmount) : null,
         startDate: new Date(form.startDate).toISOString(),
       };
       if (client) {
@@ -240,6 +244,14 @@ export default function ClientModal({ open, onClose, client, onSaved }: Props) {
             <div>
               <label className="label">{t('clients.modal.phoneLabel')}</label>
               <input className="input" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder={t('clients.modal.phonePlaceholder')} />
+            </div>
+            <div>
+              <label className="label">{t('clients.modal.productNameLabel')}</label>
+              <input className="input" value={form.productName} onChange={(e) => set('productName', e.target.value)} placeholder={t('clients.modal.productNamePlaceholder')} />
+            </div>
+            <div>
+              <label className="label">{t('clients.modal.commissionAmountLabel')}</label>
+              <input className="input" type="number" min="0" step="0.01" value={form.commissionAmount} onChange={(e) => set('commissionAmount', e.target.value)} placeholder="0.00" />
             </div>
             <div className="col-span-2">
               <label className="label">{t('clients.modal.googleDriveLabel')}</label>
