@@ -1,6 +1,6 @@
 -- Add productName and commissionAmount to Client
-ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "productName" TEXT;
-ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "commissionAmount" DOUBLE PRECISION;
+ALTER TABLE "clients" ADD COLUMN IF NOT EXISTS "productName" TEXT;
+ALTER TABLE "clients" ADD COLUMN IF NOT EXISTS "commissionAmount" DOUBLE PRECISION;
 
 -- Create AgencyCommission table
 CREATE TABLE IF NOT EXISTS "agency_commissions" (
