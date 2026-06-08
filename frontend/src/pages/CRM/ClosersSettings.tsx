@@ -52,9 +52,8 @@ export default function ClosersSettings() {
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(
     new Set(),
   );
-  const [commissionType, setCommissionType] =
-    useState<CommissionType>("FIXED_PER_ORDER");
-  const [commissionValue, setCommissionValue] = useState("");
+  const [commissionTypes, setCommissionTypes] = useState<Record<string, CommissionType>>({});
+  const [commissionValues, setCommissionValues] = useState<Record<string, string>>({});
 
   const clientList = useMemo(() => {
     return [...clients].sort((a, b) => a.name.localeCompare(b.name));
@@ -129,8 +128,8 @@ export default function ClosersSettings() {
   function openCommissionModalFor(closer: { id: string; name: string }) {
     setCommissionError("");
     setSelectedClientIds(new Set());
-    setCommissionType("FIXED_PER_ORDER");
-    setCommissionValue("");
+    setCommissionTypes({});
+    setCommissionValues({});
     setCommissionModal({ closerId: closer.id, closerName: closer.name });
   }
 
@@ -140,12 +139,14 @@ export default function ClosersSettings() {
       setCommissionError("Please select at least one client.");
       return;
     }
-    if (!commissionValue || Number(commissionValue) <= 0) {
-      setCommissionError(
-        commissionType === "FIXED_PER_ORDER"
-          ? "Please enter a fixed amount."
-          : "Please enter a percentage.",
-      );
+
+    // Validate each selected client has a valid amount
+    const missingClients = [...selectedClientIds].filter((id) => {
+      const val = commissionValues[id];
+      return val === undefined || val === '' || isNaN(Number(val));
+    });
+    if (missingClients.length > 0) {
+      setCommissionError("Please enter a commission amount for each selected client.");
       return;
     }
 
@@ -156,10 +157,12 @@ export default function ClosersSettings() {
       const selectedClients = clients.filter((c) =>
         selectedClientIds.has(c.id),
       );
-      const valueNum = Number(commissionValue);
 
       await Promise.all(
         selectedClients.map(async (client) => {
+          const valueNum = Number(commissionValues[client.id]);
+          const clientType: CommissionType = commissionTypes[client.id] ?? "FIXED_PER_ORDER";
+
           // Assign closer to client (ignore duplicates)
           try {
             await api.post(`/clients/${client.id}/closers`, {
@@ -181,9 +184,9 @@ export default function ClosersSettings() {
             clientId: client.id,
             closerId: commissionModal.closerId,
             name: `${commissionModal.closerName} · ${client.name}`,
-            type: commissionType,
-            fixedAmount: commissionType === "FIXED_PER_ORDER" ? valueNum : null,
-            percentage: commissionType === "PERCENTAGE" ? valueNum : null,
+            type: clientType,
+            fixedAmount: clientType === "FIXED_PER_ORDER" ? valueNum : null,
+            percentage: clientType === "PERCENTAGE" ? valueNum : null,
             description: null,
           };
 
@@ -469,11 +472,11 @@ export default function ClosersSettings() {
                   clientList.map((client) => {
                     const checked = selectedClientIds.has(client.id);
                     return (
-                      <label
+                      <div
                         key={client.id}
-                        className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-white/60 dark:hover:bg-slate-800 cursor-pointer"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/60 dark:hover:bg-slate-800"
                       >
-                        <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -483,13 +486,45 @@ export default function ClosersSettings() {
                               else next.delete(client.id);
                               setSelectedClientIds(next);
                             }}
-                            className="accent-amber-500"
+                            className="accent-amber-500 shrink-0"
                           />
-                          <span className="text-sm text-slate-800 dark:text-slate-200">
+                          <span className="text-sm text-slate-800 dark:text-slate-200 truncate">
                             {client.name}
                           </span>
-                        </div>
-                      </label>
+                        </label>
+                        {checked && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <select
+                              className="select py-1 text-xs w-24"
+                              value={commissionTypes[client.id] ?? "FIXED_PER_ORDER"}
+                              onChange={(e) => {
+                                setCommissionTypes((prev) => ({
+                                  ...prev,
+                                  [client.id]: e.target.value as CommissionType,
+                                }));
+                                setCommissionValues((prev) => ({ ...prev, [client.id]: "" }));
+                              }}
+                            >
+                              <option value="FIXED_PER_ORDER">Fixed</option>
+                              <option value="PERCENTAGE">Percentage</option>
+                            </select>
+                            <input
+                              type="number"
+                              step={(commissionTypes[client.id] ?? "FIXED_PER_ORDER") === "FIXED_PER_ORDER" ? "0.01" : "0.1"}
+                              max={(commissionTypes[client.id] ?? "FIXED_PER_ORDER") === "PERCENTAGE" ? 100 : undefined}
+                              value={commissionValues[client.id] ?? ""}
+                              onChange={(e) =>
+                                setCommissionValues((prev) => ({
+                                  ...prev,
+                                  [client.id]: e.target.value,
+                                }))
+                              }
+                              placeholder={(commissionTypes[client.id] ?? "FIXED_PER_ORDER") === "FIXED_PER_ORDER" ? "20" : "5"}
+                              className="input w-20 py-1 text-sm"
+                            />
+                          </div>
+                        )}
+                      </div>
                     );
                   })
                 )}
@@ -501,45 +536,11 @@ export default function ClosersSettings() {
                 <button
                   type="button"
                   className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                  onClick={() => setSelectedClientIds(new Set())}
+                  onClick={() => { setSelectedClientIds(new Set()); setCommissionTypes({}); setCommissionValues({}); }}
                   disabled={commissionSaving || selectedClientIds.size === 0}
                 >
                   {t('crm.clear')}
                 </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">{t('crm.commissionType')}</label>
-                <select
-                  className="select mt-1"
-                  value={commissionType}
-                  onChange={(e) =>
-                    setCommissionType(e.target.value as CommissionType)
-                  }
-                >
-                  <option value="FIXED_PER_ORDER">{t('crm.fixedPerOrder')}</option>
-                  <option value="PERCENTAGE">{t('crm.percentageOfSale')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">
-                  {commissionType === "FIXED_PER_ORDER"
-                    ? t('crm.fixedAmountLabel')
-                    : t('crm.percentageLabel')}
-                </label>
-                <input
-                  className="input mt-1"
-                  type="number"
-                  step={commissionType === "FIXED_PER_ORDER" ? "0.01" : "0.1"}
-                  max={commissionType === "PERCENTAGE" ? 100 : undefined}
-                  value={commissionValue}
-                  onChange={(e) => setCommissionValue(e.target.value)}
-                  placeholder={
-                    commissionType === "FIXED_PER_ORDER" ? "20" : "5"
-                  }
-                />
               </div>
             </div>
 
