@@ -77,8 +77,11 @@ export default function App() {
 
   if (isLoading) return <Spinner />;
 
+  // Key forces full remount when user identity changes, clearing all stale state
+  const userKey = user?.id ?? "guest";
+
   return (
-    <ChatProvider>
+    <ChatProvider key={userKey}>
       <Routes>
         {/* Client Portal (always available) */}
         <Route

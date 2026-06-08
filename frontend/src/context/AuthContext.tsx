@@ -108,12 +108,16 @@ export function AuthProvider({ children, clerkSignOut }: AuthProviderProps) {
     );
     setAuthMethod("email");
     localStorage.setItem("stallion_token", data.token);
-    setState({
-      user: data.user,
-      token: data.token,
-      isLoading: false,
-      authMethod: "email",
-    });
+    // Set isLoading true first so the spinner covers the route-tree switch
+    setState({ user: null, token: data.token, isLoading: true, authMethod: "email" });
+    setTimeout(() => {
+      setState({
+        user: data.user,
+        token: data.token,
+        isLoading: false,
+        authMethod: "email",
+      });
+    }, 50);
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
@@ -162,7 +166,11 @@ export function AuthProvider({ children, clerkSignOut }: AuthProviderProps) {
   const clearAppSession = useCallback(() => {
     localStorage.removeItem("stallion_token");
     clearAuthMethod();
-    setState({ user: null, token: null, isLoading: false, authMethod: null });
+    setState({ user: null, token: null, isLoading: true, authMethod: null });
+    // Small delay to let the spinner render before the route tree switches
+    setTimeout(() => {
+      setState((s) => (s.user === null ? { ...s, isLoading: false } : s));
+    }, 50);
   }, []);
 
   const logout = useCallback(() => {

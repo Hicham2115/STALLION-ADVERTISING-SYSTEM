@@ -6,6 +6,11 @@ import { CrmOrder, Client, User, OrderStatus, OrderPaymentStatus, OrderSource } 
 import { cn } from '@/lib/utils';
 import { CrmCurrency, useCrmCurrency } from '@/context/CrmCurrencyContext';
 
+/** Normalize decimal input: replace comma with dot so both separators work */
+function normNum(v: string) {
+  return v.replace(',', '.');
+}
+
 function useAssignedClosers(clientId: string, allUsers: User[]) {
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
 
@@ -119,7 +124,19 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">{t('clients.title').replace('s', '')} *</label>
-              <select className="select mt-1" value={form.clientId} onChange={e => set('clientId', e.target.value)} required>
+              <select
+                className="select mt-1"
+                value={form.clientId}
+                onChange={e => {
+                  const selectedClient = clients.find(c => c.id === e.target.value);
+                  setForm(f => ({
+                    ...f,
+                    clientId: e.target.value,
+                    productName: selectedClient?.productName || f.productName,
+                  }));
+                }}
+                required
+              >
                 <option value="">{t('crm.allClients').replace('All ', 'Select ') + '…'}</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -156,7 +173,43 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">{t('crm.productName')}</label>
-              <input className="input mt-1" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Product name" required />
+              {(() => {
+                const selectedClient = clients.find(c => c.id === form.clientId);
+                const clientProduct = selectedClient?.productName;
+                if (clientProduct) {
+                  const isCustom = form.productName !== clientProduct && form.productName !== '';
+                  const selectVal = isCustom ? '__custom__' : (form.productName || clientProduct);
+                  return (
+                    <div className="space-y-1.5">
+                      <select
+                        className="select mt-1"
+                        value={selectVal}
+                        onChange={e => {
+                          if (e.target.value === '__custom__') set('productName', '');
+                          else set('productName', e.target.value);
+                        }}
+                        required={selectVal !== '__custom__'}
+                      >
+                        <option value={clientProduct}>{clientProduct}</option>
+                        <option value="__custom__">Custom…</option>
+                      </select>
+                      {selectVal === '__custom__' && (
+                        <input
+                          className="input"
+                          value={form.productName}
+                          onChange={e => set('productName', e.target.value)}
+                          placeholder="Enter product name"
+                          required
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <input className="input mt-1" value={form.productName} onChange={e => set('productName', e.target.value)} placeholder="Product name" required />
+                );
+              })()}
             </div>
             <div>
               <label className="label">{t('crm.quantity')}</label>
@@ -187,19 +240,19 @@ export default function OrderModal({ order, clients, users, onClose, onSaved }: 
                   ))}
                 </div>
               </div>
-              <input className="input mt-1" type="number" step="0.01" value={form.orderAmount} onChange={e => set('orderAmount', e.target.value)} placeholder="0" required />
+              <input className="input mt-1" inputMode="decimal" value={form.orderAmount} onChange={e => set('orderAmount', normNum(e.target.value))} placeholder="0" required />
             </div>
             <div>
               <label className="label">{t('crm.productCost')}</label>
-              <input className="input mt-1" type="number" step="0.01" value={form.productCost} onChange={e => set('productCost', e.target.value)} placeholder="0" />
+              <input className="input mt-1" inputMode="decimal" value={form.productCost} onChange={e => set('productCost', normNum(e.target.value))} placeholder="0" />
             </div>
             <div>
               <label className="label">{t('crm.shippingCost')}</label>
-              <input className="input mt-1" type="number" step="0.01" value={form.shippingCost} onChange={e => set('shippingCost', e.target.value)} placeholder="0" />
+              <input className="input mt-1" inputMode="decimal" value={form.shippingCost} onChange={e => set('shippingCost', normNum(e.target.value))} placeholder="0" />
             </div>
             <div>
               <label className="label">{t('crm.adCost')}</label>
-              <input className="input mt-1" type="number" step="0.01" value={form.adCost} onChange={e => set('adCost', e.target.value)} placeholder="0" />
+              <input className="input mt-1" inputMode="decimal" value={form.adCost} onChange={e => set('adCost', normNum(e.target.value))} placeholder="0" />
             </div>
           </div>
 
