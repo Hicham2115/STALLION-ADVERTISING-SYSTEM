@@ -10,7 +10,7 @@ CREATE TYPE "MessageType" AS ENUM ('TEXT', 'FILE', 'IMAGE', 'SYSTEM');
 CREATE TABLE "channels" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
+    "slug" TEXT NOT NULL, 
     "description" TEXT,
     "type" "ChannelType" NOT NULL DEFAULT 'PUBLIC',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
