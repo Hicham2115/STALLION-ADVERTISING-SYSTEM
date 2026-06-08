@@ -254,8 +254,8 @@ export default function ClosersSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {closers.map((c) => (
             <div key={c.id} className="card p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-sm font-bold shrink-0 overflow-hidden">
                     {c.avatar ? (
                       <img
@@ -267,18 +267,18 @@ export default function ClosersSettings() {
                       getInitials(c.name)
                     )}
                   </div>
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-white">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-900 dark:text-white truncate">
                       {c.name}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-500 truncate">
                       {c.role.replace(/_/g, " ")} · {c.email}
                       {c.phone ? ` · ${c.phone}` : ""}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5"
                     onClick={() =>
@@ -300,7 +300,7 @@ export default function ClosersSettings() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <Stat label={t('crm.totalOrders')} value={c.totalOrders} />
                 <Stat label={t('crm.confirmed')} value={c.confirmedOrders} />
                 <Stat label={t('crm.shipped')} value={c.shippedOrders} />
