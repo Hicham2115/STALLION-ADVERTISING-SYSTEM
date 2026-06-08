@@ -110,7 +110,7 @@ router.delete('/:id/costs/:costId', h(async (req: AuthRequest, res: Response) =>
 
 // POST /api/clients
 router.post('/', h(async (req: AuthRequest, res: Response) => {
-  const { startDate, monthlyFee, commissionAmount, ...rest } = req.body;
+  const { startDate, monthlyFee, commissionAmount, productName, ...rest } = req.body;
 
   if (!rest.name) { res.status(400).json({ message: 'Client name is required' }); return; }
   if (!rest.contactPerson) { res.status(400).json({ message: 'Contact person is required' }); return; }
@@ -127,10 +127,13 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
       googleDriveLink: rest.googleDriveLink || null,
       notes: rest.notes || null,
       phone: rest.phone || null,
-      productName: rest.productName || null,
       agencyId: req.user!.agencyId ?? null,
     },
   });
+
+  // Set productName via raw SQL — avoids Prisma client validation on cached deploys
+  const pn = productName || null;
+  await prisma.$executeRaw`UPDATE "Client" SET "productName" = ${pn} WHERE id = ${client.id}`;
 
   await prisma.activityLog.create({
     data: {
@@ -147,7 +150,7 @@ router.post('/', h(async (req: AuthRequest, res: Response) => {
 
 // PUT /api/clients/:id
 router.put('/:id', h(async (req: AuthRequest, res: Response) => {
-  const { startDate, monthlyFee, ...rest } = req.body;
+  const { startDate, monthlyFee, productName, ...rest } = req.body;
   const data: Record<string, unknown> = { ...rest };
   if (startDate) data.startDate = toDate(startDate);
   if (monthlyFee !== undefined) data.monthlyFee = Number(monthlyFee);
@@ -155,10 +158,15 @@ router.put('/:id', h(async (req: AuthRequest, res: Response) => {
   if ('googleDriveLink' in rest) data.googleDriveLink = rest.googleDriveLink || null;
   if ('notes' in rest) data.notes = rest.notes || null;
   if ('phone' in rest) data.phone = rest.phone || null;
-  if ('productName' in rest) data.productName = rest.productName || null;
   if ('commissionAmount' in rest) data.commissionAmount = rest.commissionAmount !== undefined && rest.commissionAmount !== '' ? Number(rest.commissionAmount) : null;
 
   const client = await prisma.client.update({ where: { id: req.params.id }, data });
+
+  // Set productName via raw SQL — avoids Prisma client validation on cached deploys
+  if ('productName' in req.body) {
+    const pn = productName || null;
+    await prisma.$executeRaw`UPDATE "Client" SET "productName" = ${pn} WHERE id = ${req.params.id}`;
+  }
 
   await prisma.activityLog.create({
     data: {
