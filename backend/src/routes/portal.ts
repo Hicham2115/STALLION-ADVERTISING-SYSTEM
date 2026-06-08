@@ -1078,4 +1078,60 @@ router.get(
   },
 );
 
+// ── Closers (client view) ─────────────────────────────────────────────────────
+
+router.get(
+  "/crm/closers",
+  portalAuthenticate,
+  async (req: PortalRequest, res: Response): Promise<void> => {
+    const clientId = req.portalUser!.clientId;
+
+    const assigned = await prisma.$queryRaw<
+      { id: string; name: string; email: string; avatar: string | null; role: string }[]
+    >`
+      SELECT u.id, u.name, u.email, u.avatar, u.role
+      FROM client_closers cc
+      JOIN users u ON u.id = cc."userId"
+      WHERE cc."clientId" = ${clientId}
+      ORDER BY cc."assignedAt" ASC
+    `;
+
+    // Client-level stats (all orders for this client, regardless of who submitted them)
+    const [totalOrders, confirmedOrders, shippedOrders, agencyComm, clientData] =
+      await Promise.all([
+        (prisma as any).crmOrder.count({ where: { clientId } }),
+        (prisma as any).crmOrder.count({
+          where: { clientId, status: { in: ['CONFIRMED', 'SHIPPED', 'DELIVERED'] } },
+        }),
+        (prisma as any).crmOrder.count({ where: { clientId, status: 'SHIPPED' } }),
+        (prisma as any).agencyCommission.findUnique({ where: { clientId } }),
+        prisma.client.findUnique({
+          where: { id: clientId },
+          select: { commissionAmount: true },
+        }),
+      ]);
+
+    const commissionPerOrder = clientData?.commissionAmount ?? 0;
+    const totalEarned = commissionPerOrder * shippedOrders;
+    const amountPaid = agencyComm?.amountPaid ?? 0;
+    const amountUnpaid = Math.max(0, totalEarned - amountPaid);
+
+    const rows = assigned.map((closer) => ({
+      id: closer.id,
+      name: closer.name,
+      email: closer.email,
+      avatar: closer.avatar,
+      role: closer.role,
+      totalOrders,
+      confirmedOrders,
+      shippedOrders,
+      totalEarned,
+      amountPaid,
+      amountUnpaid,
+    }));
+
+    res.json(rows);
+  },
+);
+
 export default router;

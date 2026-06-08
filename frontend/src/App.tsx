@@ -32,6 +32,7 @@ import Invoices from "@/pages/Portal/Invoices";
 import PortalMeetings from "@/pages/Portal/Meetings";
 import PortalProfile from "@/pages/Portal/Profile";
 import ClientCrm from "@/pages/Portal/ClientCrm";
+import PortalClosers from "@/pages/Portal/PortalClosers";
 
 import PortalClientsPage from "@/pages/Admin/PortalClients";
 import ClientPortalDetail from "@/pages/Admin/PortalClients/ClientPortalDetail";
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="updates" element={<Updates />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="orders" element={<ClientCrm />} />
+          <Route path="closers" element={<PortalClosers />} />
           <Route path="meetings" element={<PortalMeetings />} />
           <Route path="profile" element={<PortalProfile />} />
         </Route>

@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Receipt,
   Globe,
+  Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn as cnUtil } from "@/lib/utils";
@@ -50,6 +51,7 @@ function PortalLayoutContent() {
     { to: "/portal/analytics", icon: BarChart2, label: t('portal.kpis') },
     { to: "/portal/costs", icon: Receipt, label: t('portal.costs') },
     { to: "/portal/orders", icon: ShoppingCart, label: t('portal.orders') },
+    { to: "/portal/closers", icon: Users, label: "Closers" },
     { to: "/portal/content", icon: Image, label: t('portal.content') },
     { to: "/portal/updates", icon: GitBranch, label: t('portal.updates') },
     { to: "/portal/invoices", icon: FileText, label: t('portal.invoices') },
