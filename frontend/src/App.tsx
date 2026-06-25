@@ -128,7 +128,9 @@ export default function App() {
               <Route
                 index
                 element={
-                  <Dashboard />
+                  <ManagerRoute>
+                    <Dashboard />
+                  </ManagerRoute>
                 }
               />
               <Route
